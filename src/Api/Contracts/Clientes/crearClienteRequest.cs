@@ -1,4 +1,4 @@
-namespace DistryFresasLY.Api.Contracts.Clientes;
+namespace DistriFresasLY.Api.Contracts.Clientes;
 
 public record CrearClienteRequest(
     string Nombre,

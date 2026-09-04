@@ -37,6 +37,22 @@
           }
         }
       },
+      "Scalar.AspNetCore/2.17.2": {
+        "type": "package",
+        "compile": {
+          "lib/net10.0/Scalar.AspNetCore.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/Scalar.AspNetCore.dll": {
+            "related": ".xml"
+          }
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
+      },
       "Application/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
@@ -113,6 +129,25 @@
         "microsoft.openapi.nuspec"
       ]
     },
+    "Scalar.AspNetCore/2.17.2": {
+      "sha512": "ciW2HuRWJgNEecophHN9DvoRlTs/+8TNPhB6tQW1gmJWh/eoAIO0ys8XIxx7irUpIu3KRHZyxyuHstqqrTn1Tw==",
+      "type": "package",
+      "path": "scalar.aspnetcore/2.17.2",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "icon.png",
+        "lib/net10.0/Scalar.AspNetCore.dll",
+        "lib/net10.0/Scalar.AspNetCore.xml",
+        "lib/net8.0/Scalar.AspNetCore.dll",
+        "lib/net8.0/Scalar.AspNetCore.xml",
+        "lib/net9.0/Scalar.AspNetCore.dll",
+        "lib/net9.0/Scalar.AspNetCore.xml",
+        "scalar.aspnetcore.2.17.2.nupkg.sha512",
+        "scalar.aspnetcore.nuspec"
+      ]
+    },
     "Application/1.0.0": {
       "type": "project",
       "path": "../Application/Application.csproj",
@@ -132,8 +167,10 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "Application >= 1.0.0",
+      "Domain >= 1.0.0",
       "Infrastructure >= 1.0.0",
-      "Microsoft.AspNetCore.OpenApi >= 10.0.11"
+      "Microsoft.AspNetCore.OpenApi >= 10.0.11",
+      "Scalar.AspNetCore >= 2.17.2"
     ]
   },
   "packageFolders": {
@@ -165,6 +202,9 @@
             "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Application\\Application.csproj": {
               "projectPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Application\\Application.csproj"
             },
+            "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\Domain.csproj": {
+              "projectPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\Domain.csproj"
+            },
             "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Infrastructure\\Infrastructure.csproj": {
               "projectPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Infrastructure\\Infrastructure.csproj"
             }
@@ -191,6 +231,10 @@
           "Microsoft.AspNetCore.OpenApi": {
             "target": "Package",
             "version": "[10.0.11, )"
+          },
+          "Scalar.AspNetCore": {
+            "target": "Package",
+            "version": "[2.17.2, )"
           }
         },
         "imports": [
