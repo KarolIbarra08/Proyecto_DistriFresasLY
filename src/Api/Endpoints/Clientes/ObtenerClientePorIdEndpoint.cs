@@ -8,7 +8,7 @@ public class ObtenerClientePorIdEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/clientes/{id:int}", Manejador)
+        app.MapGet("/clientes/{id:int}", Manejador)
            .WithName("ObtenerClientePorId")
            .WithTags("Clientes")
            .WithSummary("Obtiene el detalle de un cliente por su ID");

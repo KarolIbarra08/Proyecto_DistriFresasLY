@@ -7,7 +7,7 @@ public class ObtenerClientesEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/clientes", Manejador)
+        app.MapGet("/clientes", Manejador)
            .WithName("ObtenerClientes")
            .WithTags("Clientes")
            .WithSummary("Obtiene la lista de clientes registrados");

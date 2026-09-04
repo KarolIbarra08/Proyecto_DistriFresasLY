@@ -8,7 +8,7 @@ public class CrearClienteEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/clientes", Manejador)
+        app.MapPost("/clientes", Manejador)
            .WithName("CrearCliente")
            .WithTags("Clientes")
            .WithSummary("Registra un nuevo cliente");

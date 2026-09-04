@@ -7,7 +7,7 @@ public class EliminarClienteEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapDelete("/api/clientes/{id:int}", Manejador)
+        app.MapDelete("/clientes/{id:int}", Manejador)
            .WithName("EliminarCliente")
            .WithTags("Clientes")
            .WithSummary("Elimina un cliente por su ID");

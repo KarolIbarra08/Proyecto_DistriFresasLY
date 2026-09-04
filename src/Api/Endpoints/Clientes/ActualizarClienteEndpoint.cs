@@ -8,7 +8,7 @@ public class ActualizarClienteEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPut("/api/clientes/{id:int}", Manejador)
+        app.MapPut("/clientes/{id:int}", Manejador)
            .WithName("ActualizarCliente")
            .WithTags("Clientes")
            .WithSummary("Actualiza los datos de un cliente existente");
@@ -21,19 +21,22 @@ public class ActualizarClienteEndpoint : IEndpoint
         {
             Result<ClienteResponse> errorResult = Error.NotFound(
                 "Cliente.NotFound",
-                $"No se encontro un cliente con el Id: {id}");
+                $"No se encontró un cliente con el Id: {id}");
 
             return errorResult.ToHttpResult();
         }
 
-        var clienteActualizado = new ClienteResponse(
-            Id: id,
-            Nombre: request.Nombre.Trim(),
-            CedulaNit: request.CedulaNit.Trim(),
-            Telefono: request.Telefono?.Trim() ?? string.Empty,
-            Direccion: request.Direccion?.Trim() ?? string.Empty,
-            TipoNegocio: request.TipoNegocio?.Trim() ?? string.Empty
-        );
+        var clienteExistente = ClienteDataStore.ClientesDb[index];
+
+      
+        var clienteActualizado = clienteExistente with
+        {
+            Nombre = !string.IsNullOrWhiteSpace(request.Nombre) ? request.Nombre.Trim() : clienteExistente.Nombre,
+            CedulaNit = !string.IsNullOrWhiteSpace(request.CedulaNit) ? request.CedulaNit.Trim() : clienteExistente.CedulaNit,
+            Telefono = !string.IsNullOrWhiteSpace(request.Telefono) ? request.Telefono.Trim() : clienteExistente.Telefono,
+            Direccion = !string.IsNullOrWhiteSpace(request.Direccion) ? request.Direccion.Trim() : clienteExistente.Direccion,
+            TipoNegocio = !string.IsNullOrWhiteSpace(request.TipoNegocio) ? request.TipoNegocio.Trim() : clienteExistente.TipoNegocio
+        };
 
         ClienteDataStore.ClientesDb[index] = clienteActualizado;
 
