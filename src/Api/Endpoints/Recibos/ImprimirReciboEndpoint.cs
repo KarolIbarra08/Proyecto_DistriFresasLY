@@ -27,8 +27,8 @@ public class ImprimirReciboEndpoint : IEndpoint
 
         var reciboTexto = $"""
         ========================================
-                   DISTRIFRESAS LY              
-               COMPROBANTE DE RECIBO            
+                    DISTRIFRESAS LY              
+                COMPROBANTE DE RECIBO            
         ========================================
         No. Recibo   : #{recibo.NumeroRecibo}
         Fecha        : {recibo.FechaRecibo:dd/MM/yyyy HH:mm}
@@ -36,7 +36,7 @@ public class ImprimirReciboEndpoint : IEndpoint
         ----------------------------------------
         TOTAL PAGADO : ${recibo.Total:N2}
         ========================================
-               ¡Gracias por su compra!          
+                    ¡Gracias por su compra!          
         """;
 
         Result<string> successResult = Result.Success(reciboTexto);

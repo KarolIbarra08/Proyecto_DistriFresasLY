@@ -5,5 +5,5 @@ public record DetalleVentaResponse(
     int Cantidad,
     decimal PrecioUnitario,
     decimal Subtotal,
-    decimal VentaTotal
+    decimal TotalVenta
 );

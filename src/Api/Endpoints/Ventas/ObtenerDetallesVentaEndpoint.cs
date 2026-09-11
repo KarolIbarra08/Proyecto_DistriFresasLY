@@ -19,21 +19,20 @@ public class ObtenerDetallesVentaEndpoint : IEndpoint
         var venta = VentaDataStore.VentasDb.FirstOrDefault(v => v.Id == ventaId);
         if (venta is null)
         {
-            Result<List<DetalleVentaResponse>> errorResult = Error.NotFound(
+            return Result.Failure<List<DetalleVentaResponse>>(Error.NotFound(
                 "Venta.NotFound",
-                $"No se encontro una venta con el Id: {ventaId}");
-
-            return errorResult.ToHttpResult();
+                $"No se encontro una venta con el Id: {ventaId}"))
+                .ToHttpResult();
         }
 
-        
-        var detalles = venta.Detalles?.Select(d => new DetalleVentaResponse(
-            d.ProductoId,
-            d.Cantidad,
-            d.PrecioUnitario,
-            d.Subtotal,
-            venta.Total
-        )).ToList() ?? [];
+        var detalles = (venta.Detalles ?? Enumerable.Empty<DetalleVentaModel>())
+            .Select(d => new DetalleVentaResponse(
+                d.ProductoId,
+                d.Cantidad,
+                d.PrecioUnitario,
+                d.Subtotal,
+                venta.Total
+            )).ToList();
 
         return Result.Success(detalles).ToHttpResult();
     }

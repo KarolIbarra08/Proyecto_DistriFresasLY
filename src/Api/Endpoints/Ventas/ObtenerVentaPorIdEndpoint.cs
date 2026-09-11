@@ -19,11 +19,10 @@ public class ObtenerVentaPorIdEndpoint : IEndpoint
         var venta = VentaDataStore.VentasDb.FirstOrDefault(v => v.Id == id);
         if (venta is null)
         {
-            Result<VentaResponse> errorResult = Error.NotFound(
+            return Result.Failure<VentaResponse>(Error.NotFound(
                 "Venta.NotFound",
-                $"No se encontró una venta con el Id: {id}");
-
-            return errorResult.ToHttpResult();
+                $"No se encontró una venta con el Id: {id}"))
+                .ToHttpResult();
         }
 
         var response = new VentaResponse(

@@ -19,16 +19,14 @@ public class ActualizarVentaEndpoint : IEndpoint
         var index = VentaDataStore.VentasDb.FindIndex(v => v.Id == id);
         if (index == -1)
         {
-            Result<VentaResponse> errorResult = Error.NotFound(
+            return Result.Failure<VentaResponse>(Error.NotFound(
                 "Venta.NotFound",
-                $"No se encontro una venta con el Id: {id}");
-
-            return errorResult.ToHttpResult();
+                $"No se encontro una venta con el Id: {id}"))
+                .ToHttpResult();
         }
 
         var ventaExistente = VentaDataStore.VentasDb[index];
 
-   
         List<DetalleVentaModel>? nuevosDetalles = request.Detalles?.Select(d => new DetalleVentaModel(
             d.ProductoId,
             d.Cantidad,
@@ -36,11 +34,19 @@ public class ActualizarVentaEndpoint : IEndpoint
             d.PrecioUnitario * d.Cantidad
         )).ToList();
 
+        var detallesFinales = nuevosDetalles ?? ventaExistente.Detalles;
+        
+
+        decimal nuevoTotal = nuevosDetalles != null 
+            ? detallesFinales.Sum(x => x.Subtotal) 
+            : ventaExistente.Total;
+
         var ventaActualizada = ventaExistente with
         {
             ClienteId = request.ClienteId ?? ventaExistente.ClienteId,
             Estado = !string.IsNullOrWhiteSpace(request.Estado) ? request.Estado.Trim() : ventaExistente.Estado,
-            Detalles = nuevosDetalles ?? ventaExistente.Detalles
+            Detalles = detallesFinales,
+            Total = nuevoTotal
         };
 
         VentaDataStore.VentasDb[index] = ventaActualizada;

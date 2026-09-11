@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
 using DistriFresasLY.Api.Contracts.Ventas;
+using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 
@@ -14,38 +16,68 @@ public class CrearVentaEndpoint : IEndpoint
            .WithSummary("Registra una nueva venta");
     }
 
-    private static IResult Manejador(CrearVentaRequest request)
+    private static IResult Manejador([FromBody] CrearVentaRequest request)
     {
+        
         if (request.Detalles is null || !request.Detalles.Any())
         {
-            Result<VentaResponse> validationResult = Error.Validation(
+            return Result.Failure(Error.Validation(
                 "Venta.Validacion",
-                "La venta debe incluir al menos un producto en el detalle.");
-
-            return validationResult.ToHttpResult();
+                "La venta debe incluir al menos un producto en el detalle."))
+                .ToHttpResult();
         }
 
-        
+        foreach (var d in request.Detalles)
+        {
+            var index = InventarioDataStore.InventarioDb.FindIndex(i => i.ProductoId == d.ProductoId);
+            
+            if (index == -1)
+            {
+                return Result.Failure(Error.NotFound(
+                    "Inventario.NotFound",
+                    $"No existe registro de inventario para el producto ID: {d.ProductoId}"))
+                    .ToHttpResult();
+            }
+
+            var itemStock = InventarioDataStore.InventarioDb[index];
+
+            if (itemStock.CantidadDisponible < d.Cantidad)
+            {
+                return Result.Failure(Error.Validation(
+                    "Inventario.StockInsuficiente",
+                    $"Stock insuficiente para el producto {d.ProductoId}. Disponible: {itemStock.CantidadDisponible}, Requerido: {d.Cantidad}"))
+                    .ToHttpResult();
+            }
+
+
+            InventarioDataStore.InventarioDb[index] = itemStock with
+            {
+                CantidadDisponible = itemStock.CantidadDisponible - d.Cantidad,
+                FechaActualizacion = DateTime.Now
+            };
+        }
+
+
         var detallesModel = request.Detalles.Select(d => new DetalleVentaModel(
             d.ProductoId,
             d.Cantidad,
             d.PrecioUnitario,
-            d.PrecioUnitario * d.Cantidad // En la API se asigna directamente
+            d.PrecioUnitario * d.Cantidad
         )).ToList();
 
         var nuevoId = VentaDataStore.VentasDb.Count != 0 
             ? VentaDataStore.VentasDb.Max(v => v.Id) + 1 
             : 1;
 
-
         var nuevaVenta = new VentaModel(
-            Id: nuevoId,
-            FechaVenta: DateTime.Now,
-            Total: detallesModel.Sum(x => x.Subtotal), 
-            Estado: "Pendiente",
-            ClienteId: request.ClienteId,
-            Detalles: detallesModel 
+            nuevoId,
+            DateTime.Now,
+            detallesModel.Sum(x => x.Subtotal),
+            "Pendiente",
+            request.ClienteId,
+            detallesModel
         );
+
 
         VentaDataStore.VentasDb.Add(nuevaVenta);
 
@@ -57,7 +89,6 @@ public class CrearVentaEndpoint : IEndpoint
             nuevaVenta.ClienteId
         );
 
-        Result<VentaResponse> createdResult = Result.Success(response);
-        return createdResult.ToHttpCreatedAtResult($"/api/ventas/{nuevaVenta.Id}");
+        return Result.Success(response).ToHttpCreatedAtResult($"/api/ventas/{nuevaVenta.Id}");
     }
 }

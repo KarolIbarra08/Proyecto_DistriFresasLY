@@ -17,16 +17,27 @@ public class GenerarReciboEndpoint : IEndpoint
 
     private static IResult Manejador(GenerarReciboRequest request)
     {
+
         var venta = VentaDataStore.VentasDb.FirstOrDefault(v => v.Id == request.VentaId);
         if (venta is null)
         {
-            Result<ReciboResponse> errorResult = Error.NotFound(
+            return Result.Failure<ReciboResponse>(Error.NotFound(
                 "Recibo.VentaNotFound",
-                $"No se encontro la venta #{request.VentaId} para generar el recibo.");
-
-            return errorResult.ToHttpResult();
+                $"No se encontro la venta #{request.VentaId} para generar el recibo."))
+                .ToHttpResult();
         }
 
+        
+        var reciboExistente = ReciboDataStore.RecibosDb.FirstOrDefault(r => r.VentaId == request.VentaId);
+        if (reciboExistente is not null)
+        {
+            return Result.Failure<ReciboResponse>(Error.Conflict(
+                "Recibo.AlreadyExists",
+                $"Ya existe un recibo (No. #{reciboExistente.NumeroRecibo}) generado para la venta #{request.VentaId}."))
+                .ToHttpResult();
+        }
+
+  
         var nuevoId = ReciboDataStore.RecibosDb.Count != 0 
             ? ReciboDataStore.RecibosDb.Max(r => r.Id) + 1 
             : 1;
@@ -34,6 +45,7 @@ public class GenerarReciboEndpoint : IEndpoint
         var consecutivo = ReciboDataStore.RecibosDb.Count != 0 
             ? ReciboDataStore.RecibosDb.Max(r => r.NumeroRecibo) + 1 
             : 1001;
+
 
         var nuevoRecibo = new ReciboModel(
             Id: nuevoId,
@@ -45,6 +57,7 @@ public class GenerarReciboEndpoint : IEndpoint
 
         ReciboDataStore.RecibosDb.Add(nuevoRecibo);
 
+ 
         var response = new ReciboResponse(
             nuevoRecibo.Id,
             nuevoRecibo.FechaRecibo,
@@ -53,7 +66,6 @@ public class GenerarReciboEndpoint : IEndpoint
             nuevoRecibo.VentaId
         );
 
-        Result<ReciboResponse> createdResult = Result.Success(response);
-        return createdResult.ToHttpCreatedAtResult($"/api/recibos/{nuevoRecibo.Id}");
+        return Result.Success(response).ToHttpCreatedAtResult($"/api/recibos/{nuevoRecibo.Id}");
     }
 }

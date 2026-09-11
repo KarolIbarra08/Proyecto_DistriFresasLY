@@ -24,7 +24,6 @@ public class ObtenerVentasEndpoint : IEndpoint
             v.ClienteId
         )).ToList();
 
-        Result<List<VentaResponse>> successResult = Result.Success(lista);
-        return successResult.ToHttpResult();
+        return Result.Success(lista).ToHttpResult();
     }
 }

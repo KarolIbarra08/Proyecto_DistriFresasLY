@@ -19,16 +19,14 @@ public class EliminarVentaEndpoint : IEndpoint
         var index = VentaDataStore.VentasDb.FindIndex(v => v.Id == id);
         if (index == -1)
         {
-            Result<bool> errorResult = Error.NotFound(
+            return Result.Failure<bool>(Error.NotFound(
                 "Venta.NotFound",
-                $"No se encontró una venta con el Id: {id}");
-
-            return errorResult.ToHttpResult();
+                $"No se encontró una venta con el Id: {id}"))
+                .ToHttpResult();
         }
 
         VentaDataStore.VentasDb.RemoveAt(index);
 
-        Result<bool> successResult = Result.Success(true);
-        return successResult.ToHttpResult();
+        return Result.Success(true).ToHttpResult();
     }
 }
