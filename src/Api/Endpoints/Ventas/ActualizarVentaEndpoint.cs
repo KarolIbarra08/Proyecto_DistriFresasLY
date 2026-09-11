@@ -11,7 +11,7 @@ public class ActualizarVentaEndpoint : IEndpoint
         app.MapPut("/ventas/{id:int}", Manejador)
            .WithName("ActualizarVenta")
            .WithTags("Ventas")
-           .WithSummary("Actualiza la información de una venta existente");
+           .WithSummary("Actualiza la informacion de una venta existente");
     }
 
     private static IResult Manejador(int id, ActualizarVentaRequest request)
@@ -21,24 +21,26 @@ public class ActualizarVentaEndpoint : IEndpoint
         {
             Result<VentaResponse> errorResult = Error.NotFound(
                 "Venta.NotFound",
-                $"No se encontró una venta con el Id: {id}");
+                $"No se encontro una venta con el Id: {id}");
 
             return errorResult.ToHttpResult();
         }
 
         var ventaExistente = VentaDataStore.VentasDb[index];
 
-        decimal nuevoTotal = ventaExistente.Total;
-        if (request.Detalles is not null && request.Detalles.Any())
-        {
-            nuevoTotal = request.Detalles.Sum(d => d.Cantidad * d.PrecioUnitario);
-        }
+   
+        List<DetalleVentaModel>? nuevosDetalles = request.Detalles?.Select(d => new DetalleVentaModel(
+            d.ProductoId,
+            d.Cantidad,
+            d.PrecioUnitario,
+            d.PrecioUnitario * d.Cantidad
+        )).ToList();
 
         var ventaActualizada = ventaExistente with
         {
             ClienteId = request.ClienteId ?? ventaExistente.ClienteId,
             Estado = !string.IsNullOrWhiteSpace(request.Estado) ? request.Estado.Trim() : ventaExistente.Estado,
-            Total = nuevoTotal
+            Detalles = nuevosDetalles ?? ventaExistente.Detalles
         };
 
         VentaDataStore.VentasDb[index] = ventaActualizada;

@@ -11,7 +11,7 @@ public class CrearVentaEndpoint : IEndpoint
         app.MapPost("/ventas", Manejador)
            .WithName("CrearVenta")
            .WithTags("Ventas")
-           .WithSummary("Registra una nueva venta y calcula su total automáticamente");
+           .WithSummary("Registra una nueva venta");
     }
 
     private static IResult Manejador(CrearVentaRequest request)
@@ -25,19 +25,26 @@ public class CrearVentaEndpoint : IEndpoint
             return validationResult.ToHttpResult();
         }
 
-        // calcularTotal(): Calcula el total recorriendo los detalles recibidos
-        decimal totalCalculado = request.Detalles.Sum(d => d.Cantidad * d.PrecioUnitario);
+        
+        var detallesModel = request.Detalles.Select(d => new DetalleVentaModel(
+            d.ProductoId,
+            d.Cantidad,
+            d.PrecioUnitario,
+            d.PrecioUnitario * d.Cantidad // En la API se asigna directamente
+        )).ToList();
 
         var nuevoId = VentaDataStore.VentasDb.Count != 0 
             ? VentaDataStore.VentasDb.Max(v => v.Id) + 1 
             : 1;
 
+
         var nuevaVenta = new VentaModel(
             Id: nuevoId,
             FechaVenta: DateTime.Now,
-            Total: totalCalculado,
+            Total: detallesModel.Sum(x => x.Subtotal), 
             Estado: "Pendiente",
-            ClienteId: request.ClienteId
+            ClienteId: request.ClienteId,
+            Detalles: detallesModel 
         );
 
         VentaDataStore.VentasDb.Add(nuevaVenta);
