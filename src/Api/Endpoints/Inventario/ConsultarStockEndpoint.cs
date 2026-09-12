@@ -16,14 +16,13 @@ public class ConsultarStockEndpoint : IEndpoint
 
     private static IResult Manejador(int productoId)
     {
-        var inventario = InventarioDataStore.InventarioDb.FirstOrDefault(i => i.ProductoId == productoId);
+        var inventario = InventarioDataStore.ObtenerPorProductoId(productoId);
         if (inventario is null)
         {
-            Result<InventarioResponse> errorResult = Error.NotFound(
+            return Result.Failure<InventarioResponse>(Error.NotFound(
                 "Inventario.NotFound",
-                $"No se encontro registro de inventario para el producto ID: {productoId}");
-
-            return errorResult.ToHttpResult();
+                $"No se encontro registro de inventario para el producto ID: {productoId}"))
+                .ToHttpResult();
         }
 
         var response = new InventarioResponse(

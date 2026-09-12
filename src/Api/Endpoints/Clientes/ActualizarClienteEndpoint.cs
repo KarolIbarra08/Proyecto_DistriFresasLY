@@ -21,7 +21,7 @@ public class ActualizarClienteEndpoint : IEndpoint
         {
             Result<ClienteResponse> errorResult = Error.NotFound(
                 "Cliente.NotFound",
-                $"No se encontró un cliente con el Id: {id}");
+                $"No se encontro un cliente con el Id: {id}");
 
             return errorResult.ToHttpResult();
         }

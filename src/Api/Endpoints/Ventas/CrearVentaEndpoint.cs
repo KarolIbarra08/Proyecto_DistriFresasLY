@@ -18,7 +18,7 @@ public class CrearVentaEndpoint : IEndpoint
 
     private static IResult Manejador([FromBody] CrearVentaRequest request)
     {
-        
+
         if (request.Detalles is null || !request.Detalles.Any())
         {
             return Result.Failure(Error.Validation(
@@ -27,11 +27,12 @@ public class CrearVentaEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
+ 
         foreach (var d in request.Detalles)
         {
-            var index = InventarioDataStore.InventarioDb.FindIndex(i => i.ProductoId == d.ProductoId);
+            var itemStock = InventarioDataStore.ObtenerPorProductoId(d.ProductoId);
             
-            if (index == -1)
+            if (itemStock is null)
             {
                 return Result.Failure(Error.NotFound(
                     "Inventario.NotFound",
@@ -39,9 +40,7 @@ public class CrearVentaEndpoint : IEndpoint
                     .ToHttpResult();
             }
 
-            var itemStock = InventarioDataStore.InventarioDb[index];
-
-            if (itemStock.CantidadDisponible < d.Cantidad)
+            if (!itemStock.PuedeDisminuir(d.Cantidad))
             {
                 return Result.Failure(Error.Validation(
                     "Inventario.StockInsuficiente",
@@ -49,15 +48,11 @@ public class CrearVentaEndpoint : IEndpoint
                     .ToHttpResult();
             }
 
-
-            InventarioDataStore.InventarioDb[index] = itemStock with
-            {
-                CantidadDisponible = itemStock.CantidadDisponible - d.Cantidad,
-                FechaActualizacion = DateTime.Now
-            };
+       
+            itemStock.Disminuir(d.Cantidad);
         }
 
-
+    
         var detallesModel = request.Detalles.Select(d => new DetalleVentaModel(
             d.ProductoId,
             d.Cantidad,
@@ -78,9 +73,10 @@ public class CrearVentaEndpoint : IEndpoint
             detallesModel
         );
 
-
+    
         VentaDataStore.VentasDb.Add(nuevaVenta);
 
+     
         var response = new VentaResponse(
             nuevaVenta.Id,
             nuevaVenta.FechaVenta,

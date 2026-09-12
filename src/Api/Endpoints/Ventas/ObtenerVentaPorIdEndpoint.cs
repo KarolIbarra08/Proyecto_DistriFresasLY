@@ -11,7 +11,7 @@ public class ObtenerVentaPorIdEndpoint : IEndpoint
         app.MapGet("/ventas/{id:int}", Manejador)
            .WithName("ObtenerVentaPorId")
            .WithTags("Ventas")
-           .WithSummary("Consulta una venta específica por su ID");
+           .WithSummary("Consulta una venta especifica por su ID");
     }
 
     private static IResult Manejador(int id)
@@ -21,7 +21,7 @@ public class ObtenerVentaPorIdEndpoint : IEndpoint
         {
             return Result.Failure<VentaResponse>(Error.NotFound(
                 "Venta.NotFound",
-                $"No se encontró una venta con el Id: {id}"))
+                $"No se encontro una venta con el Id: {id}"))
                 .ToHttpResult();
         }
 

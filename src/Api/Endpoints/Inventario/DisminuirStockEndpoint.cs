@@ -17,31 +17,22 @@ public class DisminuirStockEndpoint : IEndpoint
 
     private static IResult Manejador([FromBody] ActualizarStockRequest request)
     {
-        var index = InventarioDataStore.InventarioDb.FindIndex(i => i.ProductoId == request.ProductoId);
-        if (index == -1)
-        {
-            Result<InventarioResponse> errorResult = Error.NotFound(
-                "Inventario.NotFound",
-                $"No existe registro de inventario para el producto: {request.ProductoId}");
+        var (exito, inventario, mensajeError) = InventarioDataStore.DisminuirStock(request.ProductoId, request.Cantidad);
 
-            return errorResult.ToHttpResult();
+        if (!exito)
+        {
+            var tipoError = inventario is null 
+                ? Error.NotFound("Inventario.NotFound", mensajeError!)
+                : Error.Validation("Inventario.StockInsuficiente", mensajeError!);
+
+            return Result.Failure<InventarioResponse>(tipoError).ToHttpResult();
         }
 
-        var actual = InventarioDataStore.InventarioDb[index];
-
-        var actualizado = actual with
-        {
-            CantidadDisponible = actual.CantidadDisponible - request.Cantidad,
-            FechaActualizacion = DateTime.Now
-        };
-
-        InventarioDataStore.InventarioDb[index] = actualizado;
-
         var response = new InventarioResponse(
-            actualizado.Id,
-            actualizado.ProductoId,
-            actualizado.CantidadDisponible,
-            actualizado.FechaActualizacion
+            inventario!.Id,
+            inventario.ProductoId,
+            inventario.CantidadDisponible,
+            inventario.FechaActualizacion
         );
 
         return Result.Success(response).ToHttpResult();

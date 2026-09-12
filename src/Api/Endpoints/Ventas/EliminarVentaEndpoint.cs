@@ -21,7 +21,7 @@ public class EliminarVentaEndpoint : IEndpoint
         {
             return Result.Failure<bool>(Error.NotFound(
                 "Venta.NotFound",
-                $"No se encontró una venta con el Id: {id}"))
+                $"No se encontro una venta con el Id: {id}"))
                 .ToHttpResult();
         }
 

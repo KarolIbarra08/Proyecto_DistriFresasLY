@@ -36,8 +36,8 @@ public class ActualizarVentaEndpoint : IEndpoint
 
         var detallesFinales = nuevosDetalles ?? ventaExistente.Detalles;
         
-
-        decimal nuevoTotal = nuevosDetalles != null 
+        
+        decimal nuevoTotal = (nuevosDetalles != null && detallesFinales != null) 
             ? detallesFinales.Sum(x => x.Subtotal) 
             : ventaExistente.Total;
 

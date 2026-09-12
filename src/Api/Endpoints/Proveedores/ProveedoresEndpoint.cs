@@ -9,19 +9,19 @@ public static class ProveedorDataStore
         new(
             Id: 1,
             Nombre: "Carlos",
-            Apellido: "Pérez",
+            Apellido: "Perez",
             CedulaNit: "900123456-1",
             Telefono: "3101234567",
-            Direccion: "Calle 5 # 10-20, Puracé",
+            Direccion: "Calle 5 # 10-20, Purace",
             NombreEmpresa: "Cultivos El Campestre"
         ),
         new(
             Id: 2,
-            Nombre: "María Eugenia",
+            Nombre: "Maria Eugenia",
             Apellido: "Gómez",
             CedulaNit: "34567890",
             Telefono: "3129876543",
-            Direccion: "Carrera 8 # 12-45, Popayán",
+            Direccion: "Carrera 8 # 12-45, Popayan",
             NombreEmpresa: "AgroFresas del Cauca"
         )
     ];

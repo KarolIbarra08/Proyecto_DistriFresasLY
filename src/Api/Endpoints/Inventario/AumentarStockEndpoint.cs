@@ -17,31 +17,20 @@ public class AumentarStockEndpoint : IEndpoint
 
     private static IResult Manejador([FromBody] ActualizarStockRequest request)
     {
-        var index = InventarioDataStore.InventarioDb.FindIndex(i => i.ProductoId == request.ProductoId);
-        if (index == -1)
+        var inventario = InventarioDataStore.AumentarStock(request.ProductoId, request.Cantidad);
+        if (inventario is null)
         {
-            Result<InventarioResponse> errorResult = Error.NotFound(
+            return Result.Failure<InventarioResponse>(Error.NotFound(
                 "Inventario.NotFound",
-                $"No existe registro de inventario para el producto: {request.ProductoId}");
-
-            return errorResult.ToHttpResult();
+                $"No existe registro de inventario para el producto: {request.ProductoId}"))
+                .ToHttpResult();
         }
 
-        var actual = InventarioDataStore.InventarioDb[index];
-
-        var actualizado = actual with
-        {
-            CantidadDisponible = actual.CantidadDisponible + request.Cantidad,
-            FechaActualizacion = DateTime.Now
-        };
-
-        InventarioDataStore.InventarioDb[index] = actualizado;
-
         var response = new InventarioResponse(
-            actualizado.Id,
-            actualizado.ProductoId,
-            actualizado.CantidadDisponible,
-            actualizado.FechaActualizacion
+            inventario.Id,
+            inventario.ProductoId,
+            inventario.CantidadDisponible,
+            inventario.FechaActualizacion
         );
 
         return Result.Success(response).ToHttpResult();

@@ -21,7 +21,7 @@ public class ActualizarProveedorEndpoint : IEndpoint
         {
             Result<ProveedorResponse> errorResult = Error.NotFound(
                 "Proveedor.NotFound",
-                $"No se encontró un proveedor con el Id: {id}");
+                $"No se encontro un proveedor con el Id: {id}");
 
             return errorResult.ToHttpResult();
         }

@@ -11,15 +11,15 @@ public static class ClienteDataStore
             Nombre: "Fruver El Campestre",
             CedulaNit: "900123456-1",
             Telefono: "3101234567",
-            Direccion: "Calle 5 # 10-20, Puracé",
+            Direccion: "Calle 5 # 10-20, Purace",
             TipoNegocio: "Supermercado"
         ),
         new(
             Id: 2,
-            Nombre: "María Eugenia Gómez",
+            Nombre: "Maria Eugenia Gomez",
             CedulaNit: "34567890",
             Telefono: "3129876543",
-            Direccion: "Carrera 8 # 12-45, Popayán",
+            Direccion: "Carrera 8 # 12-45, Popayan",
             TipoNegocio: "Tienda de Barrio"
         )
     ];

@@ -20,7 +20,7 @@ public class EliminarRolEndpoint : IEndpoint
         {
             Result<bool> errorResult = Error.NotFound(
                 "Rol.NotFound",
-                $"No se encontró un rol con el Id: {id}");
+                $"No se encontro un rol con el Id: {id}");
 
             return errorResult.ToHttpResult();
         }
