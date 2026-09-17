@@ -1,11 +1,21 @@
 {
   "version": 2,
+<<<<<<< HEAD
   "dgSpecHash": "f5xm3wQpRGQ=",
+=======
+  "dgSpecHash": "yLp6b/QIg68=",
+>>>>>>> c1e76e7fd2521e64995045895a4f4e0bbc68f256
   "success": true,
   "projectFilePath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Api\\Api.csproj",
   "expectedPackageFiles": [
+<<<<<<< HEAD
     "C:\\Users\\andre\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.11\\microsoft.aspnetcore.openapi.10.0.11.nupkg.sha512",
     "C:\\Users\\andre\\.nuget\\packages\\microsoft.openapi\\2.7.5\\microsoft.openapi.2.7.5.nupkg.sha512"
+=======
+    "C:\\Users\\ktiba\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.11\\microsoft.aspnetcore.openapi.10.0.11.nupkg.sha512",
+    "C:\\Users\\ktiba\\.nuget\\packages\\microsoft.openapi\\2.7.5\\microsoft.openapi.2.7.5.nupkg.sha512",
+    "C:\\Users\\ktiba\\.nuget\\packages\\scalar.aspnetcore\\2.17.2\\scalar.aspnetcore.2.17.2.nupkg.sha512"
+>>>>>>> c1e76e7fd2521e64995045895a4f4e0bbc68f256
   ],
   "logs": []
 }

@@ -13,3 +13,4 @@ C:\Users\ktiba\Desktop\DISTRIFRESASLY\src\Application\obj\Debug\net10.0\Applicat
 C:\Users\ktiba\Desktop\DISTRIFRESASLY\src\Application\obj\Debug\net10.0\refint\Application.dll
 C:\Users\ktiba\Desktop\DISTRIFRESASLY\src\Application\obj\Debug\net10.0\Application.pdb
 C:\Users\ktiba\Desktop\DISTRIFRESASLY\src\Application\obj\Debug\net10.0\ref\Application.dll
+C:\Users\ktiba\Desktop\DISTRIFRESASLY\src\Application\obj\Debug\net10.0\Application.sourcelink.json

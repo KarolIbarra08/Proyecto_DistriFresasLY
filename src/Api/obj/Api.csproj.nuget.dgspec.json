@@ -30,8 +30,16 @@
               "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Application\\Application.csproj": {
                 "projectPath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Application\\Application.csproj"
               },
+<<<<<<< HEAD
               "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Infrastructure\\Infrastructure.csproj": {
                 "projectPath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Infrastructure\\Infrastructure.csproj"
+=======
+              "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\Domain.csproj": {
+                "projectPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\Domain.csproj"
+              },
+              "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Infrastructure\\Infrastructure.csproj": {
+                "projectPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Infrastructure\\Infrastructure.csproj"
+>>>>>>> c1e76e7fd2521e64995045895a4f4e0bbc68f256
               }
             }
           }
@@ -56,6 +64,10 @@
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[10.0.11, )"
+            },
+            "Scalar.AspNetCore": {
+              "target": "Package",
+              "version": "[2.17.2, )"
             }
           },
           "imports": [

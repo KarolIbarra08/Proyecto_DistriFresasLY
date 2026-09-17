@@ -37,3 +37,5 @@ C:\Users\ktiba\Desktop\DISTRIFRESASLY\src\Api\obj\Debug\net10.0\refint\Api.dll
 C:\Users\ktiba\Desktop\DISTRIFRESASLY\src\Api\obj\Debug\net10.0\Api.pdb
 C:\Users\ktiba\Desktop\DISTRIFRESASLY\src\Api\obj\Debug\net10.0\Api.genruntimeconfig.cache
 C:\Users\ktiba\Desktop\DISTRIFRESASLY\src\Api\obj\Debug\net10.0\ref\Api.dll
+C:\Users\ktiba\Desktop\DISTRIFRESASLY\src\Api\bin\Debug\net10.0\Scalar.AspNetCore.dll
+C:\Users\ktiba\Desktop\DISTRIFRESASLY\src\Api\obj\Debug\net10.0\Api.sourcelink.json
