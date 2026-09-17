@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Infrastructure\\Infrastructure.csproj": {}
+    "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Infrastructure\\Infrastructure.csproj": {}
   },
   "projects": {
-    "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Application\\Application.csproj": {
+    "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Application\\Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Application\\Application.csproj",
+        "projectUniqueName": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Application\\Application.csproj",
         "projectName": "Application",
-        "projectPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Application\\Application.csproj",
-        "packagesPath": "C:\\Users\\ktiba\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Application\\obj\\",
+        "projectPath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Application\\Application.csproj",
+        "packagesPath": "C:\\Users\\andre\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Application\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\ktiba\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\andre\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -27,8 +27,8 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\Domain.csproj": {
-                "projectPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\Domain.csproj"
+              "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Domain\\Domain.csproj": {
+                "projectPath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Domain\\Domain.csproj"
               }
             }
           }
@@ -343,17 +343,17 @@
         }
       }
     },
-    "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\Domain.csproj": {
+    "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Domain\\Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\Domain.csproj",
+        "projectUniqueName": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Domain\\Domain.csproj",
         "projectName": "Domain",
-        "projectPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\Domain.csproj",
-        "packagesPath": "C:\\Users\\ktiba\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\obj\\",
+        "projectPath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Domain\\Domain.csproj",
+        "packagesPath": "C:\\Users\\andre\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Domain\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\ktiba\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\andre\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -678,17 +678,17 @@
         }
       }
     },
-    "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Infrastructure\\Infrastructure.csproj": {
+    "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Infrastructure\\Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Infrastructure\\Infrastructure.csproj",
+        "projectUniqueName": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Infrastructure\\Infrastructure.csproj",
         "projectName": "Infrastructure",
-        "projectPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Infrastructure\\Infrastructure.csproj",
-        "packagesPath": "C:\\Users\\ktiba\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Infrastructure\\obj\\",
+        "projectPath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Infrastructure\\Infrastructure.csproj",
+        "packagesPath": "C:\\Users\\andre\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\ktiba\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\andre\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -701,11 +701,11 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Application\\Application.csproj": {
-                "projectPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Application\\Application.csproj"
+              "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Application\\Application.csproj": {
+                "projectPath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Application\\Application.csproj"
               },
-              "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\Domain.csproj": {
-                "projectPath": "C:\\Users\\ktiba\\Desktop\\DISTRIFRESASLY\\src\\Domain\\Domain.csproj"
+              "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Domain\\Domain.csproj": {
+                "projectPath": "C:\\Users\\andre\\Documents\\WEB2\\DistryFresas\\Proyecto_DistriFresasLY\\src\\Domain\\Domain.csproj"
               }
             }
           }
