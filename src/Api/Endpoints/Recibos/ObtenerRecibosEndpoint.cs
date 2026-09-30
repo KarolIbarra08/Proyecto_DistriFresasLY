@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Recibos;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Recibos;
 
 namespace DistriFresasLY.Api.Endpoints.Recibos;
 
