@@ -14,17 +14,34 @@ public static class InventarioDataStore
         return InventarioDb.FirstOrDefault(i => i.ProductoId == productoId);
     }
 
-    public static Domain.Entities.Inventario? AjustarStock(int productoId, int cantidad)
+    public static Domain.Entities.Inventario AjustarStock(int productoId, int cantidad)
     {
         var item = ObtenerPorProductoId(productoId);
-        item?.Ajustar(cantidad);
+
+        if (item is null)
+        {
+            var nuevoId = InventarioDb.Count != 0 ? InventarioDb.Max(i => i.Id) + 1 : 1;
+            item = new Domain.Entities.Inventario(nuevoId, productoId, cantidad);
+            InventarioDb.Add(item);
+            return item;
+        }
+
+        item.Ajustar(cantidad);
         return item;
     }
 
-    public static Domain.Entities.Inventario? AumentarStock(int productoId, int cantidad)
+    public static Domain.Entities.Inventario AumentarStock(int productoId, int cantidad)
     {
         var item = ObtenerPorProductoId(productoId);
-        item?.Aumentar(cantidad);
+
+        if (item is null)
+        {
+            var nuevoId = InventarioDb.Count != 0 ? InventarioDb.Max(i => i.Id) + 1 : 1;
+            item = new Domain.Entities.Inventario(nuevoId, productoId, 0);
+            InventarioDb.Add(item);
+        }
+
+        item.Aumentar(cantidad);
         return item;
     }
 
