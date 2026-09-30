@@ -1,6 +1,6 @@
 namespace DistriFresasLY.Domain.Common;
 
-public abstract class Entity : IEquatable<Entity>
+public abstract class Entity
 {
     public int Id { get; protected set; }
 
@@ -9,25 +9,42 @@ public abstract class Entity : IEquatable<Entity>
         Id = id;
     }
 
-    public bool Equals(Entity? other)
+
+    public override bool Equals(object? obj)
     {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        if (GetType() != other.GetType()) return false;
-        if (Id == 0 || other.Id == 0) return false;
+        if (obj is not Entity other)
+            return false;
+
+        if (ReferenceEquals(this, other))
+            return true;
+
+        if (GetType() != other.GetType())
+            return false;
+
+        if (Id == 0 || other.Id == 0)
+            return false;
 
         return Id == other.Id;
     }
 
-    public override bool Equals(object? obj) =>
-        obj is Entity entity && Equals(entity);
+    public static bool operator ==(Entity? a, Entity? b)
+    {
+        if (a is null && b is null)
+            return true;
 
-    public override int GetHashCode() =>
-        Id.GetHashCode();
+        if (a is null || b is null)
+            return false;
 
-    public static bool operator ==(Entity? left, Entity? right) =>
-        left?.Equals(right) ?? right is null;
+        return a.Equals(b);
+    }
 
-    public static bool operator !=(Entity? left, Entity? right) =>
-        !(left == right);
+    public static bool operator !=(Entity? a, Entity? b)
+    {
+        return !(a == b);
+    }
+
+    public override int GetHashCode()
+    {
+        return (GetType().ToString() + Id).GetHashCode();
+    }
 }

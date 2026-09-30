@@ -1,46 +1,109 @@
-namespace DistriFresasLY.Domain.Entities;
+using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.ValueObjects;
 
-public class Venta
+namespace DistriFresasLY.Domain.Entities.Ventas;
+
+public sealed class Venta : Entity
 {
-    public int Id { get; private set; }
-    public DateTime FechaVenta { get; private set; }
-    public string Estado { get; private set; }
-    public int? ClienteId { get; private set; }
-
     private readonly List<DetalleVenta> _detalles = [];
-    public IReadOnlyCollection<DetalleVenta> Detalles => _detalles.AsReadOnly();
 
-    // Regla de Dominio: El total es calculado por el agregado Venta
+    public DateTime FechaVenta { get; private set; }
+    public EstadoVenta Estado { get; private set; }
+    public int? ClienteId { get; private set; }
+    public IReadOnlyCollection<DetalleVenta> Detalles => _detalles.AsReadOnly();
     public decimal Total => _detalles.Sum(d => d.Subtotal);
 
-    public Venta(int id, int? clienteId, string estado = "Pendiente")
+    private Venta(
+        int id,
+        DateTime fechaVenta,
+        EstadoVenta estado,
+        int? clienteId,
+        List<DetalleVenta> detalles) : base(id)
     {
-        Id = id;
-        ClienteId = clienteId;
-        FechaVenta = DateTime.Now;
+        FechaVenta = fechaVenta;
         Estado = estado;
+        ClienteId = clienteId;
+        _detalles = detalles;
     }
 
-    public void AgregarDetalle(int productoId, int cantidad, decimal precioUnitario)
+    public static Result<Venta> Create(
+        List<DetalleVenta> detalles,
+        int? clienteId = null,
+        int id = 0)
     {
-        _detalles.Add(new DetalleVenta(productoId, cantidad, precioUnitario));
+        if (detalles is null || detalles.Count == 0)
+        {
+            return Error.Validation(
+                "Venta.SinDetalles",
+                "La venta debe contener al menos un producto en el detalle.");
+        }
+
+        if (clienteId.HasValue && clienteId.Value <= 0)
+        {
+            return Error.Validation(
+                "Venta.ClienteInvalido",
+                "El ID del cliente no es valido.");
+        }
+
+        var venta = new Venta(
+            id,
+            DateTime.Now,
+            EstadoVenta.Pendiente,
+            clienteId,
+            detalles);
+
+        return venta;
     }
 
-    public void ActualizarCliente(int? clienteId)
+    public Result ActualizarEstado(string nuevoEstado)
     {
-        if (clienteId.HasValue)
-            ClienteId = clienteId.Value;
+        var estadoResult = EstadoVenta.Create(nuevoEstado);
+        if (estadoResult.IsFailure)
+        {
+            return Result.Failure(estadoResult.Error);
+        }
+
+        if (Estado == EstadoVenta.Cancelada)
+        {
+            var error = Error.Validation(
+                "Venta.EstadoInvalido",
+                "No se puede cambiar el estado de una venta que ya esta cancelada.");
+
+            return Result.Failure(error);
+        }
+
+        Estado = estadoResult.Value;
+        return Result.Success();
     }
 
-    public void CambiarEstado(string nuevoEstado)
+    public Result ActualizarDetalles(List<DetalleVenta> nuevosDetalles)
     {
-        if (!string.IsNullOrWhiteSpace(nuevoEstado))
-            Estado = nuevoEstado.Trim();
-    }
+        if (Estado == EstadoVenta.Completada || Estado == EstadoVenta.Cancelada)
+        {
+            var error = Error.Validation(
+                "Venta.EdicionNoPermitida",
+                $"No se pueden modificar los detalles de una venta en estado '{Estado.Value}'.");
 
-    public void ReemplazarDetalles(List<DetalleVenta> nuevosDetalles)
-    {
+            return Result.Failure(error);
+        }
+
+        if (nuevosDetalles is null || nuevosDetalles.Count == 0)
+        {
+            var error = Error.Validation(
+                "Venta.SinDetalles",
+                "La venta debe conservar al menos un producto en el detalle.");
+
+            return Result.Failure(error);
+        }
+
         _detalles.Clear();
         _detalles.AddRange(nuevosDetalles);
+
+        return Result.Success();
+    }
+
+    public void AsignarCliente(int? nuevoClienteId)
+    {
+        ClienteId = nuevoClienteId;
     }
 }
