@@ -15,8 +15,8 @@ public class EliminarRolEndpoint : IEndpoint
 
     private static IResult Manejador(int id)
     {
-        var index = RolDataStore.RolesDb.FindIndex(r => r.Id == id);
-        if (index == -1)
+        var index = RolDataStore.RolesDb.RemoveAll(r => r.Id == id);
+        if (index == 0)
         {
             Result<bool> errorResult = Error.NotFound(
                 "Rol.NotFound",
@@ -24,8 +24,6 @@ public class EliminarRolEndpoint : IEndpoint
 
             return errorResult.ToHttpResult();
         }
-
-        RolDataStore.RolesDb.RemoveAt(index);
 
         Result<bool> successResult = Result.Success(true);
         return successResult.ToHttpResult();
