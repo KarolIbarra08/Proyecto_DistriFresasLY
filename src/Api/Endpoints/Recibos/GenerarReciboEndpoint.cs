@@ -2,6 +2,7 @@ using DistriFresasLY.Api.Contracts.Recibos;
 using DistriFresasLY.Api.Endpoints.Ventas;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Recibos;
 
 namespace DistriFresasLY.Api.Endpoints.Recibos;
 
@@ -17,17 +18,15 @@ public class GenerarReciboEndpoint : IEndpoint
 
     private static IResult Manejador(GenerarReciboRequest request)
     {
-
         var venta = VentaDataStore.VentasDb.FirstOrDefault(v => v.Id == request.VentaId);
         if (venta is null)
         {
             return Result.Failure<ReciboResponse>(Error.NotFound(
                 "Recibo.VentaNotFound",
-                $"No se encontro la venta #{request.VentaId} para generar el recibo."))
+                $"No se encontró la venta #{request.VentaId} para generar el recibo."))
                 .ToHttpResult();
         }
 
-        
         var reciboExistente = ReciboDataStore.RecibosDb.FirstOrDefault(r => r.VentaId == request.VentaId);
         if (reciboExistente is not null)
         {
@@ -37,27 +36,24 @@ public class GenerarReciboEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-  
+        var ultimoNumero = ReciboDataStore.RecibosDb.Count != 0 
+            ? ReciboDataStore.RecibosDb.Max(r => r.NumeroRecibo) 
+            : 0;
+
         var nuevoId = ReciboDataStore.RecibosDb.Count != 0 
             ? ReciboDataStore.RecibosDb.Max(r => r.Id) + 1 
             : 1;
 
-        var consecutivo = ReciboDataStore.RecibosDb.Count != 0 
-            ? ReciboDataStore.RecibosDb.Max(r => r.NumeroRecibo) + 1 
-            : 1001;
+        // Creación encapsulada desde el Dominio
+        var reciboResult = Recibo.Create(venta.Id, venta.Total, ultimoNumero, nuevoId);
+        if (reciboResult.IsFailure)
+        {
+            return Result.Failure<ReciboResponse>(reciboResult.Error).ToHttpResult();
+        }
 
-
-        var nuevoRecibo = new ReciboModel(
-            Id: nuevoId,
-            FechaRecibo: DateTime.Now,
-            NumeroRecibo: consecutivo,
-            Total: venta.Total,
-            VentaId: venta.Id
-        );
-
+        var nuevoRecibo = reciboResult.Value;
         ReciboDataStore.RecibosDb.Add(nuevoRecibo);
 
- 
         var response = new ReciboResponse(
             nuevoRecibo.Id,
             nuevoRecibo.FechaRecibo,

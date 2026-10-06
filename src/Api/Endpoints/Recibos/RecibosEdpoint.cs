@@ -1,14 +1,8 @@
-namespace DistriFresasLY.Api.Endpoints.Recibos;
+using DistriFresasLY.Domain.Entities.Recibos;
 
-public record ReciboModel(
-    int Id,
-    DateTime FechaRecibo,
-    int NumeroRecibo,
-    decimal Total,
-    int VentaId
-);
+namespace DistriFresasLY.Api.Endpoints.Recibos;
 
 public static class ReciboDataStore
 {
-    public static readonly List<ReciboModel> RecibosDb = [];
+    public static readonly List<Recibo> RecibosDb = [];
 }
