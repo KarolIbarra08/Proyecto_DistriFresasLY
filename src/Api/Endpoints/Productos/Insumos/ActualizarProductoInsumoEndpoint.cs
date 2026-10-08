@@ -1,10 +1,8 @@
 using DistriFresasLY.Api.Contracts.Productos;
-using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
-using DistriFresasLY.Domain.Entities.Productos;
 
-namespace DistriFresasLY.Api.Endpoints.Productos.Insumo;
+namespace DistriFresasLY.Api.Endpoints.Productos.Insumos;
 
 public class ActualizarProductoInsumoEndpoint : IEndpoint
 {
@@ -13,47 +11,51 @@ public class ActualizarProductoInsumoEndpoint : IEndpoint
         app.MapPut("/productos/insumo/{id:int}", Manejador)
            .WithName("ActualizarProductoInsumo")
            .WithTags("Productos Insumo")
-           .WithSummary("Actualiza un producto insumo");
+           .WithSummary("Actualiza la información de un producto insumo");
     }
 
-    private static IResult Manejador(int id, ActualizarProductoInsumoRequest request)
+    private static IResult Manejador(
+        int id,
+        ActualizarProductoInsumoRequest request)
     {
-        var index = ProductoDataStore.InsumosDb.FindIndex(p => p.Id == id);
-        if (index == -1)
+        var insumo = ProductoDataStore.InsumosDb
+            .FirstOrDefault(p => p.Id == id);
+
+        if (insumo is null)
         {
-            return Result.Failure<ProductoInsumoResponse>(Error.NotFound(
-                "ProductoInsumo.NotFound", $"No se encontró el insumo con ID: {id}"))
+            return Result
+                .Failure<ProductoInsumoResponse>(
+                    Error.NotFound(
+                        "ProductoInsumo.NotFound",
+                        $"No se encontró el insumo con ID: {id}"))
                 .ToHttpResult();
         }
 
-        var insumoExistente = ProductoDataStore.InsumosDb[index];
-
-        var result = ProductoInsumo.Create(
+        var result = insumo.Actualizar(
             request.Nombre,
             request.Tipo,
             request.UnidadMedida,
-            request.Descripcion,
-            id,
-            insumoExistente.FechaIngreso);
+            request.Descripcion);
 
         if (result.IsFailure)
-            return Result.Failure<ProductoInsumoResponse>(result.Error).ToHttpResult();
-
-        ProductoDataStore.InsumosDb[index] = result.Value;
-
-        var stock = InventarioDataStore.ObtenerPorProductoId(id)?.CantidadDisponible ?? 0;
+        {
+            return Result
+                .Failure<ProductoInsumoResponse>(result.Error)
+                .ToHttpResult();
+        }
 
         var response = new ProductoInsumoResponse(
-            result.Value.Id,
-            result.Value.TipoProducto,
-            result.Value.Nombre,
-            result.Value.Tipo,
-            result.Value.UnidadMedida,
-            result.Value.Descripcion,
-            result.Value.FechaIngreso,
-            stock
+            insumo.Id,
+            insumo.TipoProducto,
+            insumo.Nombre,
+            insumo.Tipo,
+            insumo.UnidadMedida,
+            insumo.Descripcion,
+            insumo.FechaIngreso
         );
 
-        return Result.Success(response).ToHttpResult();
+        return Result
+            .Success(response)
+            .ToHttpResult();
     }
 }

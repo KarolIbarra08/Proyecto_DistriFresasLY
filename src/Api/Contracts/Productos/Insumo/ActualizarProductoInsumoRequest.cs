@@ -4,6 +4,5 @@ public record ActualizarProductoInsumoRequest(
     string Nombre,
     string Tipo,
     string UnidadMedida,
-    string Descripcion,
-    int CantidadInicial
+    string Descripcion
 );

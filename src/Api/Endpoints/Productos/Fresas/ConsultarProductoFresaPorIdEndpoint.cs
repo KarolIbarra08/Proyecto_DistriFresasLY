@@ -1,5 +1,4 @@
 using DistriFresasLY.Api.Contracts.Productos;
-using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 
@@ -17,28 +16,32 @@ public class ConsultarProductoFresaPorIdEndpoint : IEndpoint
 
     private static IResult Manejador(int id)
     {
-        var fresa = ProductoDataStore.FresasDb.FirstOrDefault(p => p.Id == id);
+        var fresa = ProductoDataStore.FresasDb
+            .FirstOrDefault(p => p.Id == id);
+
         if (fresa is null)
         {
-            return Result.Failure<ProductoFresaResponse>(Error.NotFound(
-                "ProductoFresa.NotFound", $"No se encontró la fresa con ID: {id}"))
+            return Result
+                .Failure<ProductoFresaResponse>(
+                    Error.NotFound(
+                        "ProductoFresa.NotFound",
+                        $"No se encontró la fresa con ID: {id}"))
                 .ToHttpResult();
         }
-
-        var stock = InventarioDataStore.ObtenerPorProductoId(fresa.Id)?.CantidadDisponible ?? 0;
 
         var response = new ProductoFresaResponse(
             fresa.Id,
             fresa.TipoProducto,
-            fresa.Calibre,
+            fresa.Calibre.Value,
             fresa.Calidad,
-            fresa.Peso,
-            fresa.PrecioCompra,
+            fresa.Peso.Value,
+            fresa.PrecioCompra.Value,
             fresa.FechaIngreso,
-            fresa.Descripcion,
-            stock 
+            fresa.Descripcion
         );
 
-        return Result.Success(response).ToHttpResult();
+        return Result
+            .Success(response)
+            .ToHttpResult();
     }
 }

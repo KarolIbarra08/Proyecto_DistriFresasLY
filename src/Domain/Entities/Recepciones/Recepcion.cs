@@ -2,38 +2,75 @@ using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Domain.Entities.Recepciones;
 
-public class Recepcion
+public class Recepcion : Entity
 {
-    public int Id { get; private set; }
+    private readonly List<DetalleRecepcion> _detalles = [];
+
     public DateTime FechaRecepcion { get; private set; }
-    public int Cantidad { get; private set; }
     public double ValorPago { get; private set; }
 
-    private Recepcion(int id, DateTime fechaRecepcion, int cantidad, double valorPago)
+    public IReadOnlyCollection<DetalleRecepcion> Detalles =>
+        _detalles.AsReadOnly();
+
+    private Recepcion(
+        int id,
+        DateTime fechaRecepcion,
+        double valorPago)
+        : base(id)
     {
-        Id = id;
         FechaRecepcion = fechaRecepcion;
-        Cantidad = cantidad;
         ValorPago = valorPago;
     }
 
     public static Result<Recepcion> Create(
-        int cantidad, 
-        double valorPago, 
-        int id = 0, 
+        double valorPago,
+        int id = 0,
         DateTime? fechaRecepcion = null)
     {
-        if (cantidad <= 0)
-            return Result.Failure<Recepcion>(Error.Validation("Recepcion.CantidadInvalida", "La cantidad debe ser mayor a cero."));
-
         if (valorPago < 0)
-            return Result.Failure<Recepcion>(Error.Validation("Recepcion.ValorInvalido", "El valor del pago no puede ser negativo."));
+        {
+            return Result.Failure<Recepcion>(
+                Error.Validation(
+                    "Recepcion.ValorPagoInvalido",
+                    "El valor del pago no puede ser negativo."));
+        }
 
-        return Result.Success(new Recepcion(
-            id,
-            fechaRecepcion ?? DateTime.UtcNow,
-            cantidad,
-            valorPago
-        ));
+        return Result.Success(
+            new Recepcion(
+                id,
+                fechaRecepcion ?? DateTime.UtcNow,
+                valorPago));
+    }
+
+    public Result Actualizar(
+        double valorPago,
+        DateTime? fechaRecepcion = null)
+    {
+        if (valorPago < 0)
+        {
+            return Result.Failure(
+                Error.Validation(
+                    "Recepcion.ValorPagoInvalido",
+                    "El valor del pago no puede ser negativo."));
+        }
+
+        ValorPago = valorPago;
+
+        if (fechaRecepcion.HasValue)
+            FechaRecepcion = fechaRecepcion.Value;
+
+        return Result.Success();
+    }
+
+    public void AgregarDetalle(DetalleRecepcion detalle)
+    {
+        if (detalle is null)
+            throw new ArgumentNullException(nameof(detalle));
+
+        _detalles.Add(detalle);
+    }
+    public double CalcularTotal()
+    {
+        return _detalles.Sum(d => d.Subtotal);
     }
 }

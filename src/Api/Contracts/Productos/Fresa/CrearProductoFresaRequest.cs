@@ -6,6 +6,5 @@ public record CrearProductoFresaRequest(
     double Peso,
     decimal PrecioCompra,
     string Descripcion,
-    int CantidadInicial,
     DateTime? FechaIngreso = null
 );

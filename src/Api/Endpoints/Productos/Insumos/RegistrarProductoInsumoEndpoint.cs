@@ -1,10 +1,9 @@
 using DistriFresasLY.Api.Contracts.Productos;
-using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Productos;
 
-namespace DistriFresasLY.Api.Endpoints.Productos.Insumo;
+namespace DistriFresasLY.Api.Endpoints.Productos.Insumos;
 
 public class RegistrarProductoInsumoEndpoint : IEndpoint
 {
@@ -13,18 +12,20 @@ public class RegistrarProductoInsumoEndpoint : IEndpoint
         app.MapPost("/productos/insumo", Manejador)
            .WithName("RegistrarProductoInsumo")
            .WithTags("Productos Insumo")
-           .WithSummary("Registra un nuevo producto insumo e inicializa su stock");
+           .WithSummary("Registra un nuevo producto insumo");
     }
 
-    private static IResult Manejador(CrearProductoInsumoRequest request)
+    private static IResult Manejador(
+        CrearProductoInsumoRequest request)
     {
-        var nuevoId = ProductoDataStore.InsumosDb.Count != 0 
-            ? ProductoDataStore.InsumosDb.Max(p => p.Id) + 1 
+        var nuevoId = ProductoDataStore.InsumosDb.Count != 0
+            ? ProductoDataStore.InsumosDb.Max(p => p.Id) + 1
             : 101;
 
-        var fechaReal = request.FechaIngreso.HasValue 
-            && request.FechaIngreso.Value != default 
-            && request.FechaIngreso.Value.Year > 1970
+        var fechaReal =
+            request.FechaIngreso.HasValue &&
+            request.FechaIngreso.Value != default &&
+            request.FechaIngreso.Value.Year > 1970
                 ? request.FechaIngreso.Value
                 : DateTime.UtcNow;
 
@@ -37,12 +38,15 @@ public class RegistrarProductoInsumoEndpoint : IEndpoint
             fechaReal);
 
         if (result.IsFailure)
-            return Result.Failure<ProductoInsumoResponse>(result.Error).ToHttpResult();
+        {
+            return Result
+                .Failure<ProductoInsumoResponse>(result.Error)
+                .ToHttpResult();
+        }
 
         var insumo = result.Value;
-        ProductoDataStore.InsumosDb.Add(insumo);
 
-        InventarioDataStore.InicializarStock(insumo.Id, request.CantidadInicial);
+        ProductoDataStore.InsumosDb.Add(insumo);
 
         var response = new ProductoInsumoResponse(
             insumo.Id,
@@ -51,10 +55,12 @@ public class RegistrarProductoInsumoEndpoint : IEndpoint
             insumo.Tipo,
             insumo.UnidadMedida,
             insumo.Descripcion,
-            insumo.FechaIngreso,
-            request.CantidadInicial
+            insumo.FechaIngreso
         );
 
-        return Result.Success(response).ToHttpCreatedAtResult($"/api/productos/insumo/{insumo.Id}");
+        return Result
+            .Success(response)
+            .ToHttpCreatedAtResult(
+                $"/api/productos/insumo/{insumo.Id}");
     }
 }

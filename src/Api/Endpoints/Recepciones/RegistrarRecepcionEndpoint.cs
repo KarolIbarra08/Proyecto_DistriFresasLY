@@ -15,38 +15,40 @@ public class RegistrarRecepcionEndpoint : IEndpoint
            .WithSummary("Registra una nueva recepción de mercancía");
     }
 
-    private static IResult Manejador(RegistrarRecepcionRequest request)
+    private static IResult Manejador(
+        RegistrarRecepcionRequest request)
     {
-        var nuevoId = RecepcionDataStore.RecepcionesDb.Count != 0 
-            ? RecepcionDataStore.RecepcionesDb.Max(r => r.Id) + 1 
-            : 1;
+        var nuevoId = RecepcionDataStore.GenerarNuevoId();
 
-        var fechaReal = request.FechaRecepcion.HasValue 
-            && request.FechaRecepcion.Value != default 
-            && request.FechaRecepcion.Value.Year > 1970
+        var fechaReal =
+            request.FechaRecepcion.HasValue &&
+            request.FechaRecepcion.Value != default
                 ? request.FechaRecepcion.Value
                 : DateTime.UtcNow;
 
         var result = Recepcion.Create(
-            request.Cantidad,
             request.ValorPago,
             nuevoId,
             fechaReal);
 
         if (result.IsFailure)
-            return Result.Failure<RecepcionResponse>(result.Error).ToHttpResult();
+        {
+            return Result.Failure<RecepcionResponse>(
+                result.Error)
+                .ToHttpResult();
+        }
 
         var recepcion = result.Value;
-        
+
+        RecepcionDataStore.RecepcionesDb.Add(recepcion);
+
         var response = new RecepcionResponse(
             recepcion.Id,
             recepcion.FechaRecepcion,
-            recepcion.Cantidad,
-            recepcion.ValorPago
-        );
+            recepcion.ValorPago);
 
-        RecepcionDataStore.RecepcionesDb.Add(response);
-
-        return Result.Success(response).ToHttpCreatedAtResult($"/api/recepciones/{recepcion.Id}");
+        return Result.Success(response)
+            .ToHttpCreatedAtResult(
+                $"/api/recepciones/{recepcion.Id}");
     }
 }

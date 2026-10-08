@@ -1,4 +1,5 @@
-using DistriFresasLY.Api.Contracts.Recepciones;
+using DistriFresasLY.Api.Endpoints.DetalleRecepciones;
+using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 
@@ -11,21 +12,54 @@ public class EliminarRecepcionEndpoint : IEndpoint
         app.MapDelete("/recepciones/{id:int}", Manejador)
            .WithName("EliminarRecepcion")
            .WithTags("Recepciones")
-           .WithSummary("Elimina una recepción por ID");
+           .WithSummary("Elimina una recepción y sus detalles");
     }
 
     private static IResult Manejador(int id)
     {
-        var index = RecepcionDataStore.RecepcionesDb.FindIndex(r => r.Id == id);
-        if (index == -1)
+        var recepcion =
+            RecepcionDataStore.ObtenerPorId(id);
+
+        if (recepcion is null)
         {
-            return Result.Failure<bool>(Error.NotFound(
-                "Recepcion.NotFound", $"No se encontró la recepción con ID: {id}"))
+            return Result.Failure(
+                Error.NotFound(
+                    "Recepcion.NotFound",
+                    $"No se encontró la recepción con ID: {id}"))
                 .ToHttpResult();
         }
 
-        RecepcionDataStore.RecepcionesDb.RemoveAt(index);
+        var detalles = DetalleRecepcionDataStore.DetallesDb
+            .Where(d => d.IdRecepcion == id)
+            .ToList();
 
-        return Result.Success(true).ToHttpResult();
+
+        foreach (var detalle in detalles)
+        {
+            var resultado = InventarioDataStore.DisminuirStock(
+                detalle.IdProducto,
+                detalle.Cantidad);
+
+            if (!resultado.exito)
+            {
+                return Result.Failure(
+                    Error.Validation(
+                        "Inventario.Error",
+                        resultado.mensajeError ??
+                        "No fue posible actualizar el inventario."))
+                    .ToHttpResult();
+            }
+        }
+
+
+        DetalleRecepcionDataStore.DetallesDb
+            .RemoveAll(d => d.IdRecepcion == id);
+
+
+        RecepcionDataStore.RecepcionesDb
+            .Remove(recepcion);
+
+        return Result.Success()
+            .ToHttpResult();
     }
 }

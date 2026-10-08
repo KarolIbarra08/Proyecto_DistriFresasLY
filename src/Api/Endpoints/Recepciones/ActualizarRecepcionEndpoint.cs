@@ -1,7 +1,6 @@
 using DistriFresasLY.Api.Contracts.Recepciones;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
-using DistriFresasLY.Domain.Entities.Recepciones;
 
 namespace DistriFresasLY.Api.Endpoints.Recepciones;
 
@@ -15,44 +14,39 @@ public class ActualizarRecepcionEndpoint : IEndpoint
            .WithSummary("Actualiza una recepción existente");
     }
 
-    private static IResult Manejador(int id, ActualizarRecepcionRequest request)
+    private static IResult Manejador(
+        int id,
+        ActualizarRecepcionRequest request)
     {
-        var index = RecepcionDataStore.RecepcionesDb.FindIndex(r => r.Id == id);
-        if (index == -1)
+        var recepcion =
+            RecepcionDataStore.ObtenerPorId(id);
+
+        if (recepcion is null)
         {
-            return Result.Failure<RecepcionResponse>(Error.NotFound(
-                "Recepcion.NotFound", $"No se encontró la recepción con ID: {id}"))
+            return Result.Failure<RecepcionResponse>(
+                Error.NotFound(
+                    "Recepcion.NotFound",
+                    $"No se encontró la recepción con ID: {id}"))
                 .ToHttpResult();
         }
 
-        var recepcionExistente = RecepcionDataStore.RecepcionesDb[index];
-
-        var fechaReal = request.FechaRecepcion.HasValue 
-            && request.FechaRecepcion.Value != default 
-            && request.FechaRecepcion.Value.Year > 1970
-                ? request.FechaRecepcion.Value
-                : recepcionExistente.FechaRecepcion;
-
-        var result = Recepcion.Create(
-            request.Cantidad,
+        var result = recepcion.Actualizar(
             request.ValorPago,
-            id,
-            fechaReal);
+            request.FechaRecepcion);
 
         if (result.IsFailure)
-            return Result.Failure<RecepcionResponse>(result.Error).ToHttpResult();
-
-        var entidadActualizada = result.Value;
+        {
+            return Result.Failure<RecepcionResponse>(
+                result.Error)
+                .ToHttpResult();
+        }
 
         var response = new RecepcionResponse(
-            entidadActualizada.Id,
-            entidadActualizada.FechaRecepcion,
-            entidadActualizada.Cantidad,
-            entidadActualizada.ValorPago
-        );
+            recepcion.Id,
+            recepcion.FechaRecepcion,
+            recepcion.ValorPago);
 
-        RecepcionDataStore.RecepcionesDb[index] = response;
-
-        return Result.Success(response).ToHttpResult();
+        return Result.Success(response)
+            .ToHttpResult();
     }
 }

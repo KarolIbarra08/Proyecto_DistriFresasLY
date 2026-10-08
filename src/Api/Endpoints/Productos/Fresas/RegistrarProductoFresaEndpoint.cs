@@ -1,5 +1,4 @@
 using DistriFresasLY.Api.Contracts.Productos;
-using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Productos;
@@ -13,21 +12,23 @@ public class RegistrarProductoFresaEndpoint : IEndpoint
         app.MapPost("/productos/fresa", Manejador)
            .WithName("RegistrarProductoFresa")
            .WithTags("Productos Fresa")
-           .WithSummary("Registra un nuevo producto fresa e inicializa su stock");
+           .WithSummary("Registra un nuevo producto fresa");
     }
 
-    private static IResult Manejador(CrearProductoFresaRequest request)
+    private static IResult Manejador(
+        CrearProductoFresaRequest request)
     {
-        var nuevoId = ProductoDataStore.FresasDb.Count != 0 
-            ? ProductoDataStore.FresasDb.Max(p => p.Id) + 1 
+        var nuevoId = ProductoDataStore.FresasDb.Count != 0
+            ? ProductoDataStore.FresasDb.Max(p => p.Id) + 1
             : 1;
 
-        var fechaReal = request.FechaIngreso.HasValue 
-            && request.FechaIngreso.Value != default 
-            && request.FechaIngreso.Value.Year > 1970
+        var fechaReal =
+            request.FechaIngreso.HasValue &&
+            request.FechaIngreso.Value != default &&
+            request.FechaIngreso.Value.Year > 1970
                 ? request.FechaIngreso.Value
                 : DateTime.UtcNow;
-                
+
         var result = ProductoFresa.Create(
             request.Calibre,
             request.Calidad,
@@ -38,25 +39,30 @@ public class RegistrarProductoFresaEndpoint : IEndpoint
             fechaReal);
 
         if (result.IsFailure)
-            return Result.Failure<ProductoFresaResponse>(result.Error).ToHttpResult();
+        {
+            return Result
+                .Failure<ProductoFresaResponse>(result.Error)
+                .ToHttpResult();
+        }
 
         var fresa = result.Value;
-        ProductoDataStore.FresasDb.Add(fresa);
 
-        InventarioDataStore.InicializarStock(fresa.Id, request.CantidadInicial);
+        ProductoDataStore.FresasDb.Add(fresa);
 
         var response = new ProductoFresaResponse(
             fresa.Id,
             fresa.TipoProducto,
-            fresa.Calibre,
+            fresa.Calibre.Value,
             fresa.Calidad,
-            fresa.Peso,
-            fresa.PrecioCompra,
+            fresa.Peso.Value,
+            fresa.PrecioCompra.Value,
             fresa.FechaIngreso,
-            fresa.Descripcion,
-            request.CantidadInicial 
+            fresa.Descripcion
         );
 
-        return Result.Success(response).ToHttpCreatedAtResult($"/api/productos/fresa/{fresa.Id}");
+        return Result
+            .Success(response)
+            .ToHttpCreatedAtResult(
+                $"/api/productos/fresa/{fresa.Id}");
     }
 }

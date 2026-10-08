@@ -1,9 +1,8 @@
 using DistriFresasLY.Api.Contracts.Productos;
-using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 
-namespace DistriFresasLY.Api.Endpoints.Productos.Insumo;
+namespace DistriFresasLY.Api.Endpoints.Productos.Insumos;
 
 public class ConsultarProductoInsumoPorIdEndpoint : IEndpoint
 {
@@ -17,15 +16,18 @@ public class ConsultarProductoInsumoPorIdEndpoint : IEndpoint
 
     private static IResult Manejador(int id)
     {
-        var insumo = ProductoDataStore.InsumosDb.FirstOrDefault(p => p.Id == id);
+        var insumo = ProductoDataStore.InsumosDb
+            .FirstOrDefault(p => p.Id == id);
+
         if (insumo is null)
         {
-            return Result.Failure<ProductoInsumoResponse>(Error.NotFound(
-                "ProductoInsumo.NotFound", $"No se encontró el insumo con ID: {id}"))
+            return Result
+                .Failure<ProductoInsumoResponse>(
+                    Error.NotFound(
+                        "ProductoInsumo.NotFound",
+                        $"No se encontró el insumo con ID: {id}"))
                 .ToHttpResult();
         }
-
-        var stock = InventarioDataStore.ObtenerPorProductoId(insumo.Id)?.CantidadDisponible ?? 0;
 
         var response = new ProductoInsumoResponse(
             insumo.Id,
@@ -34,10 +36,11 @@ public class ConsultarProductoInsumoPorIdEndpoint : IEndpoint
             insumo.Tipo,
             insumo.UnidadMedida,
             insumo.Descripcion,
-            insumo.FechaIngreso,
-            stock
+            insumo.FechaIngreso
         );
 
-        return Result.Success(response).ToHttpResult();
+        return Result
+            .Success(response)
+            .ToHttpResult();
     }
 }

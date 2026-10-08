@@ -1,5 +1,5 @@
+
 using DistriFresasLY.Api.Contracts.Descuentos;
-using DistriFresasLY.Api.Contracts.ProductosDanados;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.ProductosDanados;
@@ -10,24 +10,31 @@ public class CalcularDescuentoEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/productos/danados/{id:int}/calcular-descuento", Manejador)
-           .WithName("CalcularDescuento")
-           .WithTags("Productos Dañados")
-           .WithSummary("Calcula el descuento del producto dañado invocando las reglas de dominio");
+        app.MapPost(
+                "/productos/danados/{id:int}/calcular-descuento",
+                Manejador)
+            .WithName("CalcularDescuento")
+            .WithTags("Productos Dañados")
+            .WithSummary("Calcula el descuento del producto dañado");
     }
 
     private static IResult Manejador(int id)
     {
-        var index = ProductoDanadoDataStore.ProductosDanadosDb.FindIndex(p => p.Id == id);
-        if (index == -1)
+       
+        var dtoExistente = ProductoDanadoDataStore
+            .ProductosDanadosDb
+            .FirstOrDefault(p => p.Id == id);
+
+        if (dtoExistente is null)
         {
-            return Result.Failure<ProductoDanadoResponse>(Error.NotFound(
-                "ProductoDanado.NotFound", $"No se encontro el producto dañado con ID: {id}"))
+            return Result.Failure<object>(
+                Error.NotFound(
+                    "ProductoDanado.NotFound",
+                    $"No se encontró el producto dañado con ID: {id}"))
                 .ToHttpResult();
         }
 
-        var dtoExistente = ProductoDanadoDataStore.ProductosDanadosDb[index];
-
+   
         var entidadResult = ProductoDanado.Create(
             dtoExistente.ProductoId,
             dtoExistente.TipoProducto,
@@ -36,20 +43,30 @@ public class CalcularDescuentoEndpoint : IEndpoint
             dtoExistente.Valor,
             dtoExistente.FechaProductoDanado,
             dtoExistente.Motivo,
-            dtoExistente.Id
-        );
+            dtoExistente.Id);
 
         if (entidadResult.IsFailure)
-            return Result.Failure<ProductoDanadoResponse>(entidadResult.Error).ToHttpResult();
+        {
+            return Result.Failure<object>(
+                entidadResult.Error)
+                .ToHttpResult();
+        }
 
         var entidad = entidadResult.Value;
 
-
+    
         var calculoResult = entidad.CalcularDescuento();
-        if (calculoResult.IsFailure)
-            return Result.Failure<ProductoDanadoResponse>(calculoResult.Error).ToHttpResult();
 
-        var response = new ProductoDanadoResponse(
+        if (calculoResult.IsFailure)
+        {
+            return Result.Failure<object>(
+                calculoResult.Error)
+                .ToHttpResult();
+        }
+
+
+        var response = new
+        {
             entidad.Id,
             entidad.ProductoId,
             entidad.TipoProducto,
@@ -58,11 +75,14 @@ public class CalcularDescuentoEndpoint : IEndpoint
             entidad.Valor,
             entidad.FechaProductoDanado,
             entidad.Motivo,
-            new DescuentoResponse(entidad.Descuento!.Valor, entidad.Descuento.Fecha, entidad.Descuento.Motivo)
-        );
+            Descuento = new DescuentoResponse(
+                entidad.Descuento!.Valor,
+                entidad.Descuento.Fecha,
+                entidad.Descuento.Motivo)
+        };
 
-        ProductoDanadoDataStore.ProductosDanadosDb[index] = response;
-
+        // 5. Devolver el resultado
         return Result.Success(response).ToHttpResult();
     }
 }
+

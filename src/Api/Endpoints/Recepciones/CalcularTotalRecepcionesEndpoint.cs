@@ -3,7 +3,10 @@ using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Recepciones;
 
-public record TotalRecepcionesResponse(double TotalPagado, int TotalCantidad);
+public record TotalRecepcionesResponse(
+    double TotalPagado,
+    int TotalRecepciones
+);
 
 public class CalcularTotalRecepcionesEndpoint : IEndpoint
 {
@@ -12,15 +15,20 @@ public class CalcularTotalRecepcionesEndpoint : IEndpoint
         app.MapGet("/recepciones/total", Manejador)
            .WithName("CalcularTotalRecepciones")
            .WithTags("Recepciones")
-           .WithSummary("Calcula el acumulado total de valor pagado y cantidad de recepciones");
+           .WithSummary("Calcula el valor total pagado y el número de recepciones registradas");
     }
 
     private static IResult Manejador()
     {
-        var totalValor = RecepcionDataStore.RecepcionesDb.Sum(r => r.ValorPago);
-        var totalCantidad = RecepcionDataStore.RecepcionesDb.Sum(r => r.Cantidad);
+        var totalPagado =
+            RecepcionDataStore.RecepcionesDb.Sum(r => r.ValorPago);
 
-        var response = new TotalRecepcionesResponse(totalValor, totalCantidad);
+        var totalRecepciones =
+            RecepcionDataStore.RecepcionesDb.Count;
+
+        var response = new TotalRecepcionesResponse(
+            totalPagado,
+            totalRecepciones);
 
         return Result.Success(response).ToHttpResult();
     }

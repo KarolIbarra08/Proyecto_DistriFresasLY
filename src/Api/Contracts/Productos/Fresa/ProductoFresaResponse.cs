@@ -8,6 +8,5 @@ public record ProductoFresaResponse(
     double Peso,
     decimal PrecioCompra,
     DateTime FechaIngreso,
-    string Descripcion,
-    int CantidadInicial
+    string Descripcion
 );
