@@ -1,4 +1,5 @@
 using DistriFresasLY.Api.Contracts.Productos;
+using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 
@@ -20,13 +21,22 @@ public class ConsultarProductoInsumoPorIdEndpoint : IEndpoint
         if (insumo is null)
         {
             return Result.Failure<ProductoInsumoResponse>(Error.NotFound(
-                "ProductoInsumo.NotFound", $"No se encontro el insumo con ID: {id}"))
+                "ProductoInsumo.NotFound", $"No se encontró el insumo con ID: {id}"))
                 .ToHttpResult();
         }
 
+        var stock = InventarioDataStore.ObtenerPorProductoId(insumo.Id)?.CantidadDisponible ?? 0;
+
         var response = new ProductoInsumoResponse(
-            insumo.Id, insumo.TipoProducto, insumo.Nombre, insumo.Tipo,
-            insumo.UnidadMedida, insumo.Descripcion);
+            insumo.Id,
+            insumo.TipoProducto,
+            insumo.Nombre,
+            insumo.Tipo,
+            insumo.UnidadMedida,
+            insumo.Descripcion,
+            insumo.FechaIngreso,
+            stock
+        );
 
         return Result.Success(response).ToHttpResult();
     }

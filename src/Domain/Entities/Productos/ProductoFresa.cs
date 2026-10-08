@@ -2,8 +2,10 @@ using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Domain.Entities.Productos;
 
-public sealed class ProductoFresa : Producto
+public class ProductoFresa
 {
+    public int Id { get; private set; }
+    public string TipoProducto { get; private set; } = "Fresa";
     public int Calibre { get; private set; }
     public string Calidad { get; private set; }
     public double Peso { get; private set; }
@@ -12,20 +14,21 @@ public sealed class ProductoFresa : Producto
     public string Descripcion { get; private set; }
 
     private ProductoFresa(
-        int id,
         int calibre,
         string calidad,
         double peso,
         decimal precioCompra,
-        DateTime fechaIngreso,
-        string descripcion) : base(id, "Fresa")
+        string descripcion,
+        int id,
+        DateTime fechaIngreso)
     {
+        Id = id;
         Calibre = calibre;
         Calidad = calidad;
         Peso = peso;
         PrecioCompra = precioCompra;
-        FechaIngreso = fechaIngreso;
         Descripcion = descripcion;
+        FechaIngreso = fechaIngreso;
     }
 
     public static Result<ProductoFresa> Create(
@@ -34,18 +37,20 @@ public sealed class ProductoFresa : Producto
         double peso,
         decimal precioCompra,
         string descripcion,
-        int id = 0)
+        int id = 0,
+        DateTime? fechaIngreso = null)
     {
-        if (calibre <= 0)
-            return Result.Failure<ProductoFresa>(Error.Validation("ProductoFresa.CalibreInvalido", "El calibre debe ser mayor a 0."));
-
         if (string.IsNullOrWhiteSpace(calidad))
-            return Result.Failure<ProductoFresa>(Error.Validation("ProductoFresa.CalidadRequerida", "La calidad es obligatoria."));
+            return Result.Failure<ProductoFresa>(Error.Validation("ProductoFresa.CalidadVacia", "La calidad no puede estar vacía."));
 
-        if (precioCompra <= 0)
-            return Result.Failure<ProductoFresa>(Error.Validation("ProductoFresa.PrecioInvalido", "El precio de compra debe ser mayor a 0."));
-
-        var producto = new ProductoFresa(id, calibre, calidad, peso, precioCompra, DateTime.Now, descripcion);
-        return Result.Success(producto);
+        return Result.Success(new ProductoFresa(
+            calibre,
+            calidad.Trim(),
+            peso,
+            precioCompra,
+            descripcion.Trim(),
+            id,
+            fechaIngreso ?? DateTime.UtcNow
+        ));
     }
 }

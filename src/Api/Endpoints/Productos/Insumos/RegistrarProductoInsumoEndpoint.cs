@@ -22,12 +22,19 @@ public class RegistrarProductoInsumoEndpoint : IEndpoint
             ? ProductoDataStore.InsumosDb.Max(p => p.Id) + 1 
             : 101;
 
+        var fechaReal = request.FechaIngreso.HasValue 
+            && request.FechaIngreso.Value != default 
+            && request.FechaIngreso.Value.Year > 1970
+                ? request.FechaIngreso.Value
+                : DateTime.UtcNow;
+
         var result = ProductoInsumo.Create(
             request.Nombre,
             request.Tipo,
             request.UnidadMedida,
             request.Descripcion,
-            nuevoId);
+            nuevoId,
+            fechaReal);
 
         if (result.IsFailure)
             return Result.Failure<ProductoInsumoResponse>(result.Error).ToHttpResult();
@@ -35,12 +42,18 @@ public class RegistrarProductoInsumoEndpoint : IEndpoint
         var insumo = result.Value;
         ProductoDataStore.InsumosDb.Add(insumo);
 
-        // Se registra/crea el inventario automáticamente con la cantidad inicial enviada
-        InventarioDataStore.AjustarStock(insumo.Id, request.CantidadInicial);
+        InventarioDataStore.InicializarStock(insumo.Id, request.CantidadInicial);
 
         var response = new ProductoInsumoResponse(
-            insumo.Id, insumo.TipoProducto, insumo.Nombre, insumo.Tipo,
-            insumo.UnidadMedida, insumo.Descripcion);
+            insumo.Id,
+            insumo.TipoProducto,
+            insumo.Nombre,
+            insumo.Tipo,
+            insumo.UnidadMedida,
+            insumo.Descripcion,
+            insumo.FechaIngreso,
+            request.CantidadInicial
+        );
 
         return Result.Success(response).ToHttpCreatedAtResult($"/api/productos/insumo/{insumo.Id}");
     }
