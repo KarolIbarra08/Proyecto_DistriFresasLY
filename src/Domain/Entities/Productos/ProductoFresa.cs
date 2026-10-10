@@ -1,24 +1,32 @@
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.ValueObjects;
 
 namespace DistriFresasLY.Domain.Entities.Productos;
 
-public sealed class ProductoFresa : Producto
+public class ProductoFresa : Producto
 {
-    public int Calibre { get; private set; }
+    public Calibre Calibre { get; private set; }
+
     public string Calidad { get; private set; }
-    public double Peso { get; private set; }
-    public decimal PrecioCompra { get; private set; }
+
+    public Peso Peso { get; private set; }
+
+    public PrecioCompra PrecioCompra { get; private set; }
+
     public DateTime FechaIngreso { get; private set; }
+
     public string Descripcion { get; private set; }
+
 
     private ProductoFresa(
         int id,
-        int calibre,
+        Calibre calibre,
         string calidad,
-        double peso,
-        decimal precioCompra,
+        Peso peso,
+        PrecioCompra precioCompra,
         DateTime fechaIngreso,
-        string descripcion) : base(id, "Fresa")
+        string descripcion)
+        : base(id, "Fresa")
     {
         Calibre = calibre;
         Calidad = calidad;
@@ -28,24 +36,102 @@ public sealed class ProductoFresa : Producto
         Descripcion = descripcion;
     }
 
+
     public static Result<ProductoFresa> Create(
         int calibre,
         string calidad,
         double peso,
         decimal precioCompra,
         string descripcion,
-        int id = 0)
+        int id = 0,
+        DateTime? fechaIngreso = null)
     {
-        if (calibre <= 0)
-            return Result.Failure<ProductoFresa>(Error.Validation("ProductoFresa.CalibreInvalido", "El calibre debe ser mayor a 0."));
-
         if (string.IsNullOrWhiteSpace(calidad))
-            return Result.Failure<ProductoFresa>(Error.Validation("ProductoFresa.CalidadRequerida", "La calidad es obligatoria."));
+        {
+            return Result.Failure<ProductoFresa>(
+                Error.Validation(
+                    "ProductoFresa.CalidadVacia",
+                    "La calidad no puede estar vacía."));
+        }
 
-        if (precioCompra <= 0)
-            return Result.Failure<ProductoFresa>(Error.Validation("ProductoFresa.PrecioInvalido", "El precio de compra debe ser mayor a 0."));
+        var calibreResult = Calibre.Create(calibre);
 
-        var producto = new ProductoFresa(id, calibre, calidad, peso, precioCompra, DateTime.Now, descripcion);
-        return Result.Success(producto);
+        if (calibreResult.IsFailure)
+        {
+            return Result.Failure<ProductoFresa>(
+                calibreResult.Error);
+        }
+
+        var pesoResult = Peso.Create(peso);
+
+        if (pesoResult.IsFailure)
+        {
+            return Result.Failure<ProductoFresa>(
+                pesoResult.Error);
+        }
+
+        var precioResult = PrecioCompra.Create(precioCompra);
+
+        if (precioResult.IsFailure)
+        {
+            return Result.Failure<ProductoFresa>(
+                precioResult.Error);
+        }
+
+        return Result.Success(
+            new ProductoFresa(
+                id,
+                calibreResult.Value,
+                calidad.Trim(),
+                pesoResult.Value,
+                precioResult.Value,
+                fechaIngreso ?? DateTime.UtcNow,
+                descripcion?.Trim() ?? string.Empty));
+    }
+
+
+    public Result Actualizar(
+        int calibre,
+        string calidad,
+        double peso,
+        decimal precioCompra,
+        string descripcion)
+    {
+        if (string.IsNullOrWhiteSpace(calidad))
+        {
+            return Result.Failure(
+                Error.Validation(
+                    "ProductoFresa.CalidadVacia",
+                    "La calidad no puede estar vacía."));
+        }
+
+        var calibreResult = Calibre.Create(calibre);
+
+        if (calibreResult.IsFailure)
+        {
+            return Result.Failure(calibreResult.Error);
+        }
+
+        var pesoResult = Peso.Create(peso);
+
+        if (pesoResult.IsFailure)
+        {
+            return Result.Failure(pesoResult.Error);
+        }
+
+        var precioResult = PrecioCompra.Create(precioCompra);
+
+        if (precioResult.IsFailure)
+        {
+            return Result.Failure(precioResult.Error);
+        }
+
+        Calibre = calibreResult.Value;
+        Calidad = calidad.Trim();
+        Peso = pesoResult.Value;
+        PrecioCompra = precioResult.Value;
+        Descripcion = descripcion?.Trim() ?? string.Empty;
+
+        return Result.Success();
     }
 }

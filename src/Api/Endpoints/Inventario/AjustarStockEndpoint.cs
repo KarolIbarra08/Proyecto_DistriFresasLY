@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
 using DistriFresasLY.Api.Contracts.Inventario;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
@@ -9,30 +8,26 @@ public class AjustarStockEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPut("/inventario/ajustar", Manejador)
+        app.MapPost("/inventario/ajustar", Manejador)
            .WithName("AjustarStock")
-           .WithTags("Inventario")
-           .WithSummary("Establece un nuevo valor absoluto para el stock de inventario");
+           .WithTags("Inventario");
     }
 
-    private static IResult Manejador([FromBody] ActualizarStockRequest request)
+    private static IResult Manejador(AjustarStockRequest request)
     {
-        var inventario = InventarioDataStore.AjustarStock(request.ProductoId, request.Cantidad);
+        // Ajusta o reinicia el stock base del producto
+        InventarioDataStore.InicializarStock(request.ProductoId, request.Cantidad);
+        
+        var inventario = InventarioDataStore.ObtenerPorProductoId(request.ProductoId);
+        
         if (inventario is null)
         {
-            return Result.Failure<InventarioResponse>(Error.NotFound(
-                "Inventario.NotFound",
-                $"No existe registro de inventario para el producto: {request.ProductoId}"))
-                .ToHttpResult();
+            return Result.Failure(Error.NotFound("Inventario.NotFound", "No se encontró el registro de inventario."))
+                         .ToHttpResult();
         }
 
-        var response = new InventarioResponse(
-            inventario.Id,
-            inventario.ProductoId,
-            inventario.CantidadDisponible,
-            inventario.FechaActualizacion
-        );
-
-        return Result.Success(response).ToHttpResult();
+        return Result.Success(inventario).ToHttpResult();
     }
 }
+
+public record AjustarStockRequest(int ProductoId, int Cantidad);

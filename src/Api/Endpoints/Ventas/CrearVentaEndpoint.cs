@@ -18,7 +18,6 @@ public class CrearVentaEndpoint : IEndpoint
 
     private static IResult Manejador([FromBody] CrearVentaRequest request)
     {
-
         if (request.Detalles is null || !request.Detalles.Any())
         {
             return Result.Failure(Error.Validation(
@@ -27,11 +26,11 @@ public class CrearVentaEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
- 
+        // 1. Validar disponibilidad de stock para todos los productos antes de realizar descuentos
         foreach (var d in request.Detalles)
         {
             var itemStock = InventarioDataStore.ObtenerPorProductoId(d.ProductoId);
-            
+
             if (itemStock is null)
             {
                 return Result.Failure(Error.NotFound(
@@ -40,19 +39,22 @@ public class CrearVentaEndpoint : IEndpoint
                     .ToHttpResult();
             }
 
-            if (!itemStock.PuedeDisminuir(d.Cantidad))
+            if (itemStock.CantidadDisponible < d.Cantidad)
             {
                 return Result.Failure(Error.Validation(
                     "Inventario.StockInsuficiente",
                     $"Stock insuficiente para el producto {d.ProductoId}. Disponible: {itemStock.CantidadDisponible}, Requerido: {d.Cantidad}"))
                     .ToHttpResult();
             }
-
-       
-            itemStock.Disminuir(d.Cantidad);
         }
 
-    
+        // 2. Descontar el stock en el DataStore
+        foreach (var d in request.Detalles)
+        {
+            InventarioDataStore.DisminuirStock(d.ProductoId, d.Cantidad);
+        }
+
+        // 3. Crear el modelo de la venta y registrar
         var detallesModel = request.Detalles.Select(d => new DetalleVentaModel(
             d.ProductoId,
             d.Cantidad,
@@ -73,10 +75,8 @@ public class CrearVentaEndpoint : IEndpoint
             detallesModel
         );
 
-    
         VentaDataStore.VentasDb.Add(nuevaVenta);
 
-     
         var response = new VentaResponse(
             nuevaVenta.Id,
             nuevaVenta.FechaVenta,

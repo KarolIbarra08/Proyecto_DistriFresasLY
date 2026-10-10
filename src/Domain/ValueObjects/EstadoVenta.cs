@@ -21,9 +21,9 @@ public sealed record EstadoVenta
     {
         if (string.IsNullOrWhiteSpace(estado))
         {
-            return Error.Validation(
+            return Result.Failure<EstadoVenta>(Error.Validation(
                 "EstadoVenta.Requerido",
-                "El estado de la venta es obligatorio.");
+                "El estado de la venta es obligatorio."));
         }
 
         var estadoNormalizado = estado.Trim();
@@ -31,12 +31,12 @@ public sealed record EstadoVenta
 
         if (coincide is null)
         {
-            return Error.Validation(
+            return Result.Failure<EstadoVenta>(Error.Validation(
                 "EstadoVenta.Invalido",
-                $"El estado '{estado}' no es valido. Estados permitidos: {string.Join(", ", EstadosValidos)}.");
+                $"El estado '{estado}' no es valido. Estados permitidos: {string.Join(", ", EstadosValidos)}."));
         }
 
-        return new EstadoVenta(coincide);
+        return Result.Success(new EstadoVenta(coincide));
     }
 
     public static implicit operator string(EstadoVenta estado) => estado.Value;

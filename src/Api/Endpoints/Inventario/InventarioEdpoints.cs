@@ -1,64 +1,81 @@
-using DistriFresasLY.Domain.Entities;
+using DistriFresasLY.Api.Contracts.Inventario;
 
 namespace DistriFresasLY.Api.Endpoints.Inventario;
 
 public static class InventarioDataStore
 {
-    public static readonly List<Domain.Entities.Inventario> InventarioDb =
-    [
-        new Domain.Entities.Inventario(1, 101, 50)
-    ];
+    public static readonly List<InventarioResponse> InventarioDb = new();
 
-    public static Domain.Entities.Inventario? ObtenerPorProductoId(int productoId)
+    public static InventarioResponse? ObtenerPorProductoId(int productoId)
     {
         return InventarioDb.FirstOrDefault(i => i.ProductoId == productoId);
     }
 
-    public static Domain.Entities.Inventario AjustarStock(int productoId, int cantidad)
+    public static void InicializarStock(int productoId, int cantidadInicial)
     {
         var item = ObtenerPorProductoId(productoId);
 
         if (item is null)
         {
-            var nuevoId = InventarioDb.Count != 0 ? InventarioDb.Max(i => i.Id) + 1 : 1;
-            item = new Domain.Entities.Inventario(nuevoId, productoId, cantidad);
-            InventarioDb.Add(item);
-            return item;
+            int nuevoId = InventarioDb.Count != 0 ? InventarioDb.Max(i => i.Id) + 1 : 1;
+            InventarioDb.Add(new InventarioResponse(nuevoId, productoId, cantidadInicial, DateTime.UtcNow));
         }
-
-        item.Ajustar(cantidad);
-        return item;
+        else
+        {
+            int index = InventarioDb.IndexOf(item);
+            InventarioDb[index] = item with 
+            { 
+                CantidadDisponible = cantidadInicial,
+                FechaActualizacion = DateTime.UtcNow 
+            };
+        }
     }
 
-    public static Domain.Entities.Inventario AumentarStock(int productoId, int cantidad)
+    public static InventarioResponse AumentarStock(int productoId, int cantidad)
     {
         var item = ObtenerPorProductoId(productoId);
 
         if (item is null)
         {
-            var nuevoId = InventarioDb.Count != 0 ? InventarioDb.Max(i => i.Id) + 1 : 1;
-            item = new Domain.Entities.Inventario(nuevoId, productoId, 0);
-            InventarioDb.Add(item);
+            int nuevoId = InventarioDb.Count != 0 ? InventarioDb.Max(i => i.Id) + 1 : 1;
+            var nuevoItem = new InventarioResponse(nuevoId, productoId, cantidad, DateTime.UtcNow);
+            InventarioDb.Add(nuevoItem);
+            return nuevoItem;
         }
 
-        item.Aumentar(cantidad);
-        return item;
+        int index = InventarioDb.IndexOf(item);
+        var actualizado = item with 
+        { 
+            CantidadDisponible = item.CantidadDisponible + cantidad,
+            FechaActualizacion = DateTime.UtcNow 
+        };
+        
+        InventarioDb[index] = actualizado;
+        return actualizado;
     }
 
-    public static (bool Exito, Domain.Entities.Inventario? Item, string? Error) DisminuirStock(int productoId, int cantidad)
+    public static (bool exito, InventarioResponse? inventario, string? mensajeError) DisminuirStock(int productoId, int cantidad)
     {
         var item = ObtenerPorProductoId(productoId);
+
         if (item is null)
         {
-            return (false, null, $"No existe registro de inventario para el producto: {productoId}");
+            return (false, null, $"No se encontró registro de inventario para el producto ID: {productoId}");
         }
 
-        if (!item.PuedeDisminuir(cantidad))
+        if (item.CantidadDisponible < cantidad)
         {
-            return (false, item, $"El stock actual ({item.CantidadDisponible}) es insuficiente para descontar {cantidad} unidades.");
+            return (false, null, $"Stock insuficiente. Disponible: {item.CantidadDisponible}, Requerido: {cantidad}");
         }
 
-        item.Disminuir(cantidad);
-        return (true, item, null);
+        int index = InventarioDb.IndexOf(item);
+        var actualizado = item with 
+        { 
+            CantidadDisponible = item.CantidadDisponible - cantidad,
+            FechaActualizacion = DateTime.UtcNow 
+        };
+
+        InventarioDb[index] = actualizado;
+        return (true, actualizado, null);
     }
 }

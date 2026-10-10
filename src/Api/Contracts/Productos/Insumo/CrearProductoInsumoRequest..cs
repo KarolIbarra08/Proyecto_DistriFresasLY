@@ -5,5 +5,5 @@ public record CrearProductoInsumoRequest(
     string Tipo,
     string UnidadMedida,
     string Descripcion,
-    int CantidadInicial 
+    DateTime? FechaIngreso = null
 );
