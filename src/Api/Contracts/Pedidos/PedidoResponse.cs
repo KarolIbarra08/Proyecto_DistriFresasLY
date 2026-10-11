@@ -4,6 +4,6 @@ public record PedidoResponse(
     int Id,
     DateTime FechaPedido,
     string Estado,
-    double Total,
+    decimal Total,
     List<DetallePedidoResponse> Detalles
 );

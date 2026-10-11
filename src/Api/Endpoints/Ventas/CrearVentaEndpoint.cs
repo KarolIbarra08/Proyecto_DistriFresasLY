@@ -3,6 +3,7 @@ using DistriFresasLY.Api.Contracts.Ventas;
 using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Ventas;
 
 namespace DistriFresasLY.Api.Endpoints.Ventas;
 
@@ -54,37 +55,41 @@ public class CrearVentaEndpoint : IEndpoint
             InventarioDataStore.DisminuirStock(d.ProductoId, d.Cantidad);
         }
 
-        // 3. Crear el modelo de la venta y registrar
-        var detallesModel = request.Detalles.Select(d => new DetalleVentaModel(
-            d.ProductoId,
-            d.Cantidad,
-            d.PrecioUnitario,
-            d.PrecioUnitario * d.Cantidad
-        )).ToList();
+        // 3. Crear los detalles con la entidad del Domain
+        var detallesResult = request.Detalles
+            .Select(d => DetalleVenta.Create(d.ProductoId, d.Cantidad, d.PrecioUnitario))
+            .ToList();
 
-        var nuevoId = VentaDataStore.VentasDb.Count != 0 
-            ? VentaDataStore.VentasDb.Max(v => v.Id) + 1 
+        var detalleInvalido = detallesResult.FirstOrDefault(r => r.IsFailure);
+        if (detalleInvalido is not null)
+        {
+            return Result.Failure<VentaResponse>(detalleInvalido.Error).ToHttpResult();
+        }
+
+        var detalles = detallesResult.Select(r => r.Value).ToList();
+
+        var nuevoId = VentaDataStore.VentasDb.Count != 0
+            ? VentaDataStore.VentasDb.Max(v => v.Id) + 1
             : 1;
 
-        var nuevaVenta = new VentaModel(
-            nuevoId,
-            DateTime.Now,
-            detallesModel.Sum(x => x.Subtotal),
-            "Pendiente",
-            request.ClienteId,
-            detallesModel
-        );
+        var ventaResult = Venta.Create(detalles, request.ClienteId, nuevoId);
+        if (ventaResult.IsFailure)
+        {
+            return Result.Failure<VentaResponse>(ventaResult.Error).ToHttpResult();
+        }
 
-        VentaDataStore.VentasDb.Add(nuevaVenta);
+        var venta = ventaResult.Value;
+
+        VentaDataStore.VentasDb.Add(venta);
 
         var response = new VentaResponse(
-            nuevaVenta.Id,
-            nuevaVenta.FechaVenta,
-            nuevaVenta.Total,
-            nuevaVenta.Estado,
-            nuevaVenta.ClienteId
+            venta.Id,
+            venta.FechaVenta,
+            venta.Total,
+            venta.Estado,
+            venta.ClienteId
         );
 
-        return Result.Success(response).ToHttpCreatedAtResult($"/api/ventas/{nuevaVenta.Id}");
+        return Result.Success(response).ToHttpCreatedAtResult($"/api/ventas/{venta.Id}");
     }
 }

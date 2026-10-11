@@ -19,7 +19,7 @@ public class CrearClienteEndpoint : IEndpoint
     {
         // Verificar si ya existe un cliente con la misma Cedula/NIT
         if (ClienteDataStore.ClientesDb.Any(
-            cliente => cliente.CedulaNit.Equals(
+            cliente => cliente.Documento.Value.Equals(
                 request.CedulaNit,
                 StringComparison.OrdinalIgnoreCase)))
         {
@@ -63,7 +63,7 @@ public class CrearClienteEndpoint : IEndpoint
         );
 
         // Guardar el cliente
-        ClienteDataStore.ClientesDb.Add(response);
+        ClienteDataStore.ClientesDb.Add(cliente);
 
         Result<ClienteResponse> createdResult = Result.Success(response);
 

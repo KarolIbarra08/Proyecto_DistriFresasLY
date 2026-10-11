@@ -27,9 +27,7 @@ public class EliminarPedidoEndpoint : IEndpoint
             return notFoundResult.ToHttpResult();
         }
 
-      
         PedidoDataStore.PedidosDb.Remove(pedido);
-        PedidoDataStore.DetallesPedidoDb.RemoveAll(d => d.PedidoId == id);
 
         Result<bool> successResult = Result.Success(true);
         return successResult.ToHttpResult();

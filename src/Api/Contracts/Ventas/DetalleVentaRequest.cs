@@ -1,4 +1,4 @@
-namespace src.DistriFresasLY.Api.Contracts.Ventas;
+namespace DistriFresasLY.Api.Contracts.Ventas;
 
 public record DetalleVentaRequest(
     int ProductoId,

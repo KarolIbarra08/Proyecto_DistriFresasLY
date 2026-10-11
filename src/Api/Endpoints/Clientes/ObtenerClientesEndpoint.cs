@@ -1,3 +1,4 @@
+using DistriFresasLY.Api.Contracts.Clientes;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 
@@ -15,7 +16,17 @@ public class ObtenerClientesEndpoint : IEndpoint
 
     private static IResult Manejador()
     {
-        var result = Result.Success(ClienteDataStore.ClientesDb.AsReadOnly());
+        var clientes = ClienteDataStore.ClientesDb
+            .Select(cliente => new ClienteResponse(
+                Id: cliente.Id,
+                Nombre: cliente.Nombre,
+                CedulaNit: cliente.Documento.Value,
+                Telefono: cliente.Telefono.Valor,
+                Direccion: cliente.Direccion,
+                TipoNegocio: cliente.TipoNegocio))
+            .ToList();
+
+        var result = Result.Success(clientes);
         return result.ToHttpResult();
     }
 }

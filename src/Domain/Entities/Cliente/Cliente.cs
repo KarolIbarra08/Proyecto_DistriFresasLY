@@ -40,9 +40,9 @@ public sealed class Cliente : Entity
     public static Result<Cliente> Create(
         string nombre,
         string cedulaNit,
-        string? telefono = null,
-        string? direccion = null,
-        string? tipoNegocio = null,
+        string telefono,
+        string direccion,
+        string tipoNegocio,
         int id = 0)
     {
         // Validar nombre
@@ -131,9 +131,9 @@ public sealed class Cliente : Entity
 
     public Result ActualizarDatos(
         string nombre,
-        string? telefono,
-        string? direccion,
-        string? tipoNegocio)
+        string telefono,
+        string direccion,
+        string tipoNegocio)
     {
         // Validar nombre
         if (string.IsNullOrWhiteSpace(nombre))

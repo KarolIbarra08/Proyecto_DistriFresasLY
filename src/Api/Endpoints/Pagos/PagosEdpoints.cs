@@ -1,10 +1,9 @@
-using DistriFresasLY.Api.Contracts.Pagos.Clientes;
-using DistriFresasLY.Api.Contracts.Pagos.Proveedores;
+using DistriFresasLY.Domain.Entities.Pagos;
 
 namespace DistriFresasLY.Api.Endpoints.Pagos;
 
 public static class PagoDataStore
 {
-    public static readonly List<PagoClienteResponse> PagosClientesDb = [];
-    public static readonly List<PagoProveedorResponse> PagosProveedoresDb = [];
+    public static readonly List<PagoCliente> PagosClientesDb = [];
+    public static readonly List<PagoProveedor> PagosProveedoresDb = [];
 }

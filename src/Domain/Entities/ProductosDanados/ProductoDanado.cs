@@ -3,20 +3,18 @@ using DistriFresasLY.Domain.ValueObjects;
 
 namespace DistriFresasLY.Domain.Entities.ProductosDanados;
 
-public class ProductoDanado
+public sealed class ProductoDanado : Entity
 {
-    public int Id { get; private set; }
-
     public int ProductoId { get; private set; }
 
     public string TipoProducto { get; private set; }
 
-    public int Cantidad { get; private set; }
+    public Cantidad Cantidad { get; private set; }
 
     public string Identificacion { get; private set; }
 
     // Valor unitario del producto dañado
-    public double Valor { get; private set; }
+    public decimal Valor { get; private set; }
 
     public DateTime FechaProductoDanado { get; private set; }
 
@@ -28,14 +26,14 @@ public class ProductoDanado
         int id,
         int productoId,
         string tipoProducto,
-        int cantidad,
+        Cantidad cantidad,
         string identificacion,
-        double valor,
+        decimal valor,
         DateTime fechaProductoDanado,
         string motivo,
         Descuento? descuento = null)
+        : base(id)
     {
-        Id = id;
         ProductoId = productoId;
         TipoProducto = tipoProducto;
         Cantidad = cantidad;
@@ -51,7 +49,7 @@ public class ProductoDanado
         string tipoProducto,
         int cantidad,
         string identificacion,
-        double valor,
+        decimal valor,
         DateTime fechaProductoDanado,
         string motivo,
         int id = 0,
@@ -73,12 +71,11 @@ public class ProductoDanado
                     "El tipo de producto es obligatorio."));
         }
 
-        if (cantidad <= 0)
+        var cantidadResult = Cantidad.Create(cantidad);
+
+        if (cantidadResult.IsFailure)
         {
-            return Result.Failure<ProductoDanado>(
-                Error.Validation(
-                    "ProductoDanado.CantidadInvalida",
-                    "La cantidad debe ser mayor que cero."));
+            return Result.Failure<ProductoDanado>(cantidadResult.Error);
         }
 
         if (valor <= 0)
@@ -110,7 +107,7 @@ public class ProductoDanado
                 id,
                 productoId,
                 tipoProducto.Trim(),
-                cantidad,
+                cantidadResult.Value,
                 identificacion.Trim(),
                 valor,
                 fechaProductoDanado,

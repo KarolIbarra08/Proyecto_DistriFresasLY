@@ -20,7 +20,7 @@ public class ObtenerUsuariosEndpoint : IEndpoint
             u.Id,
             u.Nombre,
             u.Apellido,
-            u.Usuario,
+            u.NombreUsuario,
             u.Contrasena,
             u.Rol,
             u.Estado

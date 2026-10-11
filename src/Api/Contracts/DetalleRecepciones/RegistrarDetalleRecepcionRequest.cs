@@ -6,5 +6,5 @@ public record RegistrarDetalleRecepcionRequest(
     int Cantidad,
     double UnidadMedida,
     string TipoMedida,
-    double PrecioUnitario
+    decimal PrecioUnitario
 );

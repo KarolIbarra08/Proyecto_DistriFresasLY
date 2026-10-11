@@ -27,21 +27,31 @@ public class ActualizarPagoProveedorEndpoint : IEndpoint
             return notFoundResult.ToHttpResult();
         }
 
-        var pagoActual = PagoDataStore.PagosProveedoresDb[index];
+        var pago = PagoDataStore.PagosProveedoresDb[index];
 
-        var pagoActualizado = pagoActual with
+        var actualizarResult = pago.Actualizar(
+            proveedorId: request.ProveedorId,
+            valor: request.Valor,
+            medioPago: request.MedioPago,
+            fechaInicial: request.FechaInicial,
+            fechaFinal: request.FechaFinal,
+            estado: request.Estado);
+
+        if (actualizarResult.IsFailure)
         {
-            ProveedorId = request.ProveedorId ?? pagoActual.ProveedorId,
-            Valor = request.Valor ?? pagoActual.Valor,
-            MedioPago = !string.IsNullOrWhiteSpace(request.MedioPago) ? request.MedioPago.Trim() : pagoActual.MedioPago,
-            FechaInicial = request.FechaInicial ?? pagoActual.FechaInicial,
-            FechaFinal = request.FechaFinal ?? pagoActual.FechaFinal,
-            Estado = !string.IsNullOrWhiteSpace(request.Estado) ? request.Estado.Trim() : pagoActual.Estado
-        };
+            return Result.Failure<PagoProveedorResponse>(actualizarResult.Error).ToHttpResult();
+        }
 
-        PagoDataStore.PagosProveedoresDb[index] = pagoActualizado;
+        var response = new PagoProveedorResponse(
+            pago.Id,
+            pago.ProveedorId,
+            pago.Valor,
+            pago.MedioPago,
+            pago.FechaInicial,
+            pago.FechaFinal,
+            pago.Estado
+        );
 
-        Result<PagoProveedorResponse> successResult = Result.Success(pagoActualizado);
-        return successResult.ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

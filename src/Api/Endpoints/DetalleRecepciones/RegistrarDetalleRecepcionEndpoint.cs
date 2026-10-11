@@ -81,10 +81,9 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
         DetalleRecepcionDataStore.DetallesDb.Add(detalle);
 
 
-        var inventarioActualizado =
-            InventarioDataStore.AumentarStock(
-                detalle.IdProducto,
-                (int)detalle.Cantidad);
+        InventarioDataStore.AumentarStock(
+            detalle.IdProducto,
+            detalle.Cantidad);
 
 
         var response = new DetalleRecepcionResponse(

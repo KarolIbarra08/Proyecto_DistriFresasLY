@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Usuarios;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Usuarios;
 
 namespace DistriFresasLY.Api.Endpoints.Usuarios;
 
@@ -20,33 +21,34 @@ public class ActualizarUsuarioEndpoint : IEndpoint
         if (index == -1)
         {
             Result<UsuarioResponse> errorResult = Error.NotFound(
-                "Usuario.NotFound", 
+                "Usuario.NotFound",
                 $"No se encontro un usuario con el Id: {id}");
 
             return errorResult.ToHttpResult();
         }
 
-        var usuarioExistente = UsuarioDataStore.UsuariosDb[index];
+        var usuario = UsuarioDataStore.UsuariosDb[index];
 
-        var usuarioActualizado = usuarioExistente with
+        var nombre = !string.IsNullOrWhiteSpace(request.Nombre) ? request.Nombre.Trim() : usuario.Nombre;
+        var apellido = !string.IsNullOrWhiteSpace(request.Apellido) ? request.Apellido.Trim() : usuario.Apellido;
+        var nombreUsuario = !string.IsNullOrWhiteSpace(request.Usuario) ? request.Usuario.Trim() : usuario.NombreUsuario;
+        var contrasena = !string.IsNullOrWhiteSpace(request.Contrasena) ? request.Contrasena : usuario.Contrasena;
+        var rol = !string.IsNullOrWhiteSpace(request.Rol) ? request.Rol.Trim() : usuario.Rol;
+
+        var actualizarResult = usuario.ActualizarDatos(nombre, apellido, nombreUsuario, contrasena, rol);
+        if (actualizarResult.IsFailure)
         {
-            Nombre = !string.IsNullOrWhiteSpace(request.Nombre) ? request.Nombre.Trim() : usuarioExistente.Nombre,
-            Apellido = !string.IsNullOrWhiteSpace(request.Apellido) ? request.Apellido.Trim() : usuarioExistente.Apellido,
-            Usuario = !string.IsNullOrWhiteSpace(request.Usuario) ? request.Usuario.Trim() : usuarioExistente.Usuario,
-            Contrasena = !string.IsNullOrWhiteSpace(request.Contrasena) ? request.Contrasena : usuarioExistente.Contrasena,
-            Rol = !string.IsNullOrWhiteSpace(request.Rol) ? request.Rol.Trim() : usuarioExistente.Rol
-        };
-
-        UsuarioDataStore.UsuariosDb[index] = usuarioActualizado;
+            return Result.Failure<UsuarioResponse>(actualizarResult.Error).ToHttpResult();
+        }
 
         var response = new UsuarioResponse(
-            usuarioActualizado.Id, 
-            usuarioActualizado.Nombre, 
-            usuarioActualizado.Apellido, 
-            usuarioActualizado.Usuario, 
-            usuarioActualizado.Contrasena,
-            usuarioActualizado.Rol, 
-            usuarioActualizado.Estado);
+            usuario.Id,
+            usuario.Nombre,
+            usuario.Apellido,
+            usuario.NombreUsuario,
+            usuario.Contrasena,
+            usuario.Rol,
+            usuario.Estado);
 
         return Result.Success(response).ToHttpResult();
     }

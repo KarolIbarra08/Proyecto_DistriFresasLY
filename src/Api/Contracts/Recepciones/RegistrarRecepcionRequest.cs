@@ -1,6 +1,6 @@
 namespace DistriFresasLY.Api.Contracts.Recepciones;
 
 public record RegistrarRecepcionRequest(
-    double ValorPago,
+    decimal ValorPago,
     DateTime? FechaRecepcion = null
 );

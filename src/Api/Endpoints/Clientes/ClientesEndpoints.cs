@@ -1,26 +1,24 @@
-using DistriFresasLY.Api.Contracts.Clientes;
+using DistriFresasLY.Domain.Entities.Cliente;
 
 namespace DistriFresasLY.Api.Endpoints.Clientes;
 
 public static class ClienteDataStore
 {
-    public static readonly List<ClienteResponse> ClientesDb =
+    public static readonly List<Cliente> ClientesDb =
     [
-        new(
-            Id: 1,
-            Nombre: "Fruver El Campestre",
-            CedulaNit: "900123456-1",
-            Telefono: "3101234567",
-            Direccion: "Calle 5 # 10-20, Purace",
-            TipoNegocio: "Supermercado"
-        ),
-        new(
-            Id: 2,
-            Nombre: "Maria Eugenia Gomez",
-            CedulaNit: "34567890",
-            Telefono: "3129876543",
-            Direccion: "Carrera 8 # 12-45, Popayan",
-            TipoNegocio: "Tienda de Barrio"
-        )
+        Cliente.Create(
+            nombre: "Fruver El Campestre",
+            cedulaNit: "900123456-1",
+            telefono: "3101234567",
+            direccion: "Calle 5 # 10-20, Purace",
+            tipoNegocio: "Supermercado",
+            id: 1).Value,
+        Cliente.Create(
+            nombre: "Maria Eugenia Gomez",
+            cedulaNit: "34567890",
+            telefono: "3129876543",
+            direccion: "Carrera 8 # 12-45, Popayan",
+            tipoNegocio: "Tienda de Barrio",
+            id: 2).Value
     ];
 }

@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Proveedores;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Proveedores;
 
 namespace DistriFresasLY.Api.Endpoints.Proveedores;
 
@@ -26,22 +27,40 @@ public class ActualizarProveedorEndpoint : IEndpoint
             return errorResult.ToHttpResult();
         }
 
-        var proveedorExistente = ProveedorDataStore.ProveedoresDb[index];
+        var proveedor = ProveedorDataStore.ProveedoresDb[index];
 
-        
-        var proveedorActualizado = proveedorExistente with
+        if (!string.IsNullOrWhiteSpace(request.CedulaNit))
         {
-            Nombre = !string.IsNullOrWhiteSpace(request.Nombre) ? request.Nombre.Trim() : proveedorExistente.Nombre,
-            Apellido = !string.IsNullOrWhiteSpace(request.Apellido) ? request.Apellido.Trim() : proveedorExistente.Apellido,
-            CedulaNit = !string.IsNullOrWhiteSpace(request.CedulaNit) ? request.CedulaNit.Trim() : proveedorExistente.CedulaNit,
-            Telefono = !string.IsNullOrWhiteSpace(request.Telefono) ? request.Telefono.Trim() : proveedorExistente.Telefono,
-            Direccion = !string.IsNullOrWhiteSpace(request.Direccion) ? request.Direccion.Trim() : proveedorExistente.Direccion,
-            NombreEmpresa = !string.IsNullOrWhiteSpace(request.NombreEmpresa) ? request.NombreEmpresa.Trim() : proveedorExistente.NombreEmpresa
-        };
+            var documentoResult = proveedor.ActualizarDocumento(request.CedulaNit.Trim());
+            if (documentoResult.IsFailure)
+            {
+                return Result.Failure<ProveedorResponse>(documentoResult.Error).ToHttpResult();
+            }
+        }
 
-        ProveedorDataStore.ProveedoresDb[index] = proveedorActualizado;
+        var nombre = !string.IsNullOrWhiteSpace(request.Nombre) ? request.Nombre.Trim() : proveedor.Nombre;
+        var apellido = !string.IsNullOrWhiteSpace(request.Apellido) ? request.Apellido.Trim() : proveedor.Apellido;
+        var telefono = !string.IsNullOrWhiteSpace(request.Telefono) ? request.Telefono.Trim() : proveedor.Telefono.Valor;
+        var direccion = !string.IsNullOrWhiteSpace(request.Direccion) ? request.Direccion.Trim() : proveedor.Direccion;
+        var nombreEmpresa = !string.IsNullOrWhiteSpace(request.NombreEmpresa) ? request.NombreEmpresa.Trim() : proveedor.NombreEmpresa;
 
-        Result<ProveedorResponse> successResult = Result.Success(proveedorActualizado);
+        var actualizarResult = proveedor.ActualizarDatos(nombre, apellido, telefono, direccion, nombreEmpresa);
+        if (actualizarResult.IsFailure)
+        {
+            return Result.Failure<ProveedorResponse>(actualizarResult.Error).ToHttpResult();
+        }
+
+        var response = new ProveedorResponse(
+            Id: proveedor.Id,
+            Nombre: proveedor.Nombre,
+            Apellido: proveedor.Apellido,
+            CedulaNit: proveedor.Documento.Value,
+            Telefono: proveedor.Telefono.Valor,
+            Direccion: proveedor.Direccion,
+            NombreEmpresa: proveedor.NombreEmpresa
+        );
+
+        Result<ProveedorResponse> successResult = Result.Success(response);
         return successResult.ToHttpResult();
     }
 }

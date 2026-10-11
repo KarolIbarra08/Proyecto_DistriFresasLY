@@ -1,4 +1,5 @@
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.ValueObjects;
 
 namespace DistriFresasLY.Domain.Entities.Recepciones;
 
@@ -8,23 +9,23 @@ public class DetalleRecepcion : Entity
     public int IdProducto { get; private set; }
 
 
-    public int Cantidad { get; private set; }
+    public Cantidad Cantidad { get; private set; }
 
     public double UnidadMedida { get; private set; }
     public string TipoMedida { get; private set; }
-    public double PrecioUnitario { get; private set; }
+    public decimal PrecioUnitario { get; private set; }
 
-    public double Subtotal =>
+    public decimal Subtotal =>
         Cantidad * PrecioUnitario;
 
     private DetalleRecepcion(
         int id,
         int idRecepcion,
         int idProducto,
-        int cantidad,
+        Cantidad cantidad,
         double unidadMedida,
         string tipoMedida,
-        double precioUnitario)
+        decimal precioUnitario)
         : base(id)
     {
         IdRecepcion = idRecepcion;
@@ -41,7 +42,7 @@ public class DetalleRecepcion : Entity
         int cantidad,
         double unidadMedida,
         string tipoMedida,
-        double precioUnitario,
+        decimal precioUnitario,
         int id = 0)
     {
         if (idRecepcion <= 0)
@@ -60,12 +61,11 @@ public class DetalleRecepcion : Entity
                     "El producto es obligatorio."));
         }
 
-        if (cantidad <= 0)
+        var cantidadResult = Cantidad.Create(cantidad);
+
+        if (cantidadResult.IsFailure)
         {
-            return Result.Failure<DetalleRecepcion>(
-                Error.Validation(
-                    "DetalleRecepcion.CantidadInvalida",
-                    "La cantidad debe ser mayor que cero."));
+            return Result.Failure<DetalleRecepcion>(cantidadResult.Error);
         }
 
         if (unidadMedida <= 0)
@@ -97,7 +97,7 @@ public class DetalleRecepcion : Entity
                 id,
                 idRecepcion,
                 idProducto,
-                cantidad,
+                cantidadResult.Value,
                 unidadMedida,
                 tipoMedida.Trim(),
                 precioUnitario));
@@ -107,14 +107,13 @@ public class DetalleRecepcion : Entity
         int cantidad,
         double unidadMedida,
         string tipoMedida,
-        double precioUnitario)
+        decimal precioUnitario)
     {
-        if (cantidad <= 0)
+        var cantidadResult = Cantidad.Create(cantidad);
+
+        if (cantidadResult.IsFailure)
         {
-            return Result.Failure(
-                Error.Validation(
-                    "DetalleRecepcion.CantidadInvalida",
-                    "La cantidad debe ser mayor que cero."));
+            return Result.Failure(cantidadResult.Error);
         }
 
         if (unidadMedida <= 0)
@@ -141,7 +140,7 @@ public class DetalleRecepcion : Entity
                     "El precio unitario debe ser mayor que cero."));
         }
 
-        Cantidad = cantidad;
+        Cantidad = cantidadResult.Value;
         UnidadMedida = unidadMedida;
         TipoMedida = tipoMedida.Trim();
         PrecioUnitario = precioUnitario;

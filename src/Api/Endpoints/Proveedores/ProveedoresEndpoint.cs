@@ -1,28 +1,26 @@
-using DistriFresasLY.Api.Contracts.Proveedores;
+using DistriFresasLY.Domain.Entities.Proveedores;
 
 namespace DistriFresasLY.Api.Endpoints.Proveedores;
 
 public static class ProveedorDataStore
 {
-    public static readonly List<ProveedorResponse> ProveedoresDb =
+    public static readonly List<Proveedor> ProveedoresDb =
     [
-        new(
-            Id: 1,
-            Nombre: "Carlos",
-            Apellido: "Perez",
-            CedulaNit: "900123456-1",
-            Telefono: "3101234567",
-            Direccion: "Calle 5 # 10-20, Purace",
-            NombreEmpresa: "Cultivos El Campestre"
-        ),
-        new(
-            Id: 2,
-            Nombre: "Maria Eugenia",
-            Apellido: "Gómez",
-            CedulaNit: "34567890",
-            Telefono: "3129876543",
-            Direccion: "Carrera 8 # 12-45, Popayan",
-            NombreEmpresa: "AgroFresas del Cauca"
-        )
+        Proveedor.Create(
+            nombre: "Carlos",
+            apellido: "Perez",
+            cedulaNit: "900123456-1",
+            telefono: "3101234567",
+            direccion: "Calle 5 # 10-20, Purace",
+            nombreEmpresa: "Cultivos El Campestre",
+            id: 1).Value,
+        Proveedor.Create(
+            nombre: "Maria Eugenia",
+            apellido: "Gómez",
+            cedulaNit: "34567890",
+            telefono: "3129876543",
+            direccion: "Carrera 8 # 12-45, Popayan",
+            nombreEmpresa: "AgroFresas del Cauca",
+            id: 2).Value
     ];
 }

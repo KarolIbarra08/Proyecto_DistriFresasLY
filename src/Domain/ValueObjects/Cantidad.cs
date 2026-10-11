@@ -18,7 +18,7 @@ public sealed record Cantidad
             return Result.Failure<Cantidad>(
                 Error.Validation(
                     "Cantidad.Invalida",
-                    "La cantidad inicial debe ser mayor que cero."));
+                    "La cantidad debe ser mayor que cero."));
         }
 
         return Result.Success(

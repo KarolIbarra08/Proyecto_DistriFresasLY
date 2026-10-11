@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Roles;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Roles;
 
 namespace DistriFresasLY.Api.Endpoints.Roles;
 
@@ -34,27 +35,31 @@ public class CrearRolEndpoint : IEndpoint
             return conflictResult.ToHttpResult();
         }
 
-        var nuevoId = RolDataStore.RolesDb.Count != 0 
-            ? RolDataStore.RolesDb.Max(r => r.Id) + 1 
+        var nuevoId = RolDataStore.RolesDb.Count != 0
+            ? RolDataStore.RolesDb.Max(r => r.Id) + 1
             : 1;
 
-        var nuevoRol = new RolModel(
-            Id: nuevoId,
-            Nombre: request.Nombre.Trim(),
-            Descripcion: request.Descripcion?.Trim() ?? string.Empty,
-            Permisos: []
-        );
+        var rolResult = Rol.Create(
+            nombre: request.Nombre,
+            descripcion: request.Descripcion,
+            id: nuevoId);
 
-        RolDataStore.RolesDb.Add(nuevoRol);
+        if (rolResult.IsFailure)
+        {
+            return Result.Failure<RolResponse>(rolResult.Error).ToHttpResult();
+        }
+
+        var rol = rolResult.Value;
+        RolDataStore.RolesDb.Add(rol);
 
         var response = new RolResponse(
-            nuevoRol.Id,
-            nuevoRol.Nombre,
-            nuevoRol.Descripcion,
-            nuevoRol.Permisos
+            rol.Id,
+            rol.Nombre,
+            rol.Descripcion,
+            rol.Permisos.ToList()
         );
 
         Result<RolResponse> createdResult = Result.Success(response);
-        return createdResult.ToHttpCreatedAtResult($"/api/roles/{nuevoRol.Id}");
+        return createdResult.ToHttpCreatedAtResult($"/api/roles/{rol.Id}");
     }
 }

@@ -1,8 +1,8 @@
-using DistriFresasLY.Api.Contracts.ProductosDanados;
+using DistriFresasLY.Domain.Entities.ProductosDanados;
 
 namespace DistriFresasLY.Api.Endpoints.ProductosDanados;
 
 public static class ProductoDanadoDataStore
 {
-    public static readonly List<ProductoDanadoResponse> ProductosDanadosDb = new();
+    public static readonly List<ProductoDanado> ProductosDanadosDb = new();
 }

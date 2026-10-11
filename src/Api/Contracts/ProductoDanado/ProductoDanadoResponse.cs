@@ -6,7 +6,7 @@ public record ProductoDanadoResponse(
     string TipoProducto,
     int Cantidad,
     string Identificacion,
-    double Valor,
+    decimal Valor,
     DateTime FechaProductoDanado,
     string Motivo
 );

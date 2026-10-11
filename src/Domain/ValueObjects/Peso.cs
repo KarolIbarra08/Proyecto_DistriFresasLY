@@ -17,7 +17,7 @@ public sealed record Peso
         {
             return Result.Failure<Peso>(
                 Error.Validation(
-                    "Peso.Invalido",
+                    "Peso.NoNumerico",
                     "El peso debe ser un valor numérico válido."));
         }
 

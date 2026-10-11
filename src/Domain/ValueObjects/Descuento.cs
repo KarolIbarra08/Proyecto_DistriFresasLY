@@ -4,12 +4,12 @@ namespace DistriFresasLY.Domain.ValueObjects;
 
 public sealed record Descuento
 {
-    public double Valor { get; }
+    public decimal Valor { get; }
     public DateTime Fecha { get; }
     public string Motivo { get; }
 
     private Descuento(
-        double valor,
+        decimal valor,
         DateTime fecha,
         string motivo)
     {
@@ -20,7 +20,7 @@ public sealed record Descuento
 
     public static Result<Descuento> CalcularValor(
         int cantidad,
-        double valorUnitario,
+        decimal valorUnitario,
         string motivo)
     {
         if (cantidad <= 0)

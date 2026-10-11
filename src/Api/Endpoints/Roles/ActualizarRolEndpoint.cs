@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Roles;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Roles;
 
 namespace DistriFresasLY.Api.Endpoints.Roles;
 
@@ -26,22 +27,22 @@ public class ActualizarRolEndpoint : IEndpoint
             return errorResult.ToHttpResult();
         }
 
-        var rolExistente = RolDataStore.RolesDb[index];
+        var rol = RolDataStore.RolesDb[index];
 
-       
-        var rolActualizado = rolExistente with
+        var nombre = !string.IsNullOrWhiteSpace(request.Nombre) ? request.Nombre.Trim() : rol.Nombre;
+        var descripcion = request.Descripcion != null ? request.Descripcion.Trim() : rol.Descripcion;
+
+        var actualizarResult = rol.Actualizar(nombre, descripcion);
+        if (actualizarResult.IsFailure)
         {
-            Nombre = !string.IsNullOrWhiteSpace(request.Nombre) ? request.Nombre.Trim() : rolExistente.Nombre,
-            Descripcion = request.Descripcion != null ? request.Descripcion.Trim() : rolExistente.Descripcion
-        };
-
-        RolDataStore.RolesDb[index] = rolActualizado;
+            return Result.Failure<RolResponse>(actualizarResult.Error).ToHttpResult();
+        }
 
         var response = new RolResponse(
-            rolActualizado.Id,
-            rolActualizado.Nombre,
-            rolActualizado.Descripcion,
-            rolActualizado.Permisos
+            rol.Id,
+            rol.Nombre,
+            rol.Descripcion,
+            rol.Permisos.ToList()
         );
 
         return Result.Success(response).ToHttpResult();

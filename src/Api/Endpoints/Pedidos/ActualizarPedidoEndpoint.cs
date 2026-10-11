@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Pedidos;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Pedidos;
 
 namespace DistriFresasLY.Api.Endpoints.Pedidos;
 
@@ -27,62 +28,57 @@ public class ActualizarPedidoEndpoint : IEndpoint
             return notFoundResult.ToHttpResult();
         }
 
-        var pedidoActual = PedidoDataStore.PedidosDb[index];
+        var pedido = PedidoDataStore.PedidosDb[index];
 
-    
-        List<DetallePedidoResponse> detallesActualizados;
+        if (!string.IsNullOrWhiteSpace(request.Estado))
+        {
+            var estadoResult = pedido.ActualizarEstado(request.Estado.Trim());
+            if (estadoResult.IsFailure)
+            {
+                return Result.Failure<PedidoResponse>(estadoResult.Error).ToHttpResult();
+            }
+        }
 
         if (request.Detalles is not null)
         {
-       
-            PedidoDataStore.DetallesPedidoDb.RemoveAll(d => d.PedidoId == id);
+            var detallesResult = request.Detalles
+                .Select(detalleReq => DetallePedido.Create(
+                    pedidoId: id,
+                    descripcion: detalleReq.Descripcion,
+                    cantidad: detalleReq.Cantidad,
+                    valorUnitario: detalleReq.ValorUnitario))
+                .ToList();
 
-            detallesActualizados = new List<DetallePedidoResponse>();
-
-            foreach (var detalleReq in request.Detalles)
+            var detalleInvalido = detallesResult.FirstOrDefault(r => r.IsFailure);
+            if (detalleInvalido is not null)
             {
-                var nuevoDetalleId = PedidoDataStore.DetallesPedidoDb.Count != 0 
-                    ? PedidoDataStore.DetallesPedidoDb.Max(d => d.Id) + 1 
-                    : 1;
+                return Result.Failure<PedidoResponse>(detalleInvalido.Error).ToHttpResult();
+            }
 
-                double subtotal = detalleReq.Cantidad * detalleReq.ValorUnitario;
+            var detalles = detallesResult.Select(r => r.Value).ToList();
 
-                var nuevoDetalle = new DetallePedidoResponse(
-                    Id: nuevoDetalleId,
-                    PedidoId: id,
-                    Descripcion: detalleReq.Descripcion?.Trim() ?? string.Empty,
-                    Cantidad: detalleReq.Cantidad,
-                    ValorUnitario: detalleReq.ValorUnitario,
-                    Subtotal: subtotal
-                );
-
-                PedidoDataStore.DetallesPedidoDb.Add(nuevoDetalle);
-                detallesActualizados.Add(nuevoDetalle);
+            var detallesResultado = pedido.ActualizarDetalles(detalles);
+            if (detallesResultado.IsFailure)
+            {
+                return Result.Failure<PedidoResponse>(detallesResultado.Error).ToHttpResult();
             }
         }
-        else
-        {
-       
-            detallesActualizados = PedidoDataStore.DetallesPedidoDb
-                .Where(d => d.PedidoId == id)
-                .ToList();
-        }
 
-   
-        double nuevoTotal = request.Total ?? (detallesActualizados.Count > 0 
-            ? detallesActualizados.Sum(d => d.Subtotal) 
-            : pedidoActual.Total);
+        var response = new PedidoResponse(
+            pedido.Id,
+            pedido.FechaPedido,
+            pedido.Estado,
+            pedido.Total,
+            pedido.Detalles.Select(d => new DetallePedidoResponse(
+                d.Id,
+                d.PedidoId,
+                d.Descripcion,
+                d.Cantidad,
+                d.ValorUnitario,
+                d.Subtotal)).ToList()
+        );
 
-        var pedidoActualizado = pedidoActual with
-        {
-            Estado = !string.IsNullOrWhiteSpace(request.Estado) ? request.Estado.Trim() : pedidoActual.Estado,
-            Total = nuevoTotal,
-            Detalles = detallesActualizados
-        };
-
-        PedidoDataStore.PedidosDb[index] = pedidoActualizado;
-
-        Result<PedidoResponse> successResult = Result.Success(pedidoActualizado);
+        Result<PedidoResponse> successResult = Result.Success(response);
         return successResult.ToHttpResult();
     }
 }

@@ -16,14 +16,19 @@ public class ConsultarTodosPedidosEndpoint : IEndpoint
 
     private static IResult Manejador()
     {
-        var listaPedidos = PedidoDataStore.PedidosDb.Select(pedido =>
-        {
-            var detalles = PedidoDataStore.DetallesPedidoDb
-                .Where(d => d.PedidoId == pedido.Id)
-                .ToList();
-
-            return pedido with { Detalles = detalles };
-        }).ToList();
+        var listaPedidos = PedidoDataStore.PedidosDb.Select(pedido => new PedidoResponse(
+            pedido.Id,
+            pedido.FechaPedido,
+            pedido.Estado,
+            pedido.Total,
+            pedido.Detalles.Select(d => new DetallePedidoResponse(
+                d.Id,
+                d.PedidoId,
+                d.Descripcion,
+                d.Cantidad,
+                d.ValorUnitario,
+                d.Subtotal)).ToList()
+        )).ToList();
 
         Result<List<PedidoResponse>> successResult = Result.Success(listaPedidos);
         return successResult.ToHttpResult();

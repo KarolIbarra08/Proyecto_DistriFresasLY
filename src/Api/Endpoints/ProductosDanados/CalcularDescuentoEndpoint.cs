@@ -1,8 +1,6 @@
-
 using DistriFresasLY.Api.Contracts.Descuentos;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
-using DistriFresasLY.Domain.Entities.ProductosDanados;
 
 namespace DistriFresasLY.Api.Endpoints.ProductosDanados;
 
@@ -20,12 +18,11 @@ public class CalcularDescuentoEndpoint : IEndpoint
 
     private static IResult Manejador(int id)
     {
-       
-        var dtoExistente = ProductoDanadoDataStore
+        var entidad = ProductoDanadoDataStore
             .ProductosDanadosDb
             .FirstOrDefault(p => p.Id == id);
 
-        if (dtoExistente is null)
+        if (entidad is null)
         {
             return Result.Failure<object>(
                 Error.NotFound(
@@ -34,27 +31,6 @@ public class CalcularDescuentoEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-   
-        var entidadResult = ProductoDanado.Create(
-            dtoExistente.ProductoId,
-            dtoExistente.TipoProducto,
-            dtoExistente.Cantidad,
-            dtoExistente.Identificacion,
-            dtoExistente.Valor,
-            dtoExistente.FechaProductoDanado,
-            dtoExistente.Motivo,
-            dtoExistente.Id);
-
-        if (entidadResult.IsFailure)
-        {
-            return Result.Failure<object>(
-                entidadResult.Error)
-                .ToHttpResult();
-        }
-
-        var entidad = entidadResult.Value;
-
-    
         var calculoResult = entidad.CalcularDescuento();
 
         if (calculoResult.IsFailure)
@@ -63,7 +39,6 @@ public class CalcularDescuentoEndpoint : IEndpoint
                 calculoResult.Error)
                 .ToHttpResult();
         }
-
 
         var response = new
         {
@@ -81,8 +56,6 @@ public class CalcularDescuentoEndpoint : IEndpoint
                 entidad.Descuento.Motivo)
         };
 
-        // 5. Devolver el resultado
         return Result.Success(response).ToHttpResult();
     }
 }
-

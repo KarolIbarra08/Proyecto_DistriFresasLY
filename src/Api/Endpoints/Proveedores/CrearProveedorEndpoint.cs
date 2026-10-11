@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Proveedores;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Proveedores;
 
 namespace DistriFresasLY.Api.Endpoints.Proveedores;
 
@@ -25,7 +26,7 @@ public class CrearProveedorEndpoint : IEndpoint
             return validationResult.ToHttpResult();
         }
 
-        if (ProveedorDataStore.ProveedoresDb.Any(proveedor => proveedor.CedulaNit.Equals(request.CedulaNit, StringComparison.OrdinalIgnoreCase)))
+        if (ProveedorDataStore.ProveedoresDb.Any(proveedor => proveedor.Documento.Value.Equals(request.CedulaNit, StringComparison.OrdinalIgnoreCase)))
         {
             Result<ProveedorResponse> conflictResult = Error.Conflict(
                 "Proveedor.CedulaDuplicada",
@@ -36,19 +37,34 @@ public class CrearProveedorEndpoint : IEndpoint
 
         var nuevoId = ProveedorDataStore.ProveedoresDb.Count != 0 ? ProveedorDataStore.ProveedoresDb.Max(proveedor => proveedor.Id) + 1 : 1;
 
-        var nuevoProveedor = new ProveedorResponse(
-            Id: nuevoId,
-            Nombre: request.Nombre.Trim(),
-            Apellido:request.Apellido?.Trim() ?? string.Empty,
-            CedulaNit: request.CedulaNit.Trim(),
-            Telefono: request.Telefono?.Trim() ?? string.Empty,
-            Direccion: request.Direccion?.Trim() ?? string.Empty,
-            NombreEmpresa : request.NombreEmpresa?.Trim() ?? string.Empty
+        var proveedorResult = Proveedor.Create(
+            nombre: request.Nombre,
+            apellido: request.Apellido,
+            cedulaNit: request.CedulaNit,
+            telefono: request.Telefono,
+            direccion: request.Direccion,
+            nombreEmpresa: request.NombreEmpresa,
+            id: nuevoId);
+
+        if (proveedorResult.IsFailure)
+        {
+            return Result.Failure<ProveedorResponse>(proveedorResult.Error).ToHttpResult();
+        }
+
+        var proveedor = proveedorResult.Value;
+        ProveedorDataStore.ProveedoresDb.Add(proveedor);
+
+        var response = new ProveedorResponse(
+            Id: proveedor.Id,
+            Nombre: proveedor.Nombre,
+            Apellido: proveedor.Apellido,
+            CedulaNit: proveedor.Documento.Value,
+            Telefono: proveedor.Telefono.Valor,
+            Direccion: proveedor.Direccion,
+            NombreEmpresa: proveedor.NombreEmpresa
         );
 
-        ProveedorDataStore.ProveedoresDb.Add(nuevoProveedor);
-
-        Result<ProveedorResponse> createdResult = Result.Success(nuevoProveedor);
-        return createdResult.ToHttpCreatedAtResult($"/api/proveedores/{nuevoProveedor.Id}");
+        Result<ProveedorResponse> createdResult = Result.Success(response);
+        return createdResult.ToHttpCreatedAtResult($"/api/proveedores/{proveedor.Id}");
     }
 }

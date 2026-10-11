@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Usuarios;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Usuarios;
 
 namespace DistriFresasLY.Api.Endpoints.Usuarios;
 
@@ -17,13 +18,12 @@ public class IniciarSesionEndpoint : IEndpoint
     private static IResult Manejador(LoginRequest request)
     {
         var usuario = UsuarioDataStore.UsuariosDb
-            .FirstOrDefault(u => u.Usuario.Equals(request.Usuario, StringComparison.OrdinalIgnoreCase) 
-                              && u.Contrasena == request.Contrasena);
+            .FirstOrDefault(u => u.VerificarCredenciales(request.Usuario, request.Contrasena));
 
         if (usuario is null)
         {
             Result<UsuarioResponse> errorResult = Error.NotFound(
-                "Usuario.CredencialesInvalidas", 
+                "Usuario.CredencialesInvalidas",
                 "Usuario o contraseña incorrectos.");
 
             return errorResult.ToHttpResult();
@@ -32,22 +32,21 @@ public class IniciarSesionEndpoint : IEndpoint
         if (!usuario.Estado)
         {
             Result<UsuarioResponse> errorResult = Error.Validation(
-                "Usuario.Inactivo", 
+                "Usuario.Inactivo",
                 "El usuario se encuentra inactivo.");
 
             return errorResult.ToHttpResult();
         }
 
         var response = new UsuarioResponse(
-            usuario.Id, 
-            usuario.Nombre, 
-            usuario.Apellido, 
-            usuario.Usuario, 
-            usuario.Contrasena, 
-            usuario.Rol, 
+            usuario.Id,
+            usuario.Nombre,
+            usuario.Apellido,
+            usuario.NombreUsuario,
+            usuario.Contrasena,
+            usuario.Rol,
             usuario.Estado);
 
         return Result.Success(response).ToHttpResult();
     }
 }
-          

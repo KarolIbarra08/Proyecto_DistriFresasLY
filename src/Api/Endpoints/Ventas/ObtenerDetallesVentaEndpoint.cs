@@ -25,7 +25,7 @@ public class ObtenerDetallesVentaEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-        var detalles = (venta.Detalles ?? Enumerable.Empty<DetalleVentaModel>())
+        var detalles = venta.Detalles
             .Select(d => new DetalleVentaResponse(
                 d.ProductoId,
                 d.Cantidad,

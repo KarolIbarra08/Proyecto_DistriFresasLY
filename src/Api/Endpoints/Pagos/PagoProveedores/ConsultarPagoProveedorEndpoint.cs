@@ -27,7 +27,17 @@ public class ConsultarPagoProveedorEndpoint : IEndpoint
             return notFoundResult.ToHttpResult();
         }
 
-        Result<PagoProveedorResponse> successResult = Result.Success(pago);
+        var response = new PagoProveedorResponse(
+            pago.Id,
+            pago.ProveedorId,
+            pago.Valor,
+            pago.MedioPago,
+            pago.FechaInicial,
+            pago.FechaFinal,
+            pago.Estado
+        );
+
+        Result<PagoProveedorResponse> successResult = Result.Success(response);
         return successResult.ToHttpResult();
     }
 }

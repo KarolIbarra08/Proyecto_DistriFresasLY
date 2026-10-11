@@ -1,15 +1,19 @@
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.ValueObjects;
 
-namespace DistriFresasLY.Domain.Entities;
+namespace DistriFresasLY.Domain.Entities.Ventas;
 
 public sealed class DetalleVenta : Entity
 {
     public int ProductoId { get; private set; }
-    public int Cantidad { get; private set; }
+
+    public Cantidad Cantidad { get; private set; }
+
     public decimal PrecioUnitario { get; private set; }
+
     public decimal Subtotal => Cantidad * PrecioUnitario;
 
-    private DetalleVenta(int id, int productoId, int cantidad, decimal precioUnitario) : base(id)
+    private DetalleVenta(int id, int productoId, Cantidad cantidad, decimal precioUnitario) : base(id)
     {
         ProductoId = productoId;
         Cantidad = cantidad;
@@ -25,11 +29,10 @@ public sealed class DetalleVenta : Entity
                 "El ID del producto debe ser mayor a 0.");
         }
 
-        if (cantidad <= 0)
+        var cantidadResult = Cantidad.Create(cantidad);
+        if (cantidadResult.IsFailure)
         {
-            return Error.Validation(
-                "DetalleVenta.CantidadInvalida",
-                "La cantidad vendida debe ser mayor a 0.");
+            return Result.Failure<DetalleVenta>(cantidadResult.Error);
         }
 
         if (precioUnitario <= 0)
@@ -39,6 +42,6 @@ public sealed class DetalleVenta : Entity
                 "El precio unitario debe ser mayor a 0.");
         }
 
-        return new DetalleVenta(id, productoId, cantidad, precioUnitario);
+        return new DetalleVenta(id, productoId, cantidadResult.Value, precioUnitario);
     }
 }

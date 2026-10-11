@@ -2,7 +2,7 @@ namespace DistriFresasLY.Api.Contracts.Pagos.Proveedores;
 
 public record ActualizarPagoProveedorRequest(
     int? ProveedorId,
-    double? Valor,
+    decimal? Valor,
     string? MedioPago,
     DateTime? FechaInicial,
     DateTime? FechaFinal,

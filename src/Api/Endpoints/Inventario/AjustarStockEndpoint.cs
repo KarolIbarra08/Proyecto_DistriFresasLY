@@ -26,7 +26,14 @@ public class AjustarStockEndpoint : IEndpoint
                          .ToHttpResult();
         }
 
-        return Result.Success(inventario).ToHttpResult();
+        var response = new InventarioResponse(
+            inventario.Id,
+            inventario.ProductoId,
+            inventario.CantidadDisponible,
+            inventario.FechaActualizacion
+        );
+
+        return Result.Success(response).ToHttpResult();
     }
 }
 

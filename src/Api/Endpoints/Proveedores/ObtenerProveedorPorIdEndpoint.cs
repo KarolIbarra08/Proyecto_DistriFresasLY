@@ -26,7 +26,17 @@ public class ObtenerProveedorPorIdEndpoint : IEndpoint
             return errorResult.ToHttpResult();
         }
 
-        var result = Result.Success(proveedor);
+        var response = new ProveedorResponse(
+            Id: proveedor.Id,
+            Nombre: proveedor.Nombre,
+            Apellido: proveedor.Apellido,
+            CedulaNit: proveedor.Documento.Value,
+            Telefono: proveedor.Telefono.Valor,
+            Direccion: proveedor.Direccion,
+            NombreEmpresa: proveedor.NombreEmpresa
+        );
+
+        var result = Result.Success(response);
         return result.ToHttpResult();
     }
 }

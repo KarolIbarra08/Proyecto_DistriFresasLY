@@ -27,13 +27,21 @@ public class ConsultarPedidoEndpoint : IEndpoint
             return notFoundResult.ToHttpResult();
         }
 
-        var detalles = PedidoDataStore.DetallesPedidoDb
-            .Where(d => d.PedidoId == id)
-            .ToList();
+        var response = new PedidoResponse(
+            pedido.Id,
+            pedido.FechaPedido,
+            pedido.Estado,
+            pedido.Total,
+            pedido.Detalles.Select(d => new DetallePedidoResponse(
+                d.Id,
+                d.PedidoId,
+                d.Descripcion,
+                d.Cantidad,
+                d.ValorUnitario,
+                d.Subtotal)).ToList()
+        );
 
-        var pedidoConDetalles = pedido with { Detalles = detalles };
-
-        Result<PedidoResponse> successResult = Result.Success(pedidoConDetalles);
+        Result<PedidoResponse> successResult = Result.Success(response);
         return successResult.ToHttpResult();
     }
 }

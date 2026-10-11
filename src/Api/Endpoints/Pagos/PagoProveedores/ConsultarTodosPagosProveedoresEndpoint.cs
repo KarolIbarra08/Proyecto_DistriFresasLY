@@ -16,7 +16,17 @@ public class ConsultarTodosPagosProveedoresEndpoint : IEndpoint
 
     private static IResult Manejador()
     {
-        Result<List<PagoProveedorResponse>> successResult = Result.Success(PagoDataStore.PagosProveedoresDb);
+        var lista = PagoDataStore.PagosProveedoresDb.Select(pago => new PagoProveedorResponse(
+            pago.Id,
+            pago.ProveedorId,
+            pago.Valor,
+            pago.MedioPago,
+            pago.FechaInicial,
+            pago.FechaFinal,
+            pago.Estado
+        )).ToList();
+
+        Result<List<PagoProveedorResponse>> successResult = Result.Success(lista);
         return successResult.ToHttpResult();
     }
 }

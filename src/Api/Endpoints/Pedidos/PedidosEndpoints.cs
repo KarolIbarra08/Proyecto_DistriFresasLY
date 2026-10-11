@@ -1,9 +1,8 @@
-using DistriFresasLY.Api.Contracts.Pedidos;
+using DistriFresasLY.Domain.Entities.Pedidos;
 
 namespace DistriFresasLY.Api.Endpoints.Pedidos;
 
 public static class PedidoDataStore
 {
-    public static readonly List<PedidoResponse> PedidosDb = [];
-    public static readonly List<DetallePedidoResponse> DetallesPedidoDb = [];
+    public static readonly List<Pedido> PedidosDb = [];
 }

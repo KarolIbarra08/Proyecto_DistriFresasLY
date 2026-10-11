@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Usuarios;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Usuarios;
 
 namespace DistriFresasLY.Api.Endpoints.Usuarios;
 
@@ -25,7 +26,7 @@ public class CrearUsuarioEndpoint : IEndpoint
             return validationResult.ToHttpResult();
         }
 
-        if (UsuarioDataStore.UsuariosDb.Any(u => u.Usuario.Equals(request.Usuario, StringComparison.OrdinalIgnoreCase)))
+        if (UsuarioDataStore.UsuariosDb.Any(u => u.NombreUsuario.Equals(request.Usuario, StringComparison.OrdinalIgnoreCase)))
         {
             Result<UsuarioResponse> conflictResult = Error.Conflict(
                 "Usuario.Duplicado",
@@ -34,33 +35,37 @@ public class CrearUsuarioEndpoint : IEndpoint
             return conflictResult.ToHttpResult();
         }
 
-        var nuevoId = UsuarioDataStore.UsuariosDb.Count != 0 
-            ? UsuarioDataStore.UsuariosDb.Max(u => u.Id) + 1 
+        var nuevoId = UsuarioDataStore.UsuariosDb.Count != 0
+            ? UsuarioDataStore.UsuariosDb.Max(u => u.Id) + 1
             : 1;
 
-        var nuevoUsuarioModel = new UsuarioModel(
-            Id: nuevoId,
-            Nombre: request.Nombre.Trim(),
-            Apellido: request.Apellido.Trim(),
-            Usuario: request.Usuario.Trim(),
-            Contrasena: request.Contrasena,
-            Rol: string.IsNullOrWhiteSpace(request.Rol) ? "Usuario" : request.Rol.Trim(),
-            Estado: true
-        );
+        var usuarioResult = Usuario.Create(
+            nombre: request.Nombre,
+            apellido: request.Apellido,
+            usuario: request.Usuario,
+            contrasena: request.Contrasena,
+            rol: string.IsNullOrWhiteSpace(request.Rol) ? "Usuario" : request.Rol,
+            id: nuevoId);
 
-        UsuarioDataStore.UsuariosDb.Add(nuevoUsuarioModel);
+        if (usuarioResult.IsFailure)
+        {
+            return Result.Failure<UsuarioResponse>(usuarioResult.Error).ToHttpResult();
+        }
+
+        var usuario = usuarioResult.Value;
+        UsuarioDataStore.UsuariosDb.Add(usuario);
 
         var response = new UsuarioResponse(
-            nuevoUsuarioModel.Id,
-            nuevoUsuarioModel.Nombre,
-            nuevoUsuarioModel.Apellido,
-            nuevoUsuarioModel.Usuario,
-            nuevoUsuarioModel.Contrasena,
-            nuevoUsuarioModel.Rol,
-            nuevoUsuarioModel.Estado
+            usuario.Id,
+            usuario.Nombre,
+            usuario.Apellido,
+            usuario.NombreUsuario,
+            usuario.Contrasena,
+            usuario.Rol,
+            usuario.Estado
         );
 
         Result<UsuarioResponse> createdResult = Result.Success(response);
-        return createdResult.ToHttpCreatedAtResult($"/api/usuarios/{nuevoUsuarioModel.Id}");
+        return createdResult.ToHttpCreatedAtResult($"/api/usuarios/{usuario.Id}");
     }
 }

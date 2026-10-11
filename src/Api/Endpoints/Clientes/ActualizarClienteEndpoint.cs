@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Clientes;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Cliente;
 
 namespace DistriFresasLY.Api.Endpoints.Clientes;
 
@@ -26,21 +27,38 @@ public class ActualizarClienteEndpoint : IEndpoint
             return errorResult.ToHttpResult();
         }
 
-        var clienteExistente = ClienteDataStore.ClientesDb[index];
+        var cliente = ClienteDataStore.ClientesDb[index];
 
-      
-        var clienteActualizado = clienteExistente with
+        if (!string.IsNullOrWhiteSpace(request.CedulaNit))
         {
-            Nombre = !string.IsNullOrWhiteSpace(request.Nombre) ? request.Nombre.Trim() : clienteExistente.Nombre,
-            CedulaNit = !string.IsNullOrWhiteSpace(request.CedulaNit) ? request.CedulaNit.Trim() : clienteExistente.CedulaNit,
-            Telefono = !string.IsNullOrWhiteSpace(request.Telefono) ? request.Telefono.Trim() : clienteExistente.Telefono,
-            Direccion = !string.IsNullOrWhiteSpace(request.Direccion) ? request.Direccion.Trim() : clienteExistente.Direccion,
-            TipoNegocio = !string.IsNullOrWhiteSpace(request.TipoNegocio) ? request.TipoNegocio.Trim() : clienteExistente.TipoNegocio
-        };
+            var documentoResult = cliente.ActualizarDocumento(request.CedulaNit.Trim());
+            if (documentoResult.IsFailure)
+            {
+                return Result.Failure<ClienteResponse>(documentoResult.Error).ToHttpResult();
+            }
+        }
 
-        ClienteDataStore.ClientesDb[index] = clienteActualizado;
+        var nombre = !string.IsNullOrWhiteSpace(request.Nombre) ? request.Nombre.Trim() : cliente.Nombre;
+        var telefono = !string.IsNullOrWhiteSpace(request.Telefono) ? request.Telefono.Trim() : cliente.Telefono.Valor;
+        var direccion = !string.IsNullOrWhiteSpace(request.Direccion) ? request.Direccion.Trim() : cliente.Direccion;
+        var tipoNegocio = !string.IsNullOrWhiteSpace(request.TipoNegocio) ? request.TipoNegocio.Trim() : cliente.TipoNegocio;
 
-        Result<ClienteResponse> successResult = Result.Success(clienteActualizado);
+        var actualizarResult = cliente.ActualizarDatos(nombre, telefono, direccion, tipoNegocio);
+        if (actualizarResult.IsFailure)
+        {
+            return Result.Failure<ClienteResponse>(actualizarResult.Error).ToHttpResult();
+        }
+
+        var response = new ClienteResponse(
+            Id: cliente.Id,
+            Nombre: cliente.Nombre,
+            CedulaNit: cliente.Documento.Value,
+            Telefono: cliente.Telefono.Valor,
+            Direccion: cliente.Direccion,
+            TipoNegocio: cliente.TipoNegocio
+        );
+
+        Result<ClienteResponse> successResult = Result.Success(response);
         return successResult.ToHttpResult();
     }
 }

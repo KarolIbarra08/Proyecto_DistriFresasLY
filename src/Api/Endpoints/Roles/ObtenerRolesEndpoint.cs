@@ -20,7 +20,7 @@ public class ObtenerRolesEndpoint : IEndpoint
             r.Id,
             r.Nombre,
             r.Descripcion,
-            r.Permisos
+            r.Permisos.ToList()
         )).ToList();
 
         Result<List<RolResponse>> successResult = Result.Success(lista);

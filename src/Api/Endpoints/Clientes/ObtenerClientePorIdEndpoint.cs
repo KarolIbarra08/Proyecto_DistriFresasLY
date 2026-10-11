@@ -26,7 +26,16 @@ public class ObtenerClientePorIdEndpoint : IEndpoint
             return errorResult.ToHttpResult();
         }
 
-        Result<ClienteResponse> successResult = Result.Success(cliente);
+        var response = new ClienteResponse(
+            Id: cliente.Id,
+            Nombre: cliente.Nombre,
+            CedulaNit: cliente.Documento.Value,
+            Telefono: cliente.Telefono.Valor,
+            Direccion: cliente.Direccion,
+            TipoNegocio: cliente.TipoNegocio
+        );
+
+        Result<ClienteResponse> successResult = Result.Success(response);
         return successResult.ToHttpResult();
     }
 }

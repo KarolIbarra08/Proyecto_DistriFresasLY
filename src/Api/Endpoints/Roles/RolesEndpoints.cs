@@ -1,27 +1,20 @@
-namespace DistriFresasLY.Api.Endpoints.Roles;
+using DistriFresasLY.Domain.Entities.Roles;
 
-public record RolModel(
-    int Id,
-    string Nombre,
-    string Descripcion,
-    List<string> Permisos
-);
+namespace DistriFresasLY.Api.Endpoints.Roles;
 
 public static class RolDataStore
 {
-    public static readonly List<RolModel> RolesDb =
+    public static readonly List<Rol> RolesDb =
     [
-        new(
-            Id: 1,
-            Nombre: "Administrador",
-            Descripcion: "Acceso total a las funciones del sistema",
-            Permisos: ["ventas.crear", "ventas.eliminar", "usuarios.gestionar", "clientes.gestionar"]
-        ),
-        new(
-            Id: 2,
-            Nombre: "Vendedor",
-            Descripcion: "Acceso para registro de ventas y consulta de clientes",
-            Permisos: ["ventas.crear", "clientes.gestionar"]
-        )
+        Rol.Create(
+            nombre: "Administrador",
+            descripcion: "Acceso total a las funciones del sistema",
+            permisos: ["ventas.crear", "ventas.eliminar", "usuarios.gestionar", "clientes.gestionar"],
+            id: 1).Value,
+        Rol.Create(
+            nombre: "Vendedor",
+            descripcion: "Acceso para registro de ventas y consulta de clientes",
+            permisos: ["ventas.crear", "clientes.gestionar"],
+            id: 2).Value
     ];
 }

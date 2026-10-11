@@ -101,7 +101,7 @@ public class RegistrarProductoDanadoEndpoint : IEndpoint
             entidad.FechaProductoDanado,
             entidad.Motivo);
 
-        ProductoDanadoDataStore.ProductosDanadosDb.Add(response);
+        ProductoDanadoDataStore.ProductosDanadosDb.Add(entidad);
 
         return Result.Success(response)
             .ToHttpCreatedAtResult(

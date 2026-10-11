@@ -27,7 +27,17 @@ public class ConsultarPagoClienteEndpoint : IEndpoint
             return notFoundResult.ToHttpResult();
         }
 
-        Result<PagoClienteResponse> successResult = Result.Success(pago);
+        var response = new PagoClienteResponse(
+            pago.Id,
+            pago.ClienteId,
+            pago.Valor,
+            pago.MedioPago,
+            pago.FechaInicial,
+            pago.FechaFinal,
+            pago.Estado
+        );
+
+        Result<PagoClienteResponse> successResult = Result.Success(response);
         return successResult.ToHttpResult();
     }
 }

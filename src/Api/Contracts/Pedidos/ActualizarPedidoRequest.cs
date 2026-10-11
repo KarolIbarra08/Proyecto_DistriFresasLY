@@ -2,6 +2,6 @@ namespace DistriFresasLY.Api.Contracts.Pedidos;
 
 public record ActualizarPedidoRequest(
     string? Estado,
-    double? Total,
+    decimal? Total,
     List<CrearDetallePedidoRequest>? Detalles
 );

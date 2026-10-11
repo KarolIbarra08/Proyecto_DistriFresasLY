@@ -1,7 +1,7 @@
 namespace DistriFresasLY.Api.Contracts.Descuentos;
 
 public record DescuentoResponse(
-    double Valor,
+    decimal Valor,
     DateTime Fecha,
     string Motivo
 );

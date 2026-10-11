@@ -4,7 +4,7 @@ using DistriFresasLY.Domain.Common;
 namespace DistriFresasLY.Api.Endpoints.Recepciones;
 
 public record TotalRecepcionesResponse(
-    double TotalPagado,
+    decimal TotalPagado,
     int TotalRecepciones
 );
 

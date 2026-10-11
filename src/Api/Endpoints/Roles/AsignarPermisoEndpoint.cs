@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Roles;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Roles;
 
 namespace DistriFresasLY.Api.Endpoints.Roles;
 
@@ -35,19 +36,19 @@ public class AsignarPermisoEndpoint : IEndpoint
             return errorResult.ToHttpResult();
         }
 
-        var rolExistente = RolDataStore.RolesDb[index];
-        var permisoNormalizado = request.Permiso.Trim().ToLower();
+        var rol = RolDataStore.RolesDb[index];
 
-        if (!rolExistente.Permisos.Contains(permisoNormalizado))
+        var asignarResult = rol.AgregarPermiso(request.Permiso);
+        if (asignarResult.IsFailure)
         {
-            rolExistente.Permisos.Add(permisoNormalizado);
+            return Result.Failure<RolResponse>(asignarResult.Error).ToHttpResult();
         }
 
         var response = new RolResponse(
-            rolExistente.Id,
-            rolExistente.Nombre,
-            rolExistente.Descripcion,
-            rolExistente.Permisos
+            rol.Id,
+            rol.Nombre,
+            rol.Descripcion,
+            rol.Permisos.ToList()
         );
 
         return Result.Success(response).ToHttpResult();

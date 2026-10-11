@@ -7,7 +7,7 @@ public class Recepcion : Entity
     private readonly List<DetalleRecepcion> _detalles = [];
 
     public DateTime FechaRecepcion { get; private set; }
-    public double ValorPago { get; private set; }
+    public decimal ValorPago { get; private set; }
 
     public IReadOnlyCollection<DetalleRecepcion> Detalles =>
         _detalles.AsReadOnly();
@@ -15,7 +15,7 @@ public class Recepcion : Entity
     private Recepcion(
         int id,
         DateTime fechaRecepcion,
-        double valorPago)
+        decimal valorPago)
         : base(id)
     {
         FechaRecepcion = fechaRecepcion;
@@ -23,7 +23,7 @@ public class Recepcion : Entity
     }
 
     public static Result<Recepcion> Create(
-        double valorPago,
+        decimal valorPago,
         int id = 0,
         DateTime? fechaRecepcion = null)
     {
@@ -43,7 +43,7 @@ public class Recepcion : Entity
     }
 
     public Result Actualizar(
-        double valorPago,
+        decimal valorPago,
         DateTime? fechaRecepcion = null)
     {
         if (valorPago < 0)
@@ -69,7 +69,7 @@ public class Recepcion : Entity
 
         _detalles.Add(detalle);
     }
-    public double CalcularTotal()
+    public decimal CalcularTotal()
     {
         return _detalles.Sum(d => d.Subtotal);
     }

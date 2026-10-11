@@ -1,12 +1,12 @@
-using DistriFresasLY.Api.Contracts.Inventario;
+using InventarioEntidad = DistriFresasLY.Domain.Entities.Inventario.Inventario;
 
 namespace DistriFresasLY.Api.Endpoints.Inventario;
 
 public static class InventarioDataStore
 {
-    public static readonly List<InventarioResponse> InventarioDb = new();
+    public static readonly List<InventarioEntidad> InventarioDb = new();
 
-    public static InventarioResponse? ObtenerPorProductoId(int productoId)
+    public static InventarioEntidad? ObtenerPorProductoId(int productoId)
     {
         return InventarioDb.FirstOrDefault(i => i.ProductoId == productoId);
     }
@@ -18,43 +18,40 @@ public static class InventarioDataStore
         if (item is null)
         {
             int nuevoId = InventarioDb.Count != 0 ? InventarioDb.Max(i => i.Id) + 1 : 1;
-            InventarioDb.Add(new InventarioResponse(nuevoId, productoId, cantidadInicial, DateTime.UtcNow));
+            var crearResult = InventarioEntidad.Create(productoId, cantidadInicial, nuevoId);
+            if (crearResult.IsSuccess)
+            {
+                InventarioDb.Add(crearResult.Value);
+            }
         }
         else
         {
-            int index = InventarioDb.IndexOf(item);
-            InventarioDb[index] = item with 
-            { 
-                CantidadDisponible = cantidadInicial,
-                FechaActualizacion = DateTime.UtcNow 
-            };
+            item.Ajustar(cantidadInicial);
         }
     }
 
-    public static InventarioResponse AumentarStock(int productoId, int cantidad)
+    public static InventarioEntidad? AumentarStock(int productoId, int cantidad)
     {
         var item = ObtenerPorProductoId(productoId);
 
         if (item is null)
         {
             int nuevoId = InventarioDb.Count != 0 ? InventarioDb.Max(i => i.Id) + 1 : 1;
-            var nuevoItem = new InventarioResponse(nuevoId, productoId, cantidad, DateTime.UtcNow);
-            InventarioDb.Add(nuevoItem);
-            return nuevoItem;
+            var crearResult = InventarioEntidad.Create(productoId, cantidad, nuevoId);
+            if (crearResult.IsFailure)
+            {
+                return null;
+            }
+
+            InventarioDb.Add(crearResult.Value);
+            return crearResult.Value;
         }
 
-        int index = InventarioDb.IndexOf(item);
-        var actualizado = item with 
-        { 
-            CantidadDisponible = item.CantidadDisponible + cantidad,
-            FechaActualizacion = DateTime.UtcNow 
-        };
-        
-        InventarioDb[index] = actualizado;
-        return actualizado;
+        var aumentarResult = item.Aumentar(cantidad);
+        return aumentarResult.IsSuccess ? item : null;
     }
 
-    public static (bool exito, InventarioResponse? inventario, string? mensajeError) DisminuirStock(int productoId, int cantidad)
+    public static (bool exito, InventarioEntidad? inventario, string? mensajeError) DisminuirStock(int productoId, int cantidad)
     {
         var item = ObtenerPorProductoId(productoId);
 
@@ -63,19 +60,12 @@ public static class InventarioDataStore
             return (false, null, $"No se encontró registro de inventario para el producto ID: {productoId}");
         }
 
-        if (item.CantidadDisponible < cantidad)
+        var disminuirResult = item.Disminuir(cantidad);
+        if (disminuirResult.IsFailure)
         {
-            return (false, null, $"Stock insuficiente. Disponible: {item.CantidadDisponible}, Requerido: {cantidad}");
+            return (false, item, disminuirResult.Error.Description);
         }
 
-        int index = InventarioDb.IndexOf(item);
-        var actualizado = item with 
-        { 
-            CantidadDisponible = item.CantidadDisponible - cantidad,
-            FechaActualizacion = DateTime.UtcNow 
-        };
-
-        InventarioDb[index] = actualizado;
-        return (true, actualizado, null);
+        return (true, item, null);
     }
 }

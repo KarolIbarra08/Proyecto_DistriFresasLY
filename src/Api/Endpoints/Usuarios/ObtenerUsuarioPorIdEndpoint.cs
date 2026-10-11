@@ -30,7 +30,7 @@ public class ObtenerUsuarioPorIdEndpoint : IEndpoint
             usuario.Id,
             usuario.Nombre,
             usuario.Apellido,
-            usuario.Usuario,
+            usuario.NombreUsuario,
             usuario.Contrasena,
             usuario.Rol,
             usuario.Estado

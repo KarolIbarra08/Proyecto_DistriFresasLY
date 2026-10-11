@@ -26,7 +26,7 @@ public class VerificarAccesoEndpoint : IEndpoint
             return errorResult.ToHttpResult();
         }
 
-        var tieneAcceso = rol.Permisos.Contains(request.Permiso.Trim().ToLower());
+        var tieneAcceso = rol.TieneAcceso(request.Permiso);
 
         if (!tieneAcceso)
         {

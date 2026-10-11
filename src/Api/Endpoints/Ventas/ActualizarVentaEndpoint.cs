@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Ventas;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Ventas;
 
 namespace DistriFresasLY.Api.Endpoints.Ventas;
 
@@ -25,38 +26,46 @@ public class ActualizarVentaEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-        var ventaExistente = VentaDataStore.VentasDb[index];
+        var venta = VentaDataStore.VentasDb[index];
 
-        List<DetalleVentaModel>? nuevosDetalles = request.Detalles?.Select(d => new DetalleVentaModel(
-            d.ProductoId,
-            d.Cantidad,
-            d.PrecioUnitario,
-            d.PrecioUnitario * d.Cantidad
-        )).ToList();
-
-        var detallesFinales = nuevosDetalles ?? ventaExistente.Detalles;
-        
-        
-        decimal nuevoTotal = (nuevosDetalles != null && detallesFinales != null) 
-            ? detallesFinales.Sum(x => x.Subtotal) 
-            : ventaExistente.Total;
-
-        var ventaActualizada = ventaExistente with
+        if (!string.IsNullOrWhiteSpace(request.Estado))
         {
-            ClienteId = request.ClienteId ?? ventaExistente.ClienteId,
-            Estado = !string.IsNullOrWhiteSpace(request.Estado) ? request.Estado.Trim() : ventaExistente.Estado,
-            Detalles = detallesFinales,
-            Total = nuevoTotal
-        };
+            var estadoResult = venta.ActualizarEstado(request.Estado.Trim());
+            if (estadoResult.IsFailure)
+            {
+                return Result.Failure<VentaResponse>(estadoResult.Error).ToHttpResult();
+            }
+        }
 
-        VentaDataStore.VentasDb[index] = ventaActualizada;
+        if (request.Detalles is not null)
+        {
+            var detallesResult = request.Detalles
+                .Select(d => DetalleVenta.Create(d.ProductoId, d.Cantidad, d.PrecioUnitario))
+                .ToList();
+
+            var detalleInvalido = detallesResult.FirstOrDefault(r => r.IsFailure);
+            if (detalleInvalido is not null)
+            {
+                return Result.Failure<VentaResponse>(detalleInvalido.Error).ToHttpResult();
+            }
+
+            var detalles = detallesResult.Select(r => r.Value).ToList();
+
+            var detallesResultado = venta.ActualizarDetalles(detalles);
+            if (detallesResultado.IsFailure)
+            {
+                return Result.Failure<VentaResponse>(detallesResultado.Error).ToHttpResult();
+            }
+        }
+
+        venta.AsignarCliente(request.ClienteId ?? venta.ClienteId);
 
         var response = new VentaResponse(
-            ventaActualizada.Id,
-            ventaActualizada.FechaVenta,
-            ventaActualizada.Total,
-            ventaActualizada.Estado,
-            ventaActualizada.ClienteId
+            venta.Id,
+            venta.FechaVenta,
+            venta.Total,
+            venta.Estado,
+            venta.ClienteId
         );
 
         return Result.Success(response).ToHttpResult();

@@ -3,7 +3,7 @@ namespace DistriFresasLY.Api.Contracts.Pagos.Proveedores;
 public record PagoProveedorResponse(
     int Id,
     int ProveedorId,
-    double Valor,
+    decimal Valor,
     string MedioPago,
     DateTime FechaInicial,
     DateTime FechaFinal,
