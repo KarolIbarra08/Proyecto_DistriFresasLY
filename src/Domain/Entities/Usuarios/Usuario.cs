@@ -5,15 +5,10 @@ namespace DistriFresasLY.Domain.Entities.Usuarios;
 public sealed class Usuario : Entity
 {
     public string Nombre { get; private set; }
-
     public string Apellido { get; private set; }
-
     public string NombreUsuario { get; private set; }
-
     public string Contrasena { get; private set; }
-
     public string Rol { get; private set; }
-
     public bool Estado { get; private set; }
 
     private Usuario(
@@ -23,9 +18,8 @@ public sealed class Usuario : Entity
         string usuario,
         string contrasena,
         string rol,
-        bool estado)
+        bool estado) : base(id)
     {
-        Id = id;
         Nombre = nombre;
         Apellido = apellido;
         NombreUsuario = usuario;
@@ -43,44 +37,19 @@ public sealed class Usuario : Entity
         int id = 0)
     {
         if (string.IsNullOrWhiteSpace(nombre))
-        {
-            return Result.Failure<Usuario>(
-                Error.Validation(
-                    "Usuario.NombreObligatorio",
-                    "El nombre del usuario es obligatorio."));
-        }
+            return Result.Failure<Usuario>(Error.Validation("Usuario.NombreObligatorio", "El nombre del usuario es obligatorio."));
 
         if (string.IsNullOrWhiteSpace(apellido))
-        {
-            return Result.Failure<Usuario>(
-                Error.Validation(
-                    "Usuario.ApellidoObligatorio",
-                    "El apellido del usuario es obligatorio."));
-        }
+            return Result.Failure<Usuario>(Error.Validation("Usuario.ApellidoObligatorio", "El apellido del usuario es obligatorio."));
 
         if (string.IsNullOrWhiteSpace(usuario))
-        {
-            return Result.Failure<Usuario>(
-                Error.Validation(
-                    "Usuario.UsuarioObligatorio",
-                    "El nombre de usuario es obligatorio."));
-        }
+            return Result.Failure<Usuario>(Error.Validation("Usuario.UsuarioObligatorio", "El nombre de usuario es obligatorio."));
 
         if (string.IsNullOrWhiteSpace(contrasena))
-        {
-            return Result.Failure<Usuario>(
-                Error.Validation(
-                    "Usuario.ContrasenaObligatoria",
-                    "La contraseña es obligatoria."));
-        }
+            return Result.Failure<Usuario>(Error.Validation("Usuario.ContrasenaObligatoria", "La contraseña es obligatoria."));
 
         if (string.IsNullOrWhiteSpace(rol))
-        {
-            return Result.Failure<Usuario>(
-                Error.Validation(
-                    "Usuario.RolObligatorio",
-                    "El rol del usuario es obligatorio."));
-        }
+            return Result.Failure<Usuario>(Error.Validation("Usuario.RolObligatorio", "El rol del usuario es obligatorio."));
 
         var usuarioCrear = new Usuario(
             id,
@@ -89,10 +58,11 @@ public sealed class Usuario : Entity
             usuario.Trim(),
             contrasena,
             rol.Trim(),
-            true);
+            estado: true);
 
         return Result.Success(usuarioCrear);
     }
+
 
     public Result ActualizarDatos(
         string nombre,
@@ -102,44 +72,19 @@ public sealed class Usuario : Entity
         string rol)
     {
         if (string.IsNullOrWhiteSpace(nombre))
-        {
-            return Result.Failure(
-                Error.Validation(
-                    "Usuario.NombreObligatorio",
-                    "El nombre del usuario es obligatorio."));
-        }
+            return Result.Failure(Error.Validation("Usuario.NombreObligatorio", "El nombre del usuario es obligatorio."));
 
         if (string.IsNullOrWhiteSpace(apellido))
-        {
-            return Result.Failure(
-                Error.Validation(
-                    "Usuario.ApellidoObligatorio",
-                    "El apellido del usuario es obligatorio."));
-        }
+            return Result.Failure(Error.Validation("Usuario.ApellidoObligatorio", "El apellido del usuario es obligatorio."));
 
         if (string.IsNullOrWhiteSpace(usuario))
-        {
-            return Result.Failure(
-                Error.Validation(
-                    "Usuario.UsuarioObligatorio",
-                    "El nombre de usuario es obligatorio."));
-        }
+            return Result.Failure(Error.Validation("Usuario.UsuarioObligatorio", "El nombre de usuario es obligatorio."));
 
         if (string.IsNullOrWhiteSpace(contrasena))
-        {
-            return Result.Failure(
-                Error.Validation(
-                    "Usuario.ContrasenaObligatoria",
-                    "La contraseña es obligatoria."));
-        }
+            return Result.Failure(Error.Validation("Usuario.ContrasenaObligatoria", "La contraseña es obligatoria."));
 
         if (string.IsNullOrWhiteSpace(rol))
-        {
-            return Result.Failure(
-                Error.Validation(
-                    "Usuario.RolObligatorio",
-                    "El rol del usuario es obligatorio."));
-        }
+            return Result.Failure(Error.Validation("Usuario.RolObligatorio", "El rol del usuario es obligatorio."));
 
         Nombre = nombre.Trim();
         Apellido = apellido.Trim();

@@ -17,15 +17,7 @@ public class CrearRolEndpoint : IEndpoint
 
     private static IResult Manejador(CrearRolRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Nombre))
-        {
-            Result<RolResponse> validationResult = Error.Validation(
-                "Rol.Validacion",
-                "El nombre del rol es obligatorio.");
-
-            return validationResult.ToHttpResult();
-        }
-
+        
         if (RolDataStore.RolesDb.Any(r => r.Nombre.Equals(request.Nombre, StringComparison.OrdinalIgnoreCase)))
         {
             Result<RolResponse> conflictResult = Error.Conflict(
@@ -35,10 +27,12 @@ public class CrearRolEndpoint : IEndpoint
             return conflictResult.ToHttpResult();
         }
 
+      
         var nuevoId = RolDataStore.RolesDb.Count != 0
             ? RolDataStore.RolesDb.Max(r => r.Id) + 1
             : 1;
 
+        
         var rolResult = Rol.Create(
             nombre: request.Nombre,
             descripcion: request.Descripcion,
@@ -52,6 +46,7 @@ public class CrearRolEndpoint : IEndpoint
         var rol = rolResult.Value;
         RolDataStore.RolesDb.Add(rol);
 
+  
         var response = new RolResponse(
             rol.Id,
             rol.Nombre,

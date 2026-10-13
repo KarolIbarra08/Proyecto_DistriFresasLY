@@ -16,9 +16,13 @@ public sealed class Rol : Entity
     {
         Nombre = nombre;
         Descripcion = descripcion;
+        
         if (permisos is not null)
         {
-            _permisos.AddRange(permisos);
+            foreach (var permiso in permisos)
+            {
+                AgregarPermiso(permiso); 
+            }
         }
     }
 
@@ -28,12 +32,20 @@ public sealed class Rol : Entity
         List<string>? permisos = null,
         int id = 0)
     {
+
         if (string.IsNullOrWhiteSpace(nombre))
         {
             return Result.Failure<Rol>(
                 Error.Validation(
                     "Rol.NombreObligatorio",
                     "El nombre del rol es obligatorio."));
+        }
+
+        
+        if (string.IsNullOrWhiteSpace(descripcion))
+        {
+            return Result.Failure<Rol>(
+                Error.Validation("Rol.DescripcionObligatoria", "La descripción del rol es obligatoria."));
         }
 
         var rol = new Rol(

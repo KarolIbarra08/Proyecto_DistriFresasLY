@@ -1,4 +1,5 @@
 using DistriFresasLY.Api.Contracts.Usuarios;
+using DistriFresasLY.Api.Endpoints.Roles; // Para buscar los permisos del rol
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Usuarios;
@@ -12,11 +13,22 @@ public class IniciarSesionEndpoint : IEndpoint
         app.MapPost("/usuarios/login", Manejador)
            .WithName("IniciarSesion")
            .WithTags("Usuarios")
-           .WithSummary("Inicia sesion en el sistema");
+           .WithSummary("Inicia sesión en el sistema");
     }
 
     private static IResult Manejador(LoginRequest request)
     {
+       
+        if (string.IsNullOrWhiteSpace(request.Usuario) || string.IsNullOrWhiteSpace(request.Contrasena))
+        {
+            Result<UsuarioResponse> validationResult = Error.Validation(
+                "Usuario.Validacion",
+                "El usuario y la contraseña son obligatorios.");
+
+            return validationResult.ToHttpResult();
+        }
+
+       
         var usuario = UsuarioDataStore.UsuariosDb
             .FirstOrDefault(u => u.VerificarCredenciales(request.Usuario, request.Contrasena));
 
@@ -29,6 +41,7 @@ public class IniciarSesionEndpoint : IEndpoint
             return errorResult.ToHttpResult();
         }
 
+      
         if (!usuario.Estado)
         {
             Result<UsuarioResponse> errorResult = Error.Validation(
@@ -38,14 +51,22 @@ public class IniciarSesionEndpoint : IEndpoint
             return errorResult.ToHttpResult();
         }
 
+        
+        var rolAsociado = RolDataStore.RolesDb
+            .FirstOrDefault(r => r.Nombre.Equals(usuario.Rol, StringComparison.OrdinalIgnoreCase));
+
+        var permisos = rolAsociado?.Permisos.ToList() ?? new List<string>();
+
+      
         var response = new UsuarioResponse(
             usuario.Id,
             usuario.Nombre,
             usuario.Apellido,
             usuario.NombreUsuario,
-            usuario.Contrasena,
+            "*****", 
             usuario.Rol,
-            usuario.Estado);
+            usuario.Estado
+        );
 
         return Result.Success(response).ToHttpResult();
     }

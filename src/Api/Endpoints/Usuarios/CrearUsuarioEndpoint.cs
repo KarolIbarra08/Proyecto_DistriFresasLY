@@ -1,4 +1,5 @@
 using DistriFresasLY.Api.Contracts.Usuarios;
+using DistriFresasLY.Api.Endpoints.Roles;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Usuarios;
@@ -17,15 +18,7 @@ public class CrearUsuarioEndpoint : IEndpoint
 
     private static IResult Manejador(CrearUsuarioRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Usuario) || string.IsNullOrWhiteSpace(request.Contrasena))
-        {
-            Result<UsuarioResponse> validationResult = Error.Validation(
-                "Usuario.Validacion",
-                "El nombre de usuario y la contraseña son obligatorios.");
-
-            return validationResult.ToHttpResult();
-        }
-
+       
         if (UsuarioDataStore.UsuariosDb.Any(u => u.NombreUsuario.Equals(request.Usuario, StringComparison.OrdinalIgnoreCase)))
         {
             Result<UsuarioResponse> conflictResult = Error.Conflict(
@@ -35,16 +28,31 @@ public class CrearUsuarioEndpoint : IEndpoint
             return conflictResult.ToHttpResult();
         }
 
+     
+        var rolNombre = string.IsNullOrWhiteSpace(request.Rol) ? "Usuario" : request.Rol;
+        bool existeRol = RolDataStore.RolesDb.Any(r => r.Nombre.Equals(rolNombre, StringComparison.OrdinalIgnoreCase));
+
+        if (!existeRol)
+        {
+            Result<UsuarioResponse> rolNotFoundResult = Error.NotFound(
+                "Usuario.RolNoEncontrado",
+                $"El rol '{rolNombre}' no existe.");
+
+            return rolNotFoundResult.ToHttpResult();
+        }
+
+
         var nuevoId = UsuarioDataStore.UsuariosDb.Count != 0
             ? UsuarioDataStore.UsuariosDb.Max(u => u.Id) + 1
             : 1;
+
 
         var usuarioResult = Usuario.Create(
             nombre: request.Nombre,
             apellido: request.Apellido,
             usuario: request.Usuario,
             contrasena: request.Contrasena,
-            rol: string.IsNullOrWhiteSpace(request.Rol) ? "Usuario" : request.Rol,
+            rol: rolNombre,
             id: nuevoId);
 
         if (usuarioResult.IsFailure)
@@ -55,6 +63,7 @@ public class CrearUsuarioEndpoint : IEndpoint
         var usuario = usuarioResult.Value;
         UsuarioDataStore.UsuariosDb.Add(usuario);
 
+       
         var response = new UsuarioResponse(
             usuario.Id,
             usuario.Nombre,
