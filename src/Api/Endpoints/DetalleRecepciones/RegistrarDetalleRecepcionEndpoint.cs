@@ -21,12 +21,10 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
     private static IResult Manejador(
         RegistrarDetalleRecepcionRequest request)
     {
-    
-        var recepcionExiste =
-            RecepcionDataStore.RecepcionesDb
-                .Any(r => r.Id == request.IdRecepcion);
+        var recepcion = RecepcionDataStore.RecepcionesDb
+            .FirstOrDefault(r => r.Id == request.IdRecepcion);
 
-        if (!recepcionExiste)
+        if (recepcion is null)
         {
             return Result.Failure<DetalleRecepcionResponse>(
                 Error.NotFound(
@@ -52,49 +50,63 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-  
         var nuevoId =
             DetalleRecepcionDataStore.DetallesDb.Count != 0
                 ? DetalleRecepcionDataStore.DetallesDb.Max(d => d.Id) + 1
                 : 1;
 
-
         var result = DetalleRecepcion.Create(
-            request.IdRecepcion,
             request.IdProducto,
             request.Cantidad,
-            request.UnidadMedida,
-            request.TipoMedida,
             request.PrecioUnitario,
-            nuevoId);
+            request.IdRecepcion,
+            id: nuevoId,
+            fechaIngreso: request.FechaIngreso
+        );
 
         if (result.IsFailure)
         {
-            return Result.Failure<DetalleRecepcionResponse>(
-                result.Error)
+            return Result.Failure<DetalleRecepcionResponse>(result.Error)
                 .ToHttpResult();
         }
 
         var detalle = result.Value;
 
+       
+        var agregarResult = recepcion.AgregarDetalle(detalle);
+        if (agregarResult.IsFailure)
+        {
+            return Result.Failure<DetalleRecepcionResponse>(agregarResult.Error)
+                .ToHttpResult();
+        }
 
+     
         DetalleRecepcionDataStore.DetallesDb.Add(detalle);
 
-
-        InventarioDataStore.AumentarStock(
+     
+        var resultadoInventario = InventarioDataStore.AumentarStock(
             detalle.IdProducto,
-            detalle.Cantidad);
+            (int)detalle.Cantidad
+        );
 
+        if (resultadoInventario is null)
+        {
+            return Result.Failure<DetalleRecepcionResponse>(
+                Error.Validation(
+                    "Inventario.Error",
+                    "No fue posible encontrar el registro de inventario para el producto especificado."))
+                .ToHttpResult();
+        }
 
         var response = new DetalleRecepcionResponse(
             detalle.Id,
             detalle.IdRecepcion,
             detalle.IdProducto,
             detalle.Cantidad,
-            detalle.UnidadMedida,
-            detalle.TipoMedida,
             detalle.PrecioUnitario,
-            detalle.Subtotal);
+            detalle.Subtotal,
+            detalle.FechaIngreso
+        );
 
         return Result.Success(response)
             .ToHttpCreatedAtResult(

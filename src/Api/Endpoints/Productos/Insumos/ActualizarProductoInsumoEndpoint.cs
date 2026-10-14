@@ -50,8 +50,7 @@ public class ActualizarProductoInsumoEndpoint : IEndpoint
             insumo.Nombre,
             insumo.Tipo,
             insumo.UnidadMedida,
-            insumo.Descripcion,
-            insumo.FechaIngreso
+            insumo.Descripcion
         );
 
         return Result

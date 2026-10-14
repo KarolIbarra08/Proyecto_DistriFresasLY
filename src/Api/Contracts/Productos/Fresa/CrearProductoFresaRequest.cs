@@ -4,7 +4,5 @@ public record CrearProductoFresaRequest(
     int Calibre,
     string Calidad,
     double Peso,
-    decimal PrecioCompra,
-    string Descripcion,
-    DateTime? FechaIngreso = null
+    string Descripcion
 );

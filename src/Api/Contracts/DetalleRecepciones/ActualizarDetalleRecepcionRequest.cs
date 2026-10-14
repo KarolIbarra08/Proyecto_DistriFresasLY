@@ -1,8 +1,6 @@
 namespace DistriFresasLY.Api.Contracts.DetalleRecepciones;
 
 public record ActualizarDetalleRecepcionRequest(
-    int Cantidad,
-    double UnidadMedida,
-    string TipoMedida,
-    decimal PrecioUnitario
+    double Cantidad,
+    double PrecioUnitario
 );

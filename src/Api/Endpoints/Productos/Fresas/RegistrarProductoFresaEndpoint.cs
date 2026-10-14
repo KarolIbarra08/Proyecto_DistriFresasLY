@@ -22,21 +22,13 @@ public class RegistrarProductoFresaEndpoint : IEndpoint
             ? ProductoDataStore.FresasDb.Max(p => p.Id) + 1
             : 1;
 
-        var fechaReal =
-            request.FechaIngreso.HasValue &&
-            request.FechaIngreso.Value != default &&
-            request.FechaIngreso.Value.Year > 1970
-                ? request.FechaIngreso.Value
-                : DateTime.UtcNow;
-
         var result = ProductoFresa.Create(
             request.Calibre,
             request.Calidad,
             request.Peso,
-            request.PrecioCompra,
             request.Descripcion,
-            nuevoId,
-            fechaReal);
+            c => ProductoDataStore.FresasDb.Any(p => p.Calibre.Value == c), 
+            nuevoId);
 
         if (result.IsFailure)
         {
@@ -52,11 +44,9 @@ public class RegistrarProductoFresaEndpoint : IEndpoint
         var response = new ProductoFresaResponse(
             fresa.Id,
             fresa.TipoProducto,
-            fresa.Calibre.Value,
+            fresa.Calibre.Value, 
             fresa.Calidad,
-            fresa.Peso.Value,
-            fresa.PrecioCompra.Value,
-            fresa.FechaIngreso,
+            fresa.Peso.Value,    
             fresa.Descripcion
         );
 

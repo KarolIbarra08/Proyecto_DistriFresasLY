@@ -12,43 +12,37 @@ public class RegistrarRecepcionEndpoint : IEndpoint
         app.MapPost("/recepciones", Manejador)
            .WithName("RegistrarRecepcion")
            .WithTags("Recepciones")
-           .WithSummary("Registra una nueva recepción de mercancía");
+           .WithSummary("Registra una nueva recepción");
     }
 
-    private static IResult Manejador(
-        RegistrarRecepcionRequest request)
+    private static IResult Manejador(RegistrarRecepcionRequest request)
     {
-        var nuevoId = RecepcionDataStore.GenerarNuevoId();
-
-        var fechaReal =
-            request.FechaRecepcion.HasValue &&
-            request.FechaRecepcion.Value != default
-                ? request.FechaRecepcion.Value
-                : DateTime.UtcNow;
+        var nuevoId = RecepcionDataStore.RecepcionesDb.Count != 0
+            ? RecepcionDataStore.RecepcionesDb.Max(r => r.Id) + 1
+            : 1;
 
         var result = Recepcion.Create(
-            request.ValorPago,
+            request.IdProveedor,
             nuevoId,
-            fechaReal);
+            request.FechaRecepcion);
 
         if (result.IsFailure)
         {
-            return Result.Failure<RecepcionResponse>(
-                result.Error)
-                .ToHttpResult();
+            return Result.Failure<RecepcionResponse>(result.Error).ToHttpResult();
         }
 
         var recepcion = result.Value;
-
         RecepcionDataStore.RecepcionesDb.Add(recepcion);
 
         var response = new RecepcionResponse(
             recepcion.Id,
+            recepcion.IdProveedor,
             recepcion.FechaRecepcion,
-            recepcion.ValorPago);
+            recepcion.ValorPago,
+            recepcion.ProcesadaEnInventario,
+            recepcion.CalcularTotal());
 
         return Result.Success(response)
-            .ToHttpCreatedAtResult(
-                $"/api/recepciones/{recepcion.Id}");
+            .ToHttpCreatedAtResult($"/api/recepciones/{recepcion.Id}");
     }
 }

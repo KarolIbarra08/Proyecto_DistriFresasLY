@@ -22,20 +22,14 @@ public class RegistrarProductoInsumoEndpoint : IEndpoint
             ? ProductoDataStore.InsumosDb.Max(p => p.Id) + 1
             : 101;
 
-        var fechaReal =
-            request.FechaIngreso.HasValue &&
-            request.FechaIngreso.Value != default &&
-            request.FechaIngreso.Value.Year > 1970
-                ? request.FechaIngreso.Value
-                : DateTime.UtcNow;
+
 
         var result = ProductoInsumo.Create(
             request.Nombre,
             request.Tipo,
             request.UnidadMedida,
             request.Descripcion,
-            nuevoId,
-            fechaReal);
+            nuevoId);
 
         if (result.IsFailure)
         {
@@ -54,8 +48,7 @@ public class RegistrarProductoInsumoEndpoint : IEndpoint
             insumo.Nombre,
             insumo.Tipo,
             insumo.UnidadMedida,
-            insumo.Descripcion,
-            insumo.FechaIngreso
+            insumo.Descripcion
         );
 
         return Result

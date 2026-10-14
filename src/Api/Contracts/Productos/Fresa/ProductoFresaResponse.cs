@@ -6,7 +6,5 @@ public record ProductoFresaResponse(
     int Calibre,
     string Calidad,
     double Peso,
-    decimal PrecioCompra,
-    DateTime FechaIngreso,
     string Descripcion
 );

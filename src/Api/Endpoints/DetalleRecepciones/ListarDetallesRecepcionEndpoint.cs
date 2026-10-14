@@ -22,13 +22,13 @@ public class ListarDetallesRecepcionEndpoint : IEndpoint
                 d.IdRecepcion,
                 d.IdProducto,
                 d.Cantidad,
-                d.UnidadMedida,
-                d.TipoMedida,
                 d.PrecioUnitario,
-                d.Subtotal))
+                d.Subtotal,
+                d.FechaIngreso))
             .ToList();
 
         return Result.Success(response)
             .ToHttpResult();
     }
 }
+    

@@ -23,8 +23,7 @@ public class ConsultarProductosInsumoEndpoint : IEndpoint
                 insumo.Nombre,
                 insumo.Tipo,
                 insumo.UnidadMedida,
-                insumo.Descripcion,
-                insumo.FechaIngreso
+                insumo.Descripcion
             ))
             .ToList();
 

@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Productos;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Productos;
 
 namespace DistriFresasLY.Api.Endpoints.Productos.Fresas;
 
@@ -11,7 +12,7 @@ public class ActualizarProductoFresaEndpoint : IEndpoint
         app.MapPut("/productos/fresa/{id:int}", Manejador)
            .WithName("ActualizarProductoFresa")
            .WithTags("Productos Fresa")
-           .WithSummary("Actualiza la información de un producto fresa");
+           .WithSummary("Actualiza un producto fresa existente");
     }
 
     private static IResult Manejador(
@@ -27,21 +28,22 @@ public class ActualizarProductoFresaEndpoint : IEndpoint
                 .Failure<ProductoFresaResponse>(
                     Error.NotFound(
                         "ProductoFresa.NotFound",
-                        $"No se encontró la fresa con ID: {id}"))
+                        $"No se encontró el producto fresa con ID: {id}"))
                 .ToHttpResult();
         }
 
-        var result = fresa.Actualizar(
+        
+        var updateResult = fresa.Actualizar(
             request.Calibre,
             request.Calidad,
             request.Peso,
-            request.PrecioCompra,
-            request.Descripcion);
+            request.Descripcion,
+            c => ProductoDataStore.FresasDb.Any(p => p.Id != id && p.Calibre.Value == c));
 
-        if (result.IsFailure)
+        if (updateResult.IsFailure)
         {
             return Result
-                .Failure<ProductoFresaResponse>(result.Error)
+                .Failure<ProductoFresaResponse>(updateResult.Error)
                 .ToHttpResult();
         }
 
@@ -51,8 +53,6 @@ public class ActualizarProductoFresaEndpoint : IEndpoint
             fresa.Calibre.Value,
             fresa.Calidad,
             fresa.Peso.Value,
-            fresa.PrecioCompra.Value,
-            fresa.FechaIngreso,
             fresa.Descripcion
         );
 

@@ -6,71 +6,120 @@ public class Recepcion : Entity
 {
     private readonly List<DetalleRecepcion> _detalles = [];
 
+    public int IdProveedor { get; private set; }
     public DateTime FechaRecepcion { get; private set; }
-    public decimal ValorPago { get; private set; }
+    public bool ProcesadaEnInventario { get; private set; }
 
-    public IReadOnlyCollection<DetalleRecepcion> Detalles =>
-        _detalles.AsReadOnly();
+
+    public double ValorPago => CalcularTotal();
+
+    public IReadOnlyCollection<DetalleRecepcion> Detalles => _detalles.AsReadOnly();
 
     private Recepcion(
         int id,
-        DateTime fechaRecepcion,
-        decimal valorPago)
+        int idProveedor,
+        DateTime fechaRecepcion)
         : base(id)
     {
+        IdProveedor = idProveedor;
         FechaRecepcion = fechaRecepcion;
-        ValorPago = valorPago;
+        ProcesadaEnInventario = false;
     }
 
     public static Result<Recepcion> Create(
-        decimal valorPago,
+        int idProveedor,
         int id = 0,
         DateTime? fechaRecepcion = null)
     {
-        if (valorPago < 0)
+        if (idProveedor <= 0)
         {
             return Result.Failure<Recepcion>(
-                Error.Validation(
-                    "Recepcion.ValorPagoInvalido",
-                    "El valor del pago no puede ser negativo."));
+                Error.Validation("Recepcion.ProveedorInvalido", "El proveedor es obligatorio."));
         }
 
         return Result.Success(
             new Recepcion(
                 id,
-                fechaRecepcion ?? DateTime.UtcNow,
-                valorPago));
+                idProveedor,
+                fechaRecepcion ?? DateTime.UtcNow));
     }
 
-    public Result Actualizar(
-        decimal valorPago,
-        DateTime? fechaRecepcion = null)
+    public Result Actualizar(int idProveedor)
     {
-        if (valorPago < 0)
+        if (ProcesadaEnInventario)
         {
             return Result.Failure(
-                Error.Validation(
-                    "Recepcion.ValorPagoInvalido",
-                    "El valor del pago no puede ser negativo."));
+                Error.Conflict("Recepcion.YaProcesada", "No se puede modificar una recepción confirmada en inventario."));
         }
 
-        ValorPago = valorPago;
+        if (idProveedor <= 0)
+        {
+            return Result.Failure(
+                Error.Validation("Recepcion.ProveedorInvalido", "El proveedor es obligatorio."));
+        }
 
-        if (fechaRecepcion.HasValue)
-            FechaRecepcion = fechaRecepcion.Value;
+        IdProveedor = idProveedor;
 
         return Result.Success();
     }
 
-    public void AgregarDetalle(DetalleRecepcion detalle)
+    public Result AgregarDetalle(DetalleRecepcion detalle)
     {
-        if (detalle is null)
-            throw new ArgumentNullException(nameof(detalle));
+        if (ProcesadaEnInventario)
+        {
+            return Result.Failure(
+                Error.Conflict("Recepcion.YaProcesada", "No se pueden agregar productos a una recepción confirmada."));
+        }
 
+        if (detalle is null)
+        {
+            return Result.Failure(
+                Error.Validation("Recepcion.DetalleNulo", "El detalle a agregar no es válido."));
+        }
+
+        detalle.AsignarRecepcion(Id);
         _detalles.Add(detalle);
+
+        return Result.Success();
     }
-    public decimal CalcularTotal()
+
+    public Result RemoverDetalle(int idProducto)
+    {
+        if (ProcesadaEnInventario)
+        {
+            return Result.Failure(
+                Error.Conflict("Recepcion.YaProcesada", "No se pueden eliminar productos de una recepción confirmada."));
+        }
+
+        var detalle = _detalles.FirstOrDefault(d => d.IdProducto == idProducto);
+        if (detalle is not null)
+        {
+            _detalles.Remove(detalle);
+        }
+
+        return Result.Success();
+    }
+
+    public double CalcularTotal()
     {
         return _detalles.Sum(d => d.Subtotal);
+    }
+
+    public Result MarcarComoProcesada()
+    {
+        if (ProcesadaEnInventario)
+        {
+            return Result.Failure(
+                Error.Conflict("Recepcion.YaProcesada", "La recepción ya ha sido procesada previamente en el inventario."));
+        }
+
+        if (!_detalles.Any())
+        {
+            return Result.Failure(
+                Error.Validation("Recepcion.SinDetalles", "No se puede confirmar una recepción sin productos agregados."));
+        }
+
+        ProcesadaEnInventario = true;
+        return Result.Success();
     }
 }

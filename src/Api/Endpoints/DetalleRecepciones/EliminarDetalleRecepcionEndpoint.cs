@@ -31,12 +31,11 @@ public class EliminarDetalleRecepcionEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-        // Al eliminar el detalle,
-        // se debe retirar del inventario la cantidad que había agregado.
+        
         var resultado =
             InventarioDataStore.DisminuirStock(
                 detalle.IdProducto,
-                detalle.Cantidad);
+                (int)detalle.Cantidad);
 
         if (!resultado.exito)
         {

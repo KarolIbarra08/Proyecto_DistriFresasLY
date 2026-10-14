@@ -4,9 +4,8 @@ public record DetalleRecepcionResponse(
     int Id,
     int IdRecepcion,
     int IdProducto,
-    int Cantidad,
-    double UnidadMedida,
-    string TipoMedida,
-    decimal PrecioUnitario,
-    decimal Subtotal
+    double Cantidad,
+    double PrecioUnitario,
+    double Subtotal,
+    DateTime FechaIngreso
 );

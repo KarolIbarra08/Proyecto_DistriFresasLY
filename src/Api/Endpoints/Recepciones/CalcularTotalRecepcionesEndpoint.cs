@@ -3,33 +3,30 @@ using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Recepciones;
 
-public record TotalRecepcionesResponse(
-    decimal TotalPagado,
-    int TotalRecepciones
-);
-
 public class CalcularTotalRecepcionesEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/recepciones/total", Manejador)
-           .WithName("CalcularTotalRecepciones")
+        app.MapGet("/recepciones/{id:int}/total", Manejador)
+           .WithName("CalcularTotalRecepcion")
            .WithTags("Recepciones")
-           .WithSummary("Calcula el valor total pagado y el número de recepciones registradas");
+           .WithSummary("Calcula el valor total de una recepción");
     }
 
-    private static IResult Manejador()
+    private static IResult Manejador(int id)
     {
-        var totalPagado =
-            RecepcionDataStore.RecepcionesDb.Sum(r => r.ValorPago);
+        var recepcion = RecepcionDataStore.RecepcionesDb.FirstOrDefault(r => r.Id == id);
+        if (recepcion is null)
+        {
+            Result<double> errorResult = Error.NotFound(
+                "Recepcion.NotFound",
+                $"No se encontró una recepción con el Id: {id}");
 
-        var totalRecepciones =
-            RecepcionDataStore.RecepcionesDb.Count;
+            return errorResult.ToHttpResult();
+        }
 
-        var response = new TotalRecepcionesResponse(
-            totalPagado,
-            totalRecepciones);
+        double total = recepcion.CalcularTotal();
 
-        return Result.Success(response).ToHttpResult();
+        return Result.Success(total).ToHttpResult();
     }
 }

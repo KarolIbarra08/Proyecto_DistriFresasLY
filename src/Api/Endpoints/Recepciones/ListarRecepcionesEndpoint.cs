@@ -11,19 +11,21 @@ public class ListarRecepcionesEndpoint : IEndpoint
         app.MapGet("/recepciones", Manejador)
            .WithName("ListarRecepciones")
            .WithTags("Recepciones")
-           .WithSummary("Muestra todas las recepciones");
+           .WithSummary("Obtiene el listado general de recepciones");
     }
 
     private static IResult Manejador()
     {
-        var response = RecepcionDataStore.RecepcionesDb
+        var lista = RecepcionDataStore.RecepcionesDb
             .Select(r => new RecepcionResponse(
                 r.Id,
+                r.IdProveedor,
                 r.FechaRecepcion,
-                r.ValorPago))
+                r.ValorPago,
+                r.ProcesadaEnInventario,
+                r.CalcularTotal()))
             .ToList();
 
-        return Result.Success(response)
-            .ToHttpResult();
+        return Result.Success(lista).ToHttpResult();
     }
 }

@@ -33,12 +33,12 @@ public class EliminarRecepcionEndpoint : IEndpoint
             .Where(d => d.IdRecepcion == id)
             .ToList();
 
-
         foreach (var detalle in detalles)
         {
+
             var resultado = InventarioDataStore.DisminuirStock(
                 detalle.IdProducto,
-                detalle.Cantidad);
+                (int)detalle.Cantidad);
 
             if (!resultado.exito)
             {
@@ -51,10 +51,8 @@ public class EliminarRecepcionEndpoint : IEndpoint
             }
         }
 
-
         DetalleRecepcionDataStore.DetallesDb
             .RemoveAll(d => d.IdRecepcion == id);
-
 
         RecepcionDataStore.RecepcionesDb
             .Remove(recepcion);

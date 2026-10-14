@@ -34,62 +34,26 @@ public class ActualizarDetalleRecepcionEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-        // Guardamos la cantidad anterior
-        var cantidadAnterior = detalle.Cantidad;
 
-        // Diferencia entre nueva y anterior
-        var diferencia =
-            request.Cantidad - cantidadAnterior;
+       var updateResult = detalle.Actualizar(
+                request.Cantidad,
+                request.PrecioUnitario
+            );
 
-        // Si aumenta la cantidad, aumenta inventario.
-        if (diferencia > 0)
-        {
-            InventarioDataStore.AumentarStock(
-                detalle.IdProducto,
-                diferencia);
-        }
-
-        // Si disminuye la cantidad, disminuye inventario.
-        if (diferencia < 0)
-        {
-            var resultado =
-                InventarioDataStore.DisminuirStock(
-                    detalle.IdProducto,
-                    Math.Abs(diferencia));
-
-            if (!resultado.exito)
+            if (updateResult.IsFailure)
             {
-                return Result.Failure<DetalleRecepcionResponse>(
-                    Error.Validation(
-                        "Inventario.Error",
-                        resultado.mensajeError ??
-                        "No fue posible actualizar el inventario."))
-                    .ToHttpResult();
+                return Results.BadRequest(updateResult.Error);
             }
-        }
-
-        var result = detalle.Actualizar(
-            request.Cantidad,
-            request.UnidadMedida,
-            request.TipoMedida,
-            request.PrecioUnitario);
-
-        if (result.IsFailure)
-        {
-            return Result.Failure<DetalleRecepcionResponse>(
-                result.Error)
-                .ToHttpResult();
-        }
 
         var response = new DetalleRecepcionResponse(
-            detalle.Id,
-            detalle.IdRecepcion,
-            detalle.IdProducto,
-            detalle.Cantidad,
-            detalle.UnidadMedida,
-            detalle.TipoMedida,
-            detalle.PrecioUnitario,
-            detalle.Subtotal);
+                detalle.Id,
+                detalle.IdRecepcion,
+                detalle.IdProducto,
+                detalle.Cantidad,
+                detalle.PrecioUnitario,
+                detalle.Subtotal,
+                detalle.FechaIngreso
+            );
 
         return Result.Success(response)
             .ToHttpResult();

@@ -12,23 +12,19 @@ public class ProductoInsumo : Producto
 
     public string Descripcion { get; private set; }
 
-    public DateTime FechaIngreso { get; private set; }
-
 
     private ProductoInsumo(
         int id,
         string nombre,
         string tipo,
         string unidadMedida,
-        string descripcion,
-        DateTime fechaIngreso)
+        string descripcion)
         : base(id, "Insumo")
     {
         Nombre = nombre;
         Tipo = tipo;
         UnidadMedida = unidadMedida;
         Descripcion = descripcion;
-        FechaIngreso = fechaIngreso;
     }
 
 
@@ -37,8 +33,7 @@ public class ProductoInsumo : Producto
         string tipo,
         string unidadMedida,
         string descripcion,
-        int id = 0,
-        DateTime? fechaIngreso = null)
+        int id = 0)
     {
         if (string.IsNullOrWhiteSpace(nombre))
         {
@@ -63,6 +58,12 @@ public class ProductoInsumo : Producto
                     "ProductoInsumo.UnidadMedidaVacia",
                     "La unidad de medida es obligatoria."));
         }
+        
+        if (string.IsNullOrWhiteSpace(descripcion))
+        {
+            return Result.Failure<ProductoInsumo>(
+                Error.Validation("ProductoInsumo.DescripcionVacia", "La descripción es obligatoria."));
+        }
 
         return Result.Success(
             new ProductoInsumo(
@@ -70,8 +71,7 @@ public class ProductoInsumo : Producto
                 nombre.Trim(),
                 tipo.Trim(),
                 unidadMedida.Trim(),
-                descripcion?.Trim() ?? string.Empty,
-                fechaIngreso ?? DateTime.UtcNow));
+                descripcion?.Trim() ?? string.Empty));
     }
 
 
@@ -103,6 +103,11 @@ public class ProductoInsumo : Producto
                 Error.Validation(
                     "ProductoInsumo.UnidadMedidaVacia",
                     "La unidad de medida es obligatoria."));
+        }
+        if (string.IsNullOrWhiteSpace(descripcion))
+        {
+            return Result.Failure<ProductoInsumo>(
+                Error.Validation("ProductoInsumo.DescripcionVacia", "La descripción es obligatoria."));
         }
 
         Nombre = nombre.Trim();

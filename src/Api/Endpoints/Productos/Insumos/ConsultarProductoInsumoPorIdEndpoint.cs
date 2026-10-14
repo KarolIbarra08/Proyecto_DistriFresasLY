@@ -35,8 +35,7 @@ public class ConsultarProductoInsumoPorIdEndpoint : IEndpoint
             insumo.Nombre,
             insumo.Tipo,
             insumo.UnidadMedida,
-            insumo.Descripcion,
-            insumo.FechaIngreso
+            insumo.Descripcion
         );
 
         return Result

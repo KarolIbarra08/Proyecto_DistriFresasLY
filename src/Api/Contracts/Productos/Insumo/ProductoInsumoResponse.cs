@@ -6,6 +6,5 @@ public record ProductoInsumoResponse(
     string Nombre,
     string Tipo,
     string UnidadMedida,
-    string Descripcion,
-    DateTime FechaIngreso
+    string Descripcion
 );

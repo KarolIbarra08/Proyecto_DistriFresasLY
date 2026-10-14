@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Recepciones;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Recepciones;
 
 namespace DistriFresasLY.Api.Endpoints.Recepciones;
 
@@ -11,42 +12,36 @@ public class ActualizarRecepcionEndpoint : IEndpoint
         app.MapPut("/recepciones/{id:int}", Manejador)
            .WithName("ActualizarRecepcion")
            .WithTags("Recepciones")
-           .WithSummary("Actualiza una recepción existente");
+           .WithSummary("Actualiza los datos de una recepción existente");
     }
 
-    private static IResult Manejador(
-        int id,
-        ActualizarRecepcionRequest request)
+    private static IResult Manejador(int id, ActualizarRecepcionRequest request)
     {
-        var recepcion =
-            RecepcionDataStore.ObtenerPorId(id);
-
+        var recepcion = RecepcionDataStore.RecepcionesDb.FirstOrDefault(r => r.Id == id);
         if (recepcion is null)
         {
             return Result.Failure<RecepcionResponse>(
-                Error.NotFound(
-                    "Recepcion.NotFound",
-                    $"No se encontró la recepción con ID: {id}"))
-                .ToHttpResult();
+                Error.NotFound("Recepcion.NotFound", $"No se encontró una recepción con el Id: {id}")
+            ).ToHttpResult();
         }
 
-        var result = recepcion.Actualizar(
-            request.ValorPago,
-            request.FechaRecepcion);
+        var idProveedor = request.IdProveedor > 0 ? request.IdProveedor : recepcion.IdProveedor;
 
-        if (result.IsFailure)
+        var actualizarResult = recepcion.Actualizar(idProveedor);
+
+        if (actualizarResult.IsFailure)
         {
-            return Result.Failure<RecepcionResponse>(
-                result.Error)
-                .ToHttpResult();
+            return Result.Failure<RecepcionResponse>(actualizarResult.Error).ToHttpResult();
         }
 
         var response = new RecepcionResponse(
             recepcion.Id,
+            recepcion.IdProveedor,
             recepcion.FechaRecepcion,
-            recepcion.ValorPago);
+            recepcion.ValorPago,
+            recepcion.ProcesadaEnInventario,
+            recepcion.CalcularTotal());
 
-        return Result.Success(response)
-            .ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

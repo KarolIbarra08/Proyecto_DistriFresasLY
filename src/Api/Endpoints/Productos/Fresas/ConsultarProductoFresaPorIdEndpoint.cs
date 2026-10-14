@@ -35,8 +35,6 @@ public class ConsultarProductoFresaPorIdEndpoint : IEndpoint
             fresa.Calibre.Value,
             fresa.Calidad,
             fresa.Peso.Value,
-            fresa.PrecioCompra.Value,
-            fresa.FechaIngreso,
             fresa.Descripcion
         );
 

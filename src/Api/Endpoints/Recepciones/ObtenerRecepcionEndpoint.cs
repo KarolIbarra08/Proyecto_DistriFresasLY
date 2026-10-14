@@ -1,6 +1,7 @@
 using DistriFresasLY.Api.Contracts.Recepciones;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Recepciones;
 
 namespace DistriFresasLY.Api.Endpoints.Recepciones;
 
@@ -11,29 +12,29 @@ public class ObtenerRecepcionEndpoint : IEndpoint
         app.MapGet("/recepciones/{id:int}", Manejador)
            .WithName("ObtenerRecepcion")
            .WithTags("Recepciones")
-           .WithSummary("Obtiene una recepción por su ID");
+           .WithSummary("Obtiene una recepción por su Id");
     }
 
     private static IResult Manejador(int id)
     {
-        var recepcion =
-            RecepcionDataStore.ObtenerPorId(id);
-
+        var recepcion = RecepcionDataStore.RecepcionesDb.FirstOrDefault(r => r.Id == id);
         if (recepcion is null)
         {
-            return Result.Failure<RecepcionResponse>(
-                Error.NotFound(
-                    "Recepcion.NotFound",
-                    $"No se encontró la recepción con ID: {id}"))
-                .ToHttpResult();
+            Result<RecepcionResponse> errorResult = Error.NotFound(
+                "Recepcion.NotFound",
+                $"No se encontró una recepción con el Id: {id}");
+
+            return errorResult.ToHttpResult();
         }
 
         var response = new RecepcionResponse(
             recepcion.Id,
+            recepcion.IdProveedor,
             recepcion.FechaRecepcion,
-            recepcion.ValorPago);
+            recepcion.ValorPago,
+            recepcion.ProcesadaEnInventario,
+            recepcion.CalcularTotal());
 
-        return Result.Success(response)
-            .ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

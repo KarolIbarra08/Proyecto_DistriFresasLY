@@ -31,16 +31,15 @@ public class ObtenerDetalleRecepcionEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-        var response = new DetalleRecepcionResponse(
-            detalle.Id,
-            detalle.IdRecepcion,
-            detalle.IdProducto,
-            detalle.Cantidad,
-            detalle.UnidadMedida,
-            detalle.TipoMedida,
-            detalle.PrecioUnitario,
-            detalle.Subtotal);
-
+      var response = new DetalleRecepcionResponse(
+                detalle.Id,
+                detalle.IdRecepcion,
+                detalle.IdProducto,
+                detalle.Cantidad,
+                detalle.PrecioUnitario,
+                detalle.Subtotal,
+                detalle.FechaIngreso
+        );
         return Result.Success(response)
             .ToHttpResult();
     }
