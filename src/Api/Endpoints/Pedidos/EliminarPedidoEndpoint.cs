@@ -1,4 +1,5 @@
 using DistriFresasLY.Api.Contracts.Pedidos;
+using DistriFresasLY.Api.Endpoints.Pagos;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 
@@ -25,6 +26,11 @@ public class EliminarPedidoEndpoint : IEndpoint
                 $"No se encontro un pedido registrado con el ID '{id}'.");
 
             return notFoundResult.ToHttpResult();
+        }
+
+        if (PagoDataStore.PagosProveedoresDb.Any(p => p.PedidoId == id))
+        {
+            return Result.Failure<bool>(Error.Conflict("Pedido.PagosAsociados", "No se puede eliminar un pedido con pagos asociados.")).ToHttpResult();
         }
 
         PedidoDataStore.PedidosDb.Remove(pedido);

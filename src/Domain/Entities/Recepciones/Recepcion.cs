@@ -5,8 +5,7 @@ namespace DistriFresasLY.Domain.Entities.Recepciones;
 public class Recepcion : Entity
 {
     private readonly List<DetalleRecepcion> _detalles = [];
-
-    public int IdProveedor { get; private set; }
+    public int? PedidoId { get; private set; }
     public DateTime FechaRecepcion { get; private set; }
     public bool ProcesadaEnInventario { get; private set; }
 
@@ -17,48 +16,34 @@ public class Recepcion : Entity
 
     private Recepcion(
         int id,
-        int idProveedor,
+        int? pedidoId,
         DateTime fechaRecepcion)
         : base(id)
     {
-        IdProveedor = idProveedor;
+        PedidoId = pedidoId;
         FechaRecepcion = fechaRecepcion;
         ProcesadaEnInventario = false;
     }
 
     public static Result<Recepcion> Create(
-        int idProveedor,
         int id = 0,
-        DateTime? fechaRecepcion = null)
+        DateTime? fechaRecepcion = null,
+        int? pedidoId = null)
     {
-        if (idProveedor <= 0)
-        {
-            return Result.Failure<Recepcion>(
-                Error.Validation("Recepcion.ProveedorInvalido", "El proveedor es obligatorio."));
-        }
-
         return Result.Success(
             new Recepcion(
                 id,
-                idProveedor,
+                pedidoId,
                 fechaRecepcion ?? DateTime.UtcNow));
     }
 
-    public Result Actualizar(int idProveedor)
+    public Result Actualizar()
     {
         if (ProcesadaEnInventario)
         {
             return Result.Failure(
-                Error.Conflict("Recepcion.YaProcesada", "No se puede modificar una recepción confirmada en inventario."));
+                Error.Conflict("Recepcion.YaProcesada", "No se puede modificar una recepcion confirmada en inventario."));
         }
-
-        if (idProveedor <= 0)
-        {
-            return Result.Failure(
-                Error.Validation("Recepcion.ProveedorInvalido", "El proveedor es obligatorio."));
-        }
-
-        IdProveedor = idProveedor;
 
         return Result.Success();
     }
@@ -68,13 +53,13 @@ public class Recepcion : Entity
         if (ProcesadaEnInventario)
         {
             return Result.Failure(
-                Error.Conflict("Recepcion.YaProcesada", "No se pueden agregar productos a una recepción confirmada."));
+                Error.Conflict("Recepcion.YaProcesada", "No se pueden agregar productos a una recepcion confirmada."));
         }
 
         if (detalle is null)
         {
             return Result.Failure(
-                Error.Validation("Recepcion.DetalleNulo", "El detalle a agregar no es válido."));
+                Error.Validation("Recepcion.DetalleNulo", "El detalle a agregar no es valido."));
         }
 
         detalle.AsignarRecepcion(Id);
@@ -88,7 +73,7 @@ public class Recepcion : Entity
         if (ProcesadaEnInventario)
         {
             return Result.Failure(
-                Error.Conflict("Recepcion.YaProcesada", "No se pueden eliminar productos de una recepción confirmada."));
+                Error.Conflict("Recepcion.YaProcesada", "No se pueden eliminar productos de una recepcion confirmada."));
         }
 
         var detalle = _detalles.FirstOrDefault(d => d.IdProducto == idProducto);
@@ -110,13 +95,13 @@ public class Recepcion : Entity
         if (ProcesadaEnInventario)
         {
             return Result.Failure(
-                Error.Conflict("Recepcion.YaProcesada", "La recepción ya ha sido procesada previamente en el inventario."));
+                Error.Conflict("Recepcion.YaProcesada", "La recepcion ya ha sido procesada previamente en el inventario."));
         }
 
         if (!_detalles.Any())
         {
             return Result.Failure(
-                Error.Validation("Recepcion.SinDetalles", "No se puede confirmar una recepción sin productos agregados."));
+                Error.Validation("Recepcion.SinDetalles", "No se puede confirmar una recepcion sin productos agregados."));
         }
 
         ProcesadaEnInventario = true;

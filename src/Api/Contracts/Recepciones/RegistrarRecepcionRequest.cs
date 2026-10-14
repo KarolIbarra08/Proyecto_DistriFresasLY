@@ -1,6 +1,6 @@
 namespace DistriFresasLY.Api.Contracts.Recepciones;
 
 public record RegistrarRecepcionRequest(
-    int IdProveedor,
+    int? PedidoId = null,
     DateTime? FechaRecepcion = null
 );

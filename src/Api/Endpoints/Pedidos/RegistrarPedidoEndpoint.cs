@@ -1,4 +1,5 @@
 using DistriFresasLY.Api.Contracts.Pedidos;
+using DistriFresasLY.Api.Endpoints.Proveedores;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Pedidos;
@@ -17,6 +18,24 @@ public class RegistrarPedidoEndpoint : IEndpoint
 
     private static IResult Manejador(CrearPedidoRequest request)
     {
+        if (request.ProveedorId <= 0)
+        {
+            Result<PedidoResponse> validationResult = Error.Validation(
+                "Pedido.ProveedorInvalido",
+                "El ID del proveedor es obligatorio.");
+
+            return validationResult.ToHttpResult();
+        }
+
+        if (ProveedorDataStore.ProveedoresDb.All(p => p.Id != request.ProveedorId))
+        {
+            Result<PedidoResponse> notFoundResult = Error.NotFound(
+                "Pedido.ProveedorNoEncontrado",
+                $"No se encontró un proveedor con ID {request.ProveedorId}.");
+
+            return notFoundResult.ToHttpResult();
+        }
+
         if (request.Detalles is null || !request.Detalles.Any())
         {
             Result<PedidoResponse> validationResult = Error.Validation(
@@ -30,12 +49,21 @@ public class RegistrarPedidoEndpoint : IEndpoint
             ? PedidoDataStore.PedidosDb.Max(p => p.Id) + 1
             : 1;
 
+        var maxDetalleId = PedidoDataStore.PedidosDb
+            .SelectMany(p => p.Detalles)
+            .Select(d => d.Id)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        var siguienteDetalleId = maxDetalleId + 1;
+
         var detallesResult = request.Detalles
-            .Select(detalleReq => DetallePedido.Create(
+            .Select((detalleReq, index) => DetallePedido.Create(
                 pedidoId: nuevoPedidoId,
                 descripcion: detalleReq.Descripcion,
                 cantidad: detalleReq.Cantidad,
-                valorUnitario: detalleReq.ValorUnitario))
+                valorUnitario: detalleReq.ValorUnitario,
+                id: siguienteDetalleId + index))
             .ToList();
 
         var detalleInvalido = detallesResult.FirstOrDefault(r => r.IsFailure);
@@ -49,7 +77,7 @@ public class RegistrarPedidoEndpoint : IEndpoint
         var fechaPedido = request.FechaPedido ?? DateTime.UtcNow;
         var estado = string.IsNullOrWhiteSpace(request.Estado) ? "Pendiente" : request.Estado.Trim();
 
-        var pedidoResult = Pedido.Create(detalles, fechaPedido, estado, nuevoPedidoId);
+        var pedidoResult = Pedido.Create(request.ProveedorId, detalles, fechaPedido, estado, nuevoPedidoId);
         if (pedidoResult.IsFailure)
         {
             return Result.Failure<PedidoResponse>(pedidoResult.Error).ToHttpResult();
@@ -60,6 +88,7 @@ public class RegistrarPedidoEndpoint : IEndpoint
 
         var response = new PedidoResponse(
             pedido.Id,
+            pedido.ProveedorId,
             pedido.FechaPedido,
             pedido.Estado,
             pedido.Total,

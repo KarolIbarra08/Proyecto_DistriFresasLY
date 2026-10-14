@@ -2,6 +2,7 @@ namespace DistriFresasLY.Api.Contracts.Pedidos;
 
 public record PedidoResponse(
     int Id,
+    int ProveedorId,
     DateTime FechaPedido,
     string Estado,
     decimal Total,

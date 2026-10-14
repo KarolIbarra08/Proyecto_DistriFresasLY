@@ -25,9 +25,7 @@ public class ActualizarRecepcionEndpoint : IEndpoint
             ).ToHttpResult();
         }
 
-        var idProveedor = request.IdProveedor > 0 ? request.IdProveedor : recepcion.IdProveedor;
-
-        var actualizarResult = recepcion.Actualizar(idProveedor);
+        var actualizarResult = recepcion.Actualizar();
 
         if (actualizarResult.IsFailure)
         {
@@ -36,7 +34,7 @@ public class ActualizarRecepcionEndpoint : IEndpoint
 
         var response = new RecepcionResponse(
             recepcion.Id,
-            recepcion.IdProveedor,
+            recepcion.PedidoId,
             recepcion.FechaRecepcion,
             recepcion.ValorPago,
             recepcion.ProcesadaEnInventario,

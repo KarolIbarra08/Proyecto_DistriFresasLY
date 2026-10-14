@@ -29,6 +29,7 @@ public class ConsultarPedidoEndpoint : IEndpoint
 
         var response = new PedidoResponse(
             pedido.Id,
+            pedido.ProveedorId,
             pedido.FechaPedido,
             pedido.Estado,
             pedido.Total,

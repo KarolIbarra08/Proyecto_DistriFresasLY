@@ -1,4 +1,8 @@
+using DistriFresasLY.Api.Contracts.Pagos.Proveedores;
 using DistriFresasLY.Api.Contracts.Pedidos;
+using DistriFresasLY.Api.Endpoints.Pagos.Proveedores;
+using DistriFresasLY.Api.Endpoints.Pagos;
+using DistriFresasLY.Api.Endpoints.Proveedores;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Pedidos;
@@ -30,6 +34,30 @@ public class ActualizarPedidoEndpoint : IEndpoint
 
         var pedido = PedidoDataStore.PedidosDb[index];
 
+        if (request.ProveedorId.HasValue)
+        {
+            if (request.ProveedorId.Value <= 0)
+            {
+                return Result.Failure<PedidoResponse>(Error.Validation("Pedido.ProveedorInvalido", "El ID del proveedor es obligatorio.")).ToHttpResult();
+            }
+
+            if (ProveedorDataStore.ProveedoresDb.All(p => p.Id != request.ProveedorId.Value))
+            {
+                return Result.Failure<PedidoResponse>(Error.NotFound("Pedido.ProveedorNoEncontrado", $"No se encontró un proveedor con ID {request.ProveedorId.Value}.")).ToHttpResult();
+            }
+
+            if (request.ProveedorId.Value != pedido.ProveedorId && PagoDataStore.PagosProveedoresDb.Any(p => p.PedidoId == id))
+            {
+                return Result.Failure<PedidoResponse>(Error.Conflict("Pedido.PagosAsociados", "No se puede cambiar el proveedor de un pedido con pagos asociados.")).ToHttpResult();
+            }
+
+            var proveedorResult = pedido.ActualizarProveedor(request.ProveedorId.Value);
+            if (proveedorResult.IsFailure)
+            {
+                return Result.Failure<PedidoResponse>(proveedorResult.Error).ToHttpResult();
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Estado))
         {
             var estadoResult = pedido.ActualizarEstado(request.Estado.Trim());
@@ -41,12 +69,21 @@ public class ActualizarPedidoEndpoint : IEndpoint
 
         if (request.Detalles is not null)
         {
+            var maxDetalleId = PedidoDataStore.PedidosDb
+                .SelectMany(p => p.Detalles)
+                .Select(d => d.Id)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            var siguienteDetalleId = maxDetalleId + 1;
+
             var detallesResult = request.Detalles
-                .Select(detalleReq => DetallePedido.Create(
+                .Select((detalleReq, index) => DetallePedido.Create(
                     pedidoId: id,
                     descripcion: detalleReq.Descripcion,
                     cantidad: detalleReq.Cantidad,
-                    valorUnitario: detalleReq.ValorUnitario))
+                    valorUnitario: detalleReq.ValorUnitario,
+                    id: siguienteDetalleId + index))
                 .ToList();
 
             var detalleInvalido = detallesResult.FirstOrDefault(r => r.IsFailure);
@@ -66,6 +103,7 @@ public class ActualizarPedidoEndpoint : IEndpoint
 
         var response = new PedidoResponse(
             pedido.Id,
+            pedido.ProveedorId,
             pedido.FechaPedido,
             pedido.Estado,
             pedido.Total,

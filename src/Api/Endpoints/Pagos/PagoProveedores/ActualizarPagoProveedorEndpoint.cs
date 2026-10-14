@@ -1,4 +1,5 @@
 using DistriFresasLY.Api.Contracts.Pagos.Proveedores;
+using DistriFresasLY.Api.Endpoints.Pagos;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 
@@ -31,10 +32,10 @@ public class ActualizarPagoProveedorEndpoint : IEndpoint
 
         var actualizarResult = pago.Actualizar(
             proveedorId: request.ProveedorId,
+            pedidoId: request.PedidoId,
             valor: request.Valor,
             medioPago: request.MedioPago,
-            fechaInicial: request.FechaInicial,
-            fechaFinal: request.FechaFinal,
+            fechaPago: request.FechaPago,
             estado: request.Estado);
 
         if (actualizarResult.IsFailure)
@@ -45,10 +46,10 @@ public class ActualizarPagoProveedorEndpoint : IEndpoint
         var response = new PagoProveedorResponse(
             pago.Id,
             pago.ProveedorId,
+            pago.PedidoId,
             pago.Valor,
             pago.MedioPago,
-            pago.FechaInicial,
-            pago.FechaFinal,
+            pago.FechaPago,
             pago.Estado
         );
 

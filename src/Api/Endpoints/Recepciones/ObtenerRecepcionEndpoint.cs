@@ -29,7 +29,7 @@ public class ObtenerRecepcionEndpoint : IEndpoint
 
         var response = new RecepcionResponse(
             recepcion.Id,
-            recepcion.IdProveedor,
+            recepcion.PedidoId,
             recepcion.FechaRecepcion,
             recepcion.ValorPago,
             recepcion.ProcesadaEnInventario,

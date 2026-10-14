@@ -2,9 +2,9 @@ namespace DistriFresasLY.Api.Contracts.Recepciones;
 
 public record RecepcionResponse(
     int Id,
-    int IdProveedor,
+    int? PedidoId,
     DateTime FechaRecepcion,
-    double ValorPago,         
+    double ValorPago,
     bool ProcesadaEnInventario,
     double TotalCalculado
 );

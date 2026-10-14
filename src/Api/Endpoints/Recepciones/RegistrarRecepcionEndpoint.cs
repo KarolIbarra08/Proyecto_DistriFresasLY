@@ -1,4 +1,5 @@
 using DistriFresasLY.Api.Contracts.Recepciones;
+using DistriFresasLY.Api.Endpoints.Pedidos;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Recepciones;
@@ -17,14 +18,24 @@ public class RegistrarRecepcionEndpoint : IEndpoint
 
     private static IResult Manejador(RegistrarRecepcionRequest request)
     {
+        if (request.PedidoId.HasValue)
+        {
+            var pedido = PedidoDataStore.PedidosDb.FirstOrDefault(p => p.Id == request.PedidoId.Value);
+            if (pedido is null)
+            {
+                return Result.Failure<RecepcionResponse>(
+                    Error.NotFound("Recepcion.PedidoNoEncontrado", $"No existe el pedido con ID {request.PedidoId.Value}.")).ToHttpResult();
+            }
+        }
+
         var nuevoId = RecepcionDataStore.RecepcionesDb.Count != 0
             ? RecepcionDataStore.RecepcionesDb.Max(r => r.Id) + 1
             : 1;
 
         var result = Recepcion.Create(
-            request.IdProveedor,
             nuevoId,
-            request.FechaRecepcion);
+            request.FechaRecepcion,
+            request.PedidoId);
 
         if (result.IsFailure)
         {
@@ -36,7 +47,7 @@ public class RegistrarRecepcionEndpoint : IEndpoint
 
         var response = new RecepcionResponse(
             recepcion.Id,
-            recepcion.IdProveedor,
+            recepcion.PedidoId,
             recepcion.FechaRecepcion,
             recepcion.ValorPago,
             recepcion.ProcesadaEnInventario,

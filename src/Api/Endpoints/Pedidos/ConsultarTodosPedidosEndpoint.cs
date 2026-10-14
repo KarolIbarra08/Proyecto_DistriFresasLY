@@ -18,6 +18,7 @@ public class ConsultarTodosPedidosEndpoint : IEndpoint
     {
         var listaPedidos = PedidoDataStore.PedidosDb.Select(pedido => new PedidoResponse(
             pedido.Id,
+            pedido.ProveedorId,
             pedido.FechaPedido,
             pedido.Estado,
             pedido.Total,

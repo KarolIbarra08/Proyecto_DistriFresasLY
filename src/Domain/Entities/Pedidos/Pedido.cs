@@ -6,31 +6,40 @@ public sealed class Pedido : Entity
 {
     private readonly List<DetallePedido> _detalles = [];
 
+    public int ProveedorId { get; private set; }
     public DateTime FechaPedido { get; private set; }
-
     public string Estado { get; private set; }
-
     public IReadOnlyCollection<DetallePedido> Detalles => _detalles.AsReadOnly();
-
     public decimal Total => _detalles.Sum(d => d.Subtotal);
 
     private Pedido(
         int id,
+        int proveedorId,
         DateTime fechaPedido,
         string estado,
         List<DetallePedido> detalles) : base(id)
     {
+        ProveedorId = proveedorId;
         FechaPedido = fechaPedido;
         Estado = estado;
         _detalles = detalles;
     }
 
     public static Result<Pedido> Create(
+        int proveedorId,
         List<DetallePedido> detalles,
         DateTime fechaPedido,
         string estado,
         int id = 0)
     {
+        if (proveedorId <= 0)
+        {
+            return Result.Failure<Pedido>(
+                Error.Validation(
+                    "Pedido.ProveedorInvalido",
+                    "El ID del proveedor es obligatorio."));
+        }
+
         if (detalles is null || detalles.Count == 0)
         {
             return Result.Failure<Pedido>(
@@ -49,6 +58,7 @@ public sealed class Pedido : Entity
 
         var pedido = new Pedido(
             id,
+            proveedorId,
             fechaPedido,
             estado.Trim(),
             detalles);
@@ -67,6 +77,21 @@ public sealed class Pedido : Entity
         }
 
         Estado = nuevoEstado.Trim();
+
+        return Result.Success();
+    }
+
+    public Result ActualizarProveedor(int nuevoProveedorId)
+    {
+        if (nuevoProveedorId <= 0)
+        {
+            return Result.Failure(
+                Error.Validation(
+                    "Pedido.ProveedorInvalido",
+                    "El ID del proveedor es obligatorio."));
+        }
+
+        ProveedorId = nuevoProveedorId;
 
         return Result.Success();
     }

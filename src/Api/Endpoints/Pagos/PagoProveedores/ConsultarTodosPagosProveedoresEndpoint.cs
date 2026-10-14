@@ -19,10 +19,10 @@ public class ConsultarTodosPagosProveedoresEndpoint : IEndpoint
         var lista = PagoDataStore.PagosProveedoresDb.Select(pago => new PagoProveedorResponse(
             pago.Id,
             pago.ProveedorId,
+            pago.PedidoId,
             pago.Valor,
             pago.MedioPago,
-            pago.FechaInicial,
-            pago.FechaFinal,
+            pago.FechaPago,
             pago.Estado
         )).ToList();
 

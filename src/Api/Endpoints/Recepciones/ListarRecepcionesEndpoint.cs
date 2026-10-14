@@ -19,7 +19,7 @@ public class ListarRecepcionesEndpoint : IEndpoint
         var lista = RecepcionDataStore.RecepcionesDb
             .Select(r => new RecepcionResponse(
                 r.Id,
-                r.IdProveedor,
+                r.PedidoId,
                 r.FechaRecepcion,
                 r.ValorPago,
                 r.ProcesadaEnInventario,
