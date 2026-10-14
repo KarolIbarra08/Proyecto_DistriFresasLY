@@ -2,7 +2,7 @@ using DistriFresasLY.Api.Contracts.Pagos.Clientes;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 
-namespace DistriFresasLY.Api.Endpoints.Pagos.Clientes;
+namespace DistriFresasLY.Api.Endpoints.Pagos.PagoClientes;
 
 public class ConsultarPagoClienteEndpoint : IEndpoint
 {
@@ -11,7 +11,7 @@ public class ConsultarPagoClienteEndpoint : IEndpoint
         app.MapGet("/pagos/clientes/{id:int}", Manejador)
            .WithName("ConsultarPagoCliente")
            .WithTags("Pagos - Clientes")
-           .WithSummary("Consulta un pago de cliente por ID");
+           .WithSummary("Consulta un pago de cliente por su ID");
     }
 
     private static IResult Manejador(int id)
@@ -20,24 +20,20 @@ public class ConsultarPagoClienteEndpoint : IEndpoint
 
         if (pago is null)
         {
-            Result<PagoClienteResponse> notFoundResult = Error.NotFound(
-                "PagoCliente.NotFound",
-                $"No se encontro un pago de cliente registrado con el ID '{id}'.");
-
-            return notFoundResult.ToHttpResult();
+            return Result.Failure<PagoClienteResponse>(
+                Error.NotFound("PagoCliente.NotFound", $"No se encontró el pago con ID {id}")).ToHttpResult();
         }
 
         var response = new PagoClienteResponse(
             pago.Id,
             pago.ClienteId,
+            pago.VentaId,
             pago.Valor,
             pago.MedioPago,
-            pago.FechaInicial,
-            pago.FechaFinal,
+            pago.FechaPago,
             pago.Estado
         );
 
-        Result<PagoClienteResponse> successResult = Result.Success(response);
-        return successResult.ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

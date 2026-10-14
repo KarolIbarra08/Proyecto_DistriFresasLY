@@ -2,7 +2,7 @@ using DistriFresasLY.Api.Contracts.Pagos.Clientes;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
 
-namespace DistriFresasLY.Api.Endpoints.Pagos.Clientes;
+namespace DistriFresasLY.Api.Endpoints.Pagos.PagoClientes;
 
 public class ConsultarTodosPagosClientesEndpoint : IEndpoint
 {
@@ -11,22 +11,22 @@ public class ConsultarTodosPagosClientesEndpoint : IEndpoint
         app.MapGet("/pagos/clientes", Manejador)
            .WithName("ConsultarTodosPagosClientes")
            .WithTags("Pagos - Clientes")
-           .WithSummary("Consulta todos los pagos de clientes");
+           .WithSummary("Consulta la lista de todos los pagos de clientes");
     }
 
     private static IResult Manejador()
     {
-        var lista = PagoDataStore.PagosClientesDb.Select(pago => new PagoClienteResponse(
-            pago.Id,
-            pago.ClienteId,
-            pago.Valor,
-            pago.MedioPago,
-            pago.FechaInicial,
-            pago.FechaFinal,
-            pago.Estado
-        )).ToList();
+        var pagosResponse = PagoDataStore.PagosClientesDb
+            .Select(pago => new PagoClienteResponse(
+                pago.Id,
+                pago.ClienteId,
+                pago.VentaId,
+                pago.Valor,
+                pago.MedioPago,
+                pago.FechaPago,
+                pago.Estado))
+            .ToList();
 
-        Result<List<PagoClienteResponse>> successResult = Result.Success(lista);
-        return successResult.ToHttpResult();
+        return Result.Success(pagosResponse).ToHttpResult();
     }
 }

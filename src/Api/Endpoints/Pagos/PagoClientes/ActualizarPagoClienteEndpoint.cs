@@ -1,8 +1,9 @@
 using DistriFresasLY.Api.Contracts.Pagos.Clientes;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Pagos;
 
-namespace DistriFresasLY.Api.Endpoints.Pagos.Clientes;
+namespace DistriFresasLY.Api.Endpoints.Pagos.PagoClientes;
 
 public class ActualizarPagoClienteEndpoint : IEndpoint
 {
@@ -16,39 +17,34 @@ public class ActualizarPagoClienteEndpoint : IEndpoint
 
     private static IResult Manejador(int id, ActualizarPagoClienteRequest request)
     {
-        var index = PagoDataStore.PagosClientesDb.FindIndex(p => p.Id == id);
+        var pago = PagoDataStore.PagosClientesDb.FirstOrDefault(p => p.Id == id);
 
-        if (index == -1)
+        if (pago is null)
         {
-            Result<PagoClienteResponse> notFoundResult = Error.NotFound(
-                "PagoCliente.NotFound",
-                $"No se encontro un pago de cliente registrado con el ID '{id}'.");
-
-            return notFoundResult.ToHttpResult();
+            return Result.Failure<PagoClienteResponse>(
+                Error.NotFound("PagoCliente.NotFound", $"No se encontró el pago con ID {id}")).ToHttpResult();
         }
 
-        var pago = PagoDataStore.PagosClientesDb[index];
+        var updateResult = pago.Actualizar(
+            request.ClienteId,
+            request.VentaId,
+            request.Valor,
+            request.MedioPago,
+            request.FechaPago,
+            request.Estado);
 
-        var actualizarResult = pago.Actualizar(
-            clienteId: request.ClienteId,
-            valor: request.Valor,
-            medioPago: request.MedioPago,
-            fechaInicial: request.FechaInicial,
-            fechaFinal: request.FechaFinal,
-            estado: request.Estado);
-
-        if (actualizarResult.IsFailure)
+        if (updateResult.IsFailure)
         {
-            return Result.Failure<PagoClienteResponse>(actualizarResult.Error).ToHttpResult();
+            return updateResult.ToHttpResult();
         }
 
         var response = new PagoClienteResponse(
             pago.Id,
             pago.ClienteId,
+            pago.VentaId,
             pago.Valor,
             pago.MedioPago,
-            pago.FechaInicial,
-            pago.FechaFinal,
+            pago.FechaPago,
             pago.Estado
         );
 
