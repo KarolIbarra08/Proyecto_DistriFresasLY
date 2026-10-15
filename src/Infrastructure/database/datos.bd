@@ -1,0 +1,266 @@
+
+
+-- =========================================================
+-- 2. CREACIÓN DE TABLAS (DDL)
+-- =========================================================
+
+-- Tabla: Roles
+CREATE TABLE Roles (
+    id_rol INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion VARCHAR(200)
+);
+
+-- Tabla: Usuarios
+CREATE TABLE Usuarios (
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    apellido VARCHAR(50) NOT NULL,
+    usuario VARCHAR(20) NOT NULL UNIQUE,
+    contrasena VARCHAR(12) NOT NULL,
+    estado BOOLEAN NOT NULL DEFAULT TRUE,
+    id_rol INT NOT NULL,
+    FOREIGN KEY (id_rol) REFERENCES Roles(id_rol)
+);
+
+-- Tabla: Clientes
+CREATE TABLE Clientes (
+    id_cliente INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    cedulaNIT VARCHAR(10) NOT NULL UNIQUE,
+    telefono VARCHAR(10),
+    direccion VARCHAR(80),
+    tipo_de_negocio VARCHAR(50)
+);
+
+-- Tabla: Proveedores
+CREATE TABLE Proveedores (
+    id_proveedores INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    apellido VARCHAR(50) NOT NULL,
+    cedulaNIT VARCHAR(10) NOT NULL UNIQUE,
+    telefono VARCHAR(10),
+    direccion VARCHAR(80),
+    nombre_empresa VARCHAR(100)
+);
+
+-- Tabla: ProductoFresa
+CREATE TABLE ProductoFresa (
+    id_producto_fresa INT AUTO_INCREMENT PRIMARY KEY,
+    calidad VARCHAR(80) NOT NULL,
+    peso DOUBLE(1, 8),
+    descripcion VARCHAR(200)
+);
+
+-- Tabla: ProductoInsumo
+CREATE TABLE ProductoInsumo (
+    id_producto_insumo INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    tipo_insumo VARCHAR(50),
+    unidad_medida VARCHAR(80),
+    descripcion VARCHAR(200)
+);
+
+-- Tabla: Venta
+CREATE TABLE Venta (
+    id_venta INT AUTO_INCREMENT PRIMARY KEY,
+    fecha_venta DATE NOT NULL,
+    total DOUBLE(1, 8) NOT NULL,
+    estado VARCHAR(50),
+    id_cliente INT NOT NULL,
+    FOREIGN KEY (id_cliente) REFERENCES Clientes(id_cliente)
+);
+
+-- Tabla: DetalleVenta
+CREATE TABLE DetalleVenta (
+    id_detalle_venta INT AUTO_INCREMENT PRIMARY KEY,
+    cantidad INT NOT NULL,
+    precio_unitario DOUBLE(1, 8) NOT NULL,
+    subtotal DOUBLE(1, 8) NOT NULL,
+    total_venta DOUBLE(1, 8) NOT NULL,
+    id_producto INT NOT NULL,
+    id_venta INT NOT NULL,
+    FOREIGN KEY (id_venta) REFERENCES Venta(id_venta)
+);
+
+-- Tabla: PagoCliente
+CREATE TABLE PagoCliente (
+    id_pago_cliente INT AUTO_INCREMENT PRIMARY KEY,
+    valor_total DOUBLE(1, 8) NOT NULL,
+    medio_pago VARCHAR(50) NOT NULL,
+    fecha_pago DATE NOT NULL,
+    estado VARCHAR(50),
+    id_cliente INT NOT NULL,
+    id_venta INT NOT NULL,
+    FOREIGN KEY (id_cliente) REFERENCES Clientes(id_cliente),
+    FOREIGN KEY (id_venta) REFERENCES Venta(id_venta)
+);
+
+-- Tabla: Recibo
+CREATE TABLE Recibo (
+    id_recibo INT AUTO_INCREMENT PRIMARY KEY,
+    fecha DATE NOT NULL,
+    numero_recibo INT NOT NULL,
+    total DOUBLE(1, 8) NOT NULL,
+    id_venta INT NOT NULL,
+    FOREIGN KEY (id_venta) REFERENCES Venta(id_venta)
+);
+
+-- Tabla: Pedidos
+CREATE TABLE Pedidos (
+    id_pedido INT AUTO_INCREMENT PRIMARY KEY,
+    fecha_pedido DATE NOT NULL,
+    estado BOOLEAN NOT NULL DEFAULT TRUE,
+    total DOUBLE(1, 8) NOT NULL,
+    id_proveedor INT NOT NULL,
+    FOREIGN KEY (id_proveedor) REFERENCES Proveedores(id_proveedores)
+);
+
+-- Tabla: Detalle_Pedido
+CREATE TABLE Detalle_Pedido (
+    id_detalle_pedido INT AUTO_INCREMENT PRIMARY KEY,
+    descripcion VARCHAR(200),
+    cantidad INT NOT NULL,
+    precio_unitario DOUBLE(1, 8) NOT NULL,
+    id_pedido INT NOT NULL,
+    FOREIGN KEY (id_pedido) REFERENCES Pedidos(id_pedido)
+);
+
+-- Tabla: Recepciones
+CREATE TABLE Recepciones (
+    id_recepcion INT AUTO_INCREMENT PRIMARY KEY,
+    fecha_recepcion DATE NOT NULL,
+    id_pedido INT NOT NULL,
+    FOREIGN KEY (id_pedido) REFERENCES Pedidos(id_pedido)
+);
+
+-- Tabla: DetalleRecepcion
+CREATE TABLE DetalleRecepcion (
+    id_detalle_recepcion INT AUTO_INCREMENT PRIMARY KEY,
+    cantidad INT NOT NULL,
+    precio_unitario DOUBLE(1, 8) NOT NULL,
+    fecha_ingreso DATE NOT NULL,
+    id_recepcion INT NOT NULL,
+    id_producto INT NOT NULL,
+    FOREIGN KEY (id_recepcion) REFERENCES Recepciones(id_recepcion)
+);
+
+-- Tabla: PagoProveedores
+CREATE TABLE PagoProveedores (
+    id_pago_proveedores INT AUTO_INCREMENT PRIMARY KEY,
+    valor_total DOUBLE(1, 8) NOT NULL,
+    medio_pago VARCHAR(50) NOT NULL,
+    fecha_pago DATE NOT NULL,
+    estado VARCHAR(50),
+    id_proveedor INT NOT NULL,
+    id_pedido INT NOT NULL,
+    FOREIGN KEY (id_proveedor) REFERENCES Proveedores(id_proveedores),
+    FOREIGN KEY (id_pedido) REFERENCES Pedidos(id_pedido)
+);
+
+-- Tabla: Inventario
+CREATE TABLE Inventario (
+    id_inventario INT AUTO_INCREMENT PRIMARY KEY,
+    cantidad_disponible INT NOT NULL,
+    fecha_actualizacion DATE NOT NULL,
+    id_producto INT NOT NULL
+);
+
+-- Tabla: ProductoDañado
+CREATE TABLE ProductoDañado (
+    id_producto_dañado INT AUTO_INCREMENT PRIMARY KEY,
+    tipo_producto VARCHAR(50) NOT NULL,
+    cantidad INT NOT NULL,
+    identificacion VARCHAR(10),
+    valor DOUBLE(1, 8) NOT NULL,
+    fecha_producto_dañado DATE NOT NULL,
+    motivo VARCHAR(200),
+    id_producto INT NOT NULL
+);
+
+
+-- =========================================================
+-- 3. INSERCIÓN DE DATOS DE PRUEBA (DML)
+-- =========================================================
+
+-- Inserción en Roles
+INSERT INTO Roles (nombre, descripcion) VALUES
+('Administrador', 'Control total del sistema'),
+('Vendedor', 'Encargado de la gestión de ventas y clientes'),
+('Almacenista', 'Gestión de inventarios y recepciones');
+
+-- Inserción en Usuarios
+INSERT INTO Usuarios (nombre, apellido, usuario, contrasena, estado, id_rol) VALUES
+('Juan', 'Pérez', 'jperez', 'pass1234', TRUE, 1),
+('Maria', 'Gomez', 'mgomez', 'pass5678', TRUE, 2);
+
+-- Inserción en Clientes
+INSERT INTO Clientes (nombre, cedulaNIT, telefono, direccion, tipo_de_negocio) VALUES
+('Distribuidora Fresca', '900123456', '3001234567', 'Calle 10 #20-30', 'Supermercado'),
+('Carlos Mendoza', '1012345678', '3109876543', 'Carrera 15 #5-12', 'Frutería');
+
+-- Inserción en Proveedores
+INSERT INTO Proveedores (nombre, apellido, cedulaNIT, telefono, direccion, nombre_empresa) VALUES
+('Pedro', 'Alvarez', '800987654', '3201112233', 'Vereda El Carmen', 'Cultivos Alvarez'),
+('Ana', 'Rios', '700555444', '3159998877', 'Zona Industrial 2', 'Insumos del Campo S.A.');
+
+-- Inserción en ProductoFresa
+INSERT INTO ProductoFresa (calidad, peso, descripcion) VALUES
+('Primera / Extra', 1.00000000, 'Fresa de tamaño grande para exportación'),
+('Segunda / Estándar', 0.50000000, 'Fresa mediana para mercado local');
+
+-- Inserción en ProductoInsumo
+INSERT INTO ProductoInsumo (nombre, tipo_insumo, unidad_medida, descripcion) VALUES
+('Caja de cartón 1Kg', 'Empaque', 'Unidad', 'Caja para embalaje de fresas'),
+('Fertilizante Orgánico', 'Químico/Agrícola', 'Kilogramo', 'Abono para cultivo');
+
+-- Inserción en Venta
+INSERT INTO Venta (fecha_venta, total, estado, id_cliente) VALUES
+('2026-10-10', 150.50000000, 'Completada', 1),
+('2026-10-12', 45.00000000, 'Pendiente', 2);
+
+-- Inserción en DetalleVenta
+INSERT INTO DetalleVenta (cantidad, precio_unitario, subtotal, total_venta, id_producto, id_venta) VALUES
+(10, 10.00000000, 100.00000000, 100.00000000, 1, 1),
+(5, 10.10000000, 50.50000000, 50.50000000, 2, 1);
+
+-- Inserción en PagoCliente
+INSERT INTO PagoCliente (valor_total, medio_pago, fecha_pago, estado, id_cliente, id_venta) VALUES
+(150.50000000, 'Efectivo', '2026-10-10', 'Aprobado', 1, 1);
+
+-- Inserción en Recibo
+INSERT INTO Recibo (fecha, numero_recibo, total, id_venta) VALUES
+('2026-10-10', 1001, 150.50000000, 1);
+
+-- Inserción en Pedidos
+INSERT INTO Pedidos (fecha_pedido, estado, total, id_proveedor) VALUES
+('2026-10-01', TRUE, 500.00000000, 1),
+('2026-10-05', TRUE, 200.00000000, 2);
+
+-- Inserción en Detalle_Pedido
+INSERT INTO Detalle_Pedido (descripcion, cantidad, precio_unitario, id_pedido) VALUES
+('Compra de insumos de empaque', 50, 10.00000000, 1),
+('Fertilizante', 10, 20.00000000, 2);
+
+-- Inserción en Recepciones
+INSERT INTO Recepciones (fecha_recepcion, id_pedido) VALUES
+('2026-10-03', 1),
+('2026-10-07', 2);
+
+-- Inserción en DetalleRecepcion
+INSERT INTO DetalleRecepcion (cantidad, precio_unitario, fecha_ingreso, id_recepcion, id_producto) VALUES
+(50, 10.00000000, '2026-10-03', 1, 1),
+(10, 20.00000000, '2026-10-07', 2, 2);
+
+-- Inserción en PagoProveedores
+INSERT INTO PagoProveedores (valor_total, medio_pago, fecha_pago, estado, id_proveedor, id_pedido) VALUES
+(500.00000000, 'Transferencia', '2026-10-04', 'Pagado', 1, 1);
+
+-- Inserción en Inventario
+INSERT INTO Inventario (cantidad_disponible, fecha_actualizacion, id_producto) VALUES
+(100, '2026-10-14', 1),
+(250, '2026-10-14', 2);
+
+-- Inserción en ProductoDañado
+INSERT INTO ProductoDañado (tipo_producto, cantidad, identificacion, valor, fecha_producto_dañado, motivo, id_producto) VALUES
+('Fresa', 5, 'PROD-01', 12.50000000, '2026-10-11', 'Daño durante el transporte', 1);

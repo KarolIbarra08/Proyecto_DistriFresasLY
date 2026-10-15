@@ -3,6 +3,6 @@ public record ReciboResponse(
     int Id,
     DateTime FechaRecibo,
     int NumeroRecibo,
-    decimal Total,
+    double Total,
     int VentaId
 );

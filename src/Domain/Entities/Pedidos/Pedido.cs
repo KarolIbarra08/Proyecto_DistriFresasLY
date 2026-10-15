@@ -10,7 +10,7 @@ public sealed class Pedido : Entity
     public DateTime FechaPedido { get; private set; }
     public string Estado { get; private set; }
     public IReadOnlyCollection<DetallePedido> Detalles => _detalles.AsReadOnly();
-    public decimal Total => _detalles.Sum(d => d.Subtotal);
+    public double Total => _detalles.Sum(d => d.Subtotal);
 
     private Pedido(
         int id,

@@ -11,7 +11,7 @@ public sealed class Venta : Entity
     public EstadoVenta Estado { get; private set; }
     public int? ClienteId { get; private set; }
     public IReadOnlyCollection<DetalleVenta> Detalles => _detalles.AsReadOnly();
-    public decimal Total => _detalles.Sum(d => d.Subtotal);
+    public double Total => _detalles.Sum(d => d.Subtotal);
 
     private Venta(
         int id,

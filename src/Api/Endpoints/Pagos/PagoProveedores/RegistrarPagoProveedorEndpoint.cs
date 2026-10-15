@@ -1,5 +1,4 @@
 using DistriFresasLY.Api.Contracts.Pagos.Proveedores;
-using DistriFresasLY.Api.Endpoints.Pagos;
 using DistriFresasLY.Api.Endpoints.Pedidos;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Domain.Common;
@@ -32,11 +31,13 @@ public class RegistrarPagoProveedorEndpoint : IEndpoint
                 Error.Validation("PagoProveedor.ProveedorNoCoincide", "El proveedor del pago no coincide con el proveedor del pedido.")).ToHttpResult();
         }
 
-        decimal pagadoAnteriormente = PagoDataStore.PagosProveedoresDb
+        double pagadoAnteriormenteDecimal = PagoDataStore.PagosProveedoresDb
             .Where(p => p.PedidoId == request.PedidoId && p.Estado != "Anulado")
             .Sum(p => p.Valor);
 
-        decimal saldoPendiente = pedido.Total - pagadoAnteriormente;
+       
+        double pagadoAnteriormente = (double)pagadoAnteriormenteDecimal;
+        double saldoPendiente = pedido.Total - pagadoAnteriormente;
 
         if (saldoPendiente <= 0)
         {
@@ -44,14 +45,16 @@ public class RegistrarPagoProveedorEndpoint : IEndpoint
                 Error.Validation("PagoProveedor.PedidoSaldado", "Este pedido ya se encuentra totalmente pagado.")).ToHttpResult();
         }
 
-        if (request.Valor > saldoPendiente)
+
+        if ((double)request.Valor > saldoPendiente)
         {
             return Result.Failure<PagoProveedorResponse>(
                 Error.Validation("PagoProveedor.MontoExcedido",
                     $"El pago (${request.Valor}) supera el saldo pendiente del pedido (${saldoPendiente}).")).ToHttpResult();
         }
 
-        decimal nuevoTotalPagado = pagadoAnteriormente + request.Valor;
+  
+        double nuevoTotalPagado = pagadoAnteriormente + (double)request.Valor;
         string estadoCalculado = (nuevoTotalPagado >= pedido.Total) ? "Completado" : "Abono Parcial";
 
         string estadoFinal = string.IsNullOrWhiteSpace(request.Estado) ? estadoCalculado : request.Estado.Trim();

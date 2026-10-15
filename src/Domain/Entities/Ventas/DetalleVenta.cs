@@ -9,18 +9,18 @@ public sealed class DetalleVenta : Entity
 
     public Cantidad Cantidad { get; private set; }
 
-    public decimal PrecioUnitario { get; private set; }
+    public double PrecioUnitario { get; private set; }
 
-    public decimal Subtotal => Cantidad * PrecioUnitario;
+    public double Subtotal => Cantidad * PrecioUnitario;
 
-    private DetalleVenta(int id, int productoId, Cantidad cantidad, decimal precioUnitario) : base(id)
+    private DetalleVenta(int id, int productoId, Cantidad cantidad, double precioUnitario) : base(id)
     {
         ProductoId = productoId;
         Cantidad = cantidad;
         PrecioUnitario = precioUnitario;
     }
 
-    public static Result<DetalleVenta> Create(int productoId, int cantidad, decimal precioUnitario, int id = 0)
+    public static Result<DetalleVenta> Create(int productoId, int cantidad, double precioUnitario, int id = 0)
     {
         if (productoId <= 0)
         {

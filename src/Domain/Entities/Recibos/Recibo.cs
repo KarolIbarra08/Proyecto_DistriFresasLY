@@ -6,10 +6,10 @@ public sealed class Recibo : Entity
 {
     public DateTime FechaRecibo { get; private set; }
     public int NumeroRecibo { get; private set; }
-    public decimal Total { get; private set; }
+    public double Total { get; private set; }
     public int VentaId { get; private set; }
 
-    private Recibo(int id, DateTime fechaRecibo, int numeroRecibo, decimal total, int ventaId) : base(id)
+    private Recibo(int id, DateTime fechaRecibo, int numeroRecibo, double total, int ventaId) : base(id)
     {
         FechaRecibo = fechaRecibo;
         NumeroRecibo = numeroRecibo;
@@ -17,7 +17,7 @@ public sealed class Recibo : Entity
         VentaId = ventaId;
     }
 
-    public static Result<Recibo> Create(int ventaId, decimal total, int ultimoNumeroRecibo, int id = 0)
+    public static Result<Recibo> Create(int ventaId, double total, int ultimoNumeroRecibo, int id = 0)
     {
         if (ventaId <= 0)
         {

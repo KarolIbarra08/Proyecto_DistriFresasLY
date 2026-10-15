@@ -17,7 +17,7 @@ public class DetalleRecepcion : Entity
         int id,
         int idRecepcion,
         int idProducto,
-        double cantidad,
+        int cantidad,
         double precioUnitario,
         DateTime fechaIngreso)
         : base(id)
@@ -31,7 +31,7 @@ public class DetalleRecepcion : Entity
 
     public static Result<DetalleRecepcion> Create(
         int idProducto,
-        double cantidad,
+        int cantidad,
         double precioUnitario,
         int idRecepcion = 0,
         int id = 0,

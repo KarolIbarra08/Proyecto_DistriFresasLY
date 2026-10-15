@@ -5,6 +5,6 @@ public record PedidoResponse(
     int ProveedorId,
     DateTime FechaPedido,
     string Estado,
-    decimal Total,
+    double Total,
     List<DetallePedidoResponse> Detalles
 );

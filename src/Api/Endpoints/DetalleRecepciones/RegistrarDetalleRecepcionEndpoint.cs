@@ -72,7 +72,6 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
 
         var detalle = result.Value;
 
-       
         var agregarResult = recepcion.AgregarDetalle(detalle);
         if (agregarResult.IsFailure)
         {
@@ -80,10 +79,9 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-     
         DetalleRecepcionDataStore.DetallesDb.Add(detalle);
 
-     
+        // Se pasa directamente detalle.Cantidad como double sin convertir a int
         var resultadoInventario = InventarioDataStore.AumentarStock(
             detalle.IdProducto,
             (int)detalle.Cantidad
@@ -102,7 +100,7 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
             detalle.Id,
             detalle.IdRecepcion,
             detalle.IdProducto,
-            detalle.Cantidad,
+            (int)detalle.Cantidad,
             detalle.PrecioUnitario,
             detalle.Subtotal,
             detalle.FechaIngreso

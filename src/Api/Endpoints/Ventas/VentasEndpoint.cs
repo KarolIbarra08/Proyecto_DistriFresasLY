@@ -8,7 +8,8 @@ public static class VentaDataStore
 
     private static List<Venta> CrearSeed()
     {
-        var detalle = DetalleVenta.Create(101, 10, 15000m).Value;
+     
+        var detalle = DetalleVenta.Create(101, 10, 15000.0).Value;
         var venta = Venta.Create([detalle], clienteId: 1, id: 1).Value;
         venta.ActualizarEstado("Completada");
         return [venta];
