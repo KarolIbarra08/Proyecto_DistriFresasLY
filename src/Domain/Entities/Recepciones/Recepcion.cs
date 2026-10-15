@@ -34,7 +34,7 @@ public class Recepcion : Entity
             new Recepcion(
                 id,
                 pedidoId,
-                fechaRecepcion ?? DateTime.UtcNow));
+                fechaRecepcion ?? ColombiaTime.Ahora));
     }
 
     public Result Actualizar()

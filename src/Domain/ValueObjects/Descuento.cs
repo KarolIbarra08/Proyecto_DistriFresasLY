@@ -52,7 +52,7 @@ public sealed record Descuento
         return Result.Success(
             new Descuento(
                 valorDescuento,
-                DateTime.UtcNow,
+                ColombiaTime.Ahora,
                 motivo.Trim()));
     }
 }

@@ -62,7 +62,7 @@ public class DetalleRecepcion : Entity
                 idProducto,
                 cantidad,
                 precioUnitario,
-                fechaIngreso ?? DateTime.UtcNow));
+                fechaIngreso ?? ColombiaTime.Ahora));
     }
 
     public Result Actualizar(double cantidad, double precioUnitario)

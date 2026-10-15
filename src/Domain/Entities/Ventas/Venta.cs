@@ -47,7 +47,7 @@ public sealed class Venta : Entity
 
         var venta = new Venta(
             id,
-            DateTime.UtcNow,
+            ColombiaTime.Ahora,
             EstadoVenta.Pendiente,
             clienteId,
             detalles);

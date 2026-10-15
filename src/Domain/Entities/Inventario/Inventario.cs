@@ -11,7 +11,7 @@ public sealed class Inventario : Entity
     {
         ProductoId = productoId;
         CantidadDisponible = cantidadDisponible;
-        FechaActualizacion = DateTime.UtcNow;
+        FechaActualizacion = ColombiaTime.Ahora;
     }
 
     public static Result<Inventario> Create(int productoId, int cantidadDisponible, int id = 0)
@@ -43,7 +43,7 @@ public sealed class Inventario : Entity
         }
 
         CantidadDisponible = nuevaCantidad;
-        FechaActualizacion = DateTime.UtcNow;
+        FechaActualizacion = ColombiaTime.Ahora;
 
         return Result.Success();
     }
@@ -58,7 +58,7 @@ public sealed class Inventario : Entity
         }
 
         CantidadDisponible += cantidad;
-        FechaActualizacion = DateTime.UtcNow;
+        FechaActualizacion = ColombiaTime.Ahora;
 
         return Result.Success();
     }
@@ -85,7 +85,7 @@ public sealed class Inventario : Entity
         }
 
         CantidadDisponible -= cantidad;
-        FechaActualizacion = DateTime.UtcNow;
+        FechaActualizacion = ColombiaTime.Ahora;
 
         return Result.Success();
     }

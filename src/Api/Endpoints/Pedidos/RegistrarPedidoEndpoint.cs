@@ -74,7 +74,7 @@ public class RegistrarPedidoEndpoint : IEndpoint
 
         var detalles = detallesResult.Select(r => r.Value).ToList();
 
-        var fechaPedido = request.FechaPedido ?? DateTime.UtcNow;
+        var fechaPedido = request.FechaPedido ?? ColombiaTime.Ahora;
         var estado = string.IsNullOrWhiteSpace(request.Estado) ? "Pendiente" : request.Estado.Trim();
 
         var pedidoResult = Pedido.Create(request.ProveedorId, detalles, fechaPedido, estado, nuevoPedidoId);

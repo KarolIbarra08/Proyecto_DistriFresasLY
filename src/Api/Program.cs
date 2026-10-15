@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DistriFresasLY.Api.Endpoints;
 using DistriFresasLY.Api.Middleware;
+using DistriFresasLY.Domain.Common;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -53,21 +54,24 @@ public class CustomDateTimeConverter : JsonConverter<DateTime>
             if (string.IsNullOrWhiteSpace(dateString))
                 return default;
 
-            
-            if (DateTime.TryParse(dateString, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateInvariant))
+            // Parseamos preservando el Kind (Utc / Local / Unspecified) para saber
+            // si la fecha trae offset "Z"/explícito o es hora local "desnuda".
+            if (DateTime.TryParse(dateString, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateInvariant))
             {
-                return dateInvariant;
+                // Si venía como UTC ("Z") o Local, se convierte a hora de Colombia.
+                // Si venía sin offset (Unspecified), se asume que ya es hora de Colombia.
+                return ColombiaTime.AColombia(dateInvariant);
             }
 
-            if (DateTime.TryParse(dateString, CultureInfo.CurrentCulture, DateTimeStyles.None, out var dateLocal))
+            if (DateTime.TryParse(dateString, CultureInfo.CurrentCulture, DateTimeStyles.RoundtripKind, out var dateLocal))
             {
-                return dateLocal;
+                return ColombiaTime.AColombia(dateLocal);
             }
         }
         else if (reader.TokenType == JsonTokenType.Number)
         {
-            
-            return DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64()).DateTime;
+            // Timestamp Unix (ms) -> es UTC absoluto, se convierte a hora de Colombia.
+            return ColombiaTime.AColombia(DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64()).UtcDateTime);
         }
 
         throw new JsonException("El valor de fecha ingresado no tiene un formato válido.");
@@ -75,6 +79,11 @@ public class CustomDateTimeConverter : JsonConverter<DateTime>
 
     public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
     {
-        writer.WriteStringValue(value.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture));
+        // El valor en memoria ya es hora de Colombia; se serializa como ISO 8601
+        // con el desfase local de Colombia para que sea inequívoco (-05:00).
+        var enColombia = ColombiaTime.AColombia(value);
+        var conOffset = new DateTimeOffset(DateTime.SpecifyKind(enColombia, DateTimeKind.Unspecified), ColombiaTime.Offset);
+
+        writer.WriteStringValue(conOffset.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture));
     }
 }

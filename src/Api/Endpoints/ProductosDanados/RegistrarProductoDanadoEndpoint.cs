@@ -47,7 +47,7 @@ public class RegistrarProductoDanadoEndpoint : IEndpoint
             request.FechaProductoDanado.HasValue &&
             request.FechaProductoDanado.Value != default
                 ? request.FechaProductoDanado.Value
-                : DateTime.UtcNow;
+                : ColombiaTime.Ahora;
 
  
         var result = ProductoDanado.Create(

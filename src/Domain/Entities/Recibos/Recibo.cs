@@ -37,7 +37,7 @@ public sealed class Recibo : Entity
 
         var recibo = new Recibo(
             id: id,
-            fechaRecibo: DateTime.UtcNow,
+            fechaRecibo: ColombiaTime.Ahora,
             numeroRecibo: consecutivo,
             total: total,
             ventaId: ventaId);

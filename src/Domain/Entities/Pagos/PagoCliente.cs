@@ -68,7 +68,7 @@ public sealed class PagoCliente : Entity
         }
 
         DateTime fechaFinal = (!fechaPago.HasValue || fechaPago.Value.Year < 2000)
-            ? DateTime.Now
+            ? ColombiaTime.Ahora
             : fechaPago.Value;
 
         return Result.Success(
