@@ -5,7 +5,6 @@ namespace DistriFresasLY.Domain.Entities.Pedidos;
 public sealed class Pedido : Entity
 {
     private readonly List<DetallePedido> _detalles = [];
-
     public int ProveedorId { get; private set; }
     public DateTime FechaPedido { get; private set; }
     public string Estado { get; private set; }

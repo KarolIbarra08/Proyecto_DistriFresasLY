@@ -6,15 +6,10 @@ namespace DistriFresasLY.Domain.Entities.Cliente;
 public sealed class Cliente : Entity
 {
     public string Nombre { get; private set; }
-
     public CedulaNit Documento { get; private set; }
-
     public Telefono Telefono { get; private set; }
-
     public string Direccion { get; private set; }
-
     public string TipoNegocio { get; private set; }
-
     public bool Activo { get; private set; }
 
 
@@ -222,6 +217,5 @@ public sealed class Cliente : Entity
 
 
     public void Desactivar() => Activo = false;
-
     public void Activar() => Activo = true;
 }
