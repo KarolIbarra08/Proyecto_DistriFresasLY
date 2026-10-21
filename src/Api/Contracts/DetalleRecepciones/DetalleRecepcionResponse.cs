@@ -4,7 +4,7 @@ public record DetalleRecepcionResponse(
     int Id,
     int IdRecepcion,
     int IdProducto,
-    double Cantidad,
+    int Cantidad,
     double PrecioUnitario,
     double Subtotal,
     DateTime FechaIngreso

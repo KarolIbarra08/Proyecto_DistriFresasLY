@@ -8,7 +8,7 @@ public sealed class PagoProveedor : Entity
 
     public int PedidoId { get; private set; }
 
-    public decimal Valor { get; private set; }
+    public double Valor { get; private set; }
 
     public string MedioPago { get; private set; }
 
@@ -20,7 +20,7 @@ public sealed class PagoProveedor : Entity
         int id,
         int proveedorId,
         int pedidoId,
-        decimal valor,
+        double valor,
         string medioPago,
         DateTime fechaPago,
         string estado) : base(id)
@@ -36,7 +36,7 @@ public sealed class PagoProveedor : Entity
     public static Result<PagoProveedor> Create(
         int proveedorId,
         int pedidoId,
-        decimal valor,
+        double valor,
         string medioPago,
         DateTime? fechaPago,
         string estado,
@@ -100,7 +100,7 @@ public sealed class PagoProveedor : Entity
     public Result Actualizar(
         int? proveedorId,
         int? pedidoId,
-        decimal? valor,
+        double? valor,
         string? medioPago,
         DateTime? fechaPago,
         string? estado)

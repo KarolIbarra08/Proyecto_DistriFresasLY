@@ -4,5 +4,5 @@ public record CrearDetallePedidoRequest(
     int PedidoId,
     string Descripcion,
     int Cantidad,
-    decimal ValorUnitario
+    double ValorUnitario
 );

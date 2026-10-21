@@ -3,6 +3,6 @@ namespace DistriFresasLY.Api.Contracts.Pedidos;
 public record ActualizarPedidoRequest(
     int? ProveedorId,
     string? Estado,
-    decimal? Total,
+    double? Total,
     List<CrearDetallePedidoRequest>? Detalles
 );

@@ -49,7 +49,7 @@ public class ActualizarDetalleRecepcionEndpoint : IEndpoint
                 detalle.Id,
                 detalle.IdRecepcion,
                 detalle.IdProducto,
-                detalle.Cantidad,
+                (int)detalle.Cantidad,
                 detalle.PrecioUnitario,
                 detalle.Subtotal,
                 detalle.FechaIngreso

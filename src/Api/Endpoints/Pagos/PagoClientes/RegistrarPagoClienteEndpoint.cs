@@ -18,7 +18,6 @@ public class RegistrarPagoClienteEndpoint : IEndpoint
 
     private static IResult Manejador(CrearPagoClienteRequest request)
     {
-       
         var venta = VentaDataStore.VentasDb.FirstOrDefault(v => v.Id == request.VentaId);
         if (venta is null)
         {
@@ -26,19 +25,17 @@ public class RegistrarPagoClienteEndpoint : IEndpoint
                 Error.NotFound("Venta.NotFound", $"No existe la venta con ID {request.VentaId}")).ToHttpResult();
         }
 
-
         if (venta.ClienteId != request.ClienteId)
         {
             return Result.Failure<PagoClienteResponse>(
                 Error.Validation("PagoCliente.ClienteNoCoincide", "El ClienteID no coincide con el cliente de la venta.")).ToHttpResult();
         }
 
-
-        decimal pagadoAnteriormente = PagoDataStore.PagosClientesDb
+        double pagadoAnteriormente = (double)PagoDataStore.PagosClientesDb
             .Where(p => p.VentaId == request.VentaId && p.Estado != "Anulado")
             .Sum(p => p.Valor);
 
-        decimal saldoPendiente = venta.Total - pagadoAnteriormente;
+        double saldoPendiente = (double)venta.Total - pagadoAnteriormente;
 
         if (saldoPendiente <= 0)
         {
@@ -46,24 +43,21 @@ public class RegistrarPagoClienteEndpoint : IEndpoint
                 Error.Validation("PagoCliente.VentaSaldada", "Esta venta ya se encuentra totalmente pagada.")).ToHttpResult();
         }
 
-        if (request.Valor > saldoPendiente)
+        if ((double)request.Valor > saldoPendiente)
         {
             return Result.Failure<PagoClienteResponse>(
                 Error.Validation("PagoCliente.MontoExcedido", 
                     $"El abono (${request.Valor}) supera el saldo pendiente de la venta (${saldoPendiente}).")).ToHttpResult();
         }
 
+        double nuevoTotalPagado = pagadoAnteriormente + (double)request.Valor;
+        string estadoCalculado = (nuevoTotalPagado >= (double)venta.Total) ? "Completado" : "Abono Parcial";
 
-        decimal nuevoTotalPagado = pagadoAnteriormente + request.Valor;
-        string estadoCalculado = (nuevoTotalPagado >= venta.Total) ? "Completado" : "Abono Parcial";
-
-      
         string estadoFinal = string.IsNullOrWhiteSpace(request.Estado) ? estadoCalculado : request.Estado.Trim();
 
         var nuevoId = PagoDataStore.PagosClientesDb.Count != 0
             ? PagoDataStore.PagosClientesDb.Max(p => p.Id) + 1
             : 1;
-
 
         var pagoResult = PagoCliente.Create(
             clienteId: request.ClienteId,

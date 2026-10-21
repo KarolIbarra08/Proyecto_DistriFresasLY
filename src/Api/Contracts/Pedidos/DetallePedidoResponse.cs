@@ -5,6 +5,6 @@ public record DetallePedidoResponse(
     int PedidoId,
     string Descripcion,
     int Cantidad,
-    decimal ValorUnitario,
-    decimal Subtotal
+    double ValorUnitario,
+    double Subtotal
 );

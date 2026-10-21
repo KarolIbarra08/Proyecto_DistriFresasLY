@@ -97,7 +97,7 @@ public class RegistrarProductoDanadoEndpoint : IEndpoint
             entidad.TipoProducto,
             entidad.Cantidad,
             entidad.Identificacion,
-            entidad.Valor,
+            (double)entidad.Valor,
             entidad.FechaProductoDanado,
             entidad.Motivo);
 

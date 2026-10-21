@@ -4,7 +4,7 @@ public record PagoProveedorResponse(
     int Id,
     int ProveedorId,
     int PedidoId,
-    decimal Valor,
+    double Valor,
     string MedioPago,
     DateTime FechaPago,
     string Estado

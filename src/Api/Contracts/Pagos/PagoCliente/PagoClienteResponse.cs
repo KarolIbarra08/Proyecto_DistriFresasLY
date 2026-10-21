@@ -4,7 +4,7 @@ public record PagoClienteResponse(
     int Id,
     int ClienteId,
     int VentaId,
-    decimal Valor,
+    double Valor,
     string MedioPago,
     DateTime FechaPago,
     string Estado

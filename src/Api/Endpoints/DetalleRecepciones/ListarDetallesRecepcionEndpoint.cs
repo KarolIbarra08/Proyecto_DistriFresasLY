@@ -21,7 +21,7 @@ public class ListarDetallesRecepcionEndpoint : IEndpoint
                 d.Id,
                 d.IdRecepcion,
                 d.IdProducto,
-                d.Cantidad,
+                (int)d.Cantidad,
                 d.PrecioUnitario,
                 d.Subtotal,
                 d.FechaIngreso))

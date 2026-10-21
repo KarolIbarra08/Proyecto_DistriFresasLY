@@ -11,16 +11,16 @@ public sealed class DetallePedido : Entity
 
     public Cantidad Cantidad { get; private set; }
 
-    public decimal ValorUnitario { get; private set; }
+    public double ValorUnitario { get; private set; }
 
-    public decimal Subtotal => Cantidad * ValorUnitario;
+    public double Subtotal => Cantidad * ValorUnitario;
 
     private DetallePedido(
         int id,
         int pedidoId,
         string descripcion,
         Cantidad cantidad,
-        decimal valorUnitario) : base(id)
+        double valorUnitario) : base(id)
     {
         PedidoId = pedidoId;
         Descripcion = descripcion;
@@ -32,7 +32,7 @@ public sealed class DetallePedido : Entity
         int pedidoId,
         string descripcion,
         int cantidad,
-        decimal valorUnitario,
+        double valorUnitario,
         int id = 0)
     {
         var cantidadResult = Cantidad.Create(cantidad);

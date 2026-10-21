@@ -6,7 +6,7 @@ public sealed class PagoCliente : Entity
 {
     public int ClienteId { get; private set; }
     public int VentaId { get; private set; }
-    public decimal Valor { get; private set; }
+    public double Valor { get; private set; }
     public string MedioPago { get; private set; }
     public DateTime FechaPago { get; private set; }
     public string Estado { get; private set; }
@@ -15,7 +15,7 @@ public sealed class PagoCliente : Entity
         int id,
         int clienteId,
         int ventaId,
-        decimal valor,
+        double valor,
         string medioPago,
         DateTime fechaPago,
         string estado) : base(id)
@@ -31,7 +31,7 @@ public sealed class PagoCliente : Entity
     public static Result<PagoCliente> Create(
         int clienteId,
         int ventaId,
-        decimal valor,
+        double valor,
         string medioPago,
         DateTime? fechaPago,
         string estado,
@@ -76,7 +76,7 @@ public sealed class PagoCliente : Entity
                 id,
                 clienteId,
                 ventaId,
-                valor,
+                (double)valor,
                 medioPago.Trim(),
                 fechaFinal,
                 estado.Trim()));
@@ -85,7 +85,7 @@ public sealed class PagoCliente : Entity
     public Result Actualizar(
         int? clienteId,
         int? ventaId,
-        decimal? valor,
+        double? valor,
         string? medioPago,
         DateTime? fechaPago,
         string? estado)

@@ -44,8 +44,8 @@ public class GenerarReciboEndpoint : IEndpoint
             ? ReciboDataStore.RecibosDb.Max(r => r.Id) + 1 
             : 1;
 
-        // Creación encapsulada desde el Dominio
-        var reciboResult = Recibo.Create(venta.Id, venta.Total, ultimoNumero, nuevoId);
+       
+        var reciboResult = Recibo.Create(venta.Id, (double)venta.Total, ultimoNumero, nuevoId);
         if (reciboResult.IsFailure)
         {
             return Result.Failure<ReciboResponse>(reciboResult.Error).ToHttpResult();
