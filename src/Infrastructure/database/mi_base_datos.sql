@@ -1,10 +1,7 @@
 -- =========================================================
 -- 1. CREACIÓN DE TABLAS (SQLite)
 -- =========================================================
---
--- IMPORTANTE: PRAGMA foreign_keys NO se guarda en el archivo.
--- Es por conexión. La API debe ejecutarlo en CADA conexión
--- (Microsoft.Data.Sqlite), o las FOREIGN KEY se ignoran.
+
 PRAGMA foreign_keys = ON;
 
 -- =========================================================

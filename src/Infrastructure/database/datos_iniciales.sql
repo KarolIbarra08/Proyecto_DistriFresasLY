@@ -1,8 +1,4 @@
--- =========================================================
--- DATOS DE PRUEBA (DML SQLite)
--- Ejecutar DESPUES de mi_base_datos.sql
--- (en orden: primero las tablas padre, luego las hijas)
--- =========================================================
+
 
 PRAGMA foreign_keys = ON;
 
