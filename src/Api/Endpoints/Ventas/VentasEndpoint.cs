@@ -8,9 +8,17 @@ public static class VentaDataStore
 
     private static List<Venta> CrearSeed()
     {
-     
-        var detalle = DetalleVenta.Create(101, 10, 15000.0).Value;
-        var venta = Venta.Create([detalle], clienteId: 1, id: 1).Value;
+        var detalle = DetalleVenta.Create(101, 20, 15000.0).Value; // Cantidad 20 lbs (> 17) para cumplir Regla 1
+
+        var stockSeed = new Dictionary<int, int> { { 101, 100 } }; 
+
+        var venta = Venta.Create(
+            detalles: [detalle], 
+            clienteId: 1, 
+            stockDisponiblePorProducto: stockSeed, 
+            esAdministrador: true, 
+            id: 1).Value;
+
         venta.ActualizarEstado("Completada");
         return [venta];
     }

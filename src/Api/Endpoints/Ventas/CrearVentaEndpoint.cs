@@ -17,7 +17,7 @@ public class CrearVentaEndpoint : IEndpoint
            .WithSummary("Registra una nueva venta");
     }
 
-    private static IResult Manejador([FromBody] CrearVentaRequest request)
+    private static IResult Manejador([FromBody] CrearVentaRequest request, [FromHeader(Name = "X-Es-Admin")] bool esAdministrador = false)
     {
         if (request.Detalles is null || !request.Detalles.Any())
         {
@@ -27,7 +27,9 @@ public class CrearVentaEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-        // 1. Validar disponibilidad de stock para todos los productos antes de realizar descuentos
+
+        var stockDisponiblePorProducto = new Dictionary<int, int>();
+
         foreach (var d in request.Detalles)
         {
             var itemStock = InventarioDataStore.ObtenerPorProductoId(d.ProductoId);
@@ -40,22 +42,10 @@ public class CrearVentaEndpoint : IEndpoint
                     .ToHttpResult();
             }
 
-            if (itemStock.CantidadDisponible < d.Cantidad)
-            {
-                return Result.Failure(Error.Validation(
-                    "Inventario.StockInsuficiente",
-                    $"Stock insuficiente para el producto {d.ProductoId}. Disponible: {itemStock.CantidadDisponible}, Requerido: {d.Cantidad}"))
-                    .ToHttpResult();
-            }
+            stockDisponiblePorProducto[d.ProductoId] = itemStock.CantidadDisponible;
         }
 
-        // 2. Descontar el stock en el DataStore
-        foreach (var d in request.Detalles)
-        {
-            InventarioDataStore.DisminuirStock(d.ProductoId, d.Cantidad);
-        }
 
-        // 3. Crear los detalles con la entidad del Domain
         var detallesResult = request.Detalles
             .Select(d => DetalleVenta.Create(d.ProductoId, d.Cantidad, d.PrecioUnitario))
             .ToList();
@@ -72,10 +62,23 @@ public class CrearVentaEndpoint : IEndpoint
             ? VentaDataStore.VentasDb.Max(v => v.Id) + 1
             : 1;
 
-        var ventaResult = Venta.Create(detalles, request.ClienteId, nuevoId);
+
+        var ventaResult = Venta.Create(
+            detalles,
+            request.ClienteId ?? 0,
+            stockDisponiblePorProducto,
+            esAdministrador,
+            nuevoId);
+
         if (ventaResult.IsFailure)
         {
             return Result.Failure<VentaResponse>(ventaResult.Error).ToHttpResult();
+        }
+
+
+        foreach (var d in request.Detalles)
+        {
+            InventarioDataStore.DisminuirStock(d.ProductoId, d.Cantidad);
         }
 
         var venta = ventaResult.Value;

@@ -9,7 +9,7 @@ public sealed class Venta : Entity
 
     public DateTime FechaVenta { get; private set; }
     public EstadoVenta Estado { get; private set; }
-    public int? ClienteId { get; private set; }
+    public int ClienteId { get; private set; }
     public IReadOnlyCollection<DetalleVenta> Detalles => _detalles.AsReadOnly();
     public double Total => _detalles.Sum(d => d.Subtotal);
 
@@ -17,7 +17,7 @@ public sealed class Venta : Entity
         int id,
         DateTime fechaVenta,
         EstadoVenta estado,
-        int? clienteId,
+        int clienteId,
         List<DetalleVenta> detalles) : base(id)
     {
         FechaVenta = fechaVenta;
@@ -28,9 +28,19 @@ public sealed class Venta : Entity
 
     public static Result<Venta> Create(
         List<DetalleVenta> detalles,
-        int? clienteId = null,
+        int clienteId,
+        Dictionary<int, int> stockDisponiblePorProducto,
+        bool esAdministrador,
         int id = 0)
     {
+        //  Cliente obligatorio
+        if (clienteId <= 0)
+        {
+            return Error.Validation(
+                "Venta.ClienteNoRegistrado",
+                "El cliente no está registrado en el sistema.");
+        }
+
         if (detalles is null || detalles.Count == 0)
         {
             return Error.Validation(
@@ -38,11 +48,40 @@ public sealed class Venta : Entity
                 "La venta debe contener al menos un producto en el detalle.");
         }
 
-        if (clienteId.HasValue && clienteId.Value <= 0)
+
+        foreach (var detalle in detalles)
         {
-            return Error.Validation(
-                "Venta.ClienteInvalido",
-                "El ID del cliente no es valido.");
+            int stockDisponible = stockDisponiblePorProducto.TryGetValue(detalle.ProductoId, out var stock) ? stock : 0;
+            int cantidadSolicitada = detalle.Cantidad.Value;
+
+            //  No superar el inventario disponible
+            if (cantidadSolicitada > stockDisponible)
+            {
+                return Error.Validation(
+                    "Venta.StockInsuficiente",
+                    $"No hay stock suficiente para el producto ID {detalle.ProductoId}. Disponible: {stockDisponible}, solicitado: {cantidadSolicitada}.");
+            }
+
+            //  Cantidades mínimas y excepciones
+            if (cantidadSolicitada <= 10)
+            {
+                return Error.Validation(
+                    "Venta.CantidadInvalida",
+                    "No es posible registrar ventas de 10 libras o menos.");
+            }
+
+            if (cantidadSolicitada < 17)
+            {
+                // Riesgo de pérdida por perecedero (stock total inferior a 17 libras)
+                bool riesgoPerdida = stockDisponible < 17;
+
+                if (!riesgoPerdida || !esAdministrador)
+                {
+                    return Error.Validation(
+                        "Venta.CantidadInsuficiente",
+                        "No es posible registrar la venta. La cantidad solicitada debe ser mayor a 17 libras.");
+                }
+            }
         }
 
         var venta = new Venta(
@@ -102,8 +141,17 @@ public sealed class Venta : Entity
         return Result.Success();
     }
 
-    public void AsignarCliente(int? nuevoClienteId)
+    public Result AsignarCliente(int nuevoClienteId)
     {
+        if (nuevoClienteId <= 0)
+        {
+            return Result.Failure(
+                Error.Validation(
+                    "Venta.ClienteNoRegistrado",
+                    "El cliente no está registrado en el sistema."));
+        }
+
         ClienteId = nuevoClienteId;
+        return Result.Success();
     }
 }
