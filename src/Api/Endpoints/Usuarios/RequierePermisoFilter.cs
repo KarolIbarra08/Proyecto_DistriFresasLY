@@ -1,35 +1,34 @@
-using DistriFresasLY.Api.Endpoints.Roles;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
-namespace DistriFresasLY.Api.Filters;
+namespace DistriFresasLY.Api.Endpoints.Usuarios;
 
-public static class PermisoFilterExtensions
+public class RequierePermisoFilter : IEndpointFilter
 {
-    public static RouteHandlerBuilder RequierePermiso(this RouteHandlerBuilder builder, string permiso)
+    private readonly string _permisoRequerido;
+
+    public RequierePermisoFilter(string permisoRequerido)
     {
-        return builder.AddEndpointFilter(async (context, next) =>
+        _permisoRequerido = permisoRequerido;
+    }
+
+    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+      
+        var rolRepository = context.HttpContext.RequestServices.GetRequiredService<IRolRepository>();
+
+      
+        if (context.HttpContext.Items.TryGetValue("RolId", out var idObj) && idObj is int rolId)
         {
-           
-            var rolHeader = context.HttpContext.Request.Headers["X-Rol-Usuario"].ToString();
-
-            if (string.IsNullOrWhiteSpace(rolHeader))
+            var rol = await rolRepository.ObtenerPorIdAsync(rolId, context.HttpContext.RequestAborted);
+            if (rol is null || !rol.TieneAcceso(_permisoRequerido))
             {
-                var errorUnauthorized = Error.Validation("Auth.SinRol", "No se especificó el rol en la cabecera X-Rol-Usuario.");
-                return Results.Json(errorUnauthorized, statusCode: StatusCodes.Status401Unauthorized);
+                return Results.Problem(
+                    detail: $"Acceso denegado. Se requiere el permiso '{_permisoRequerido}'.",
+                    statusCode: StatusCodes.Status403Forbidden);
             }
+        }
 
-          
-            var rolObjeto = RolDataStore.RolesDb.FirstOrDefault(r => 
-                r.Nombre.Equals(rolHeader, StringComparison.OrdinalIgnoreCase));
-
-            
-            if (rolObjeto is null || !rolObjeto.TieneAcceso(permiso))
-            {
-                var errorForbidden = Error.Validation("Auth.AccesoDenegado", $"No tienes permiso para ejecutar esta operación. Requiere: '{permiso}'");
-                return Results.Json(errorForbidden, statusCode: StatusCodes.Status403Forbidden);
-            }
-
-            return await next(context);
-        });
+        return await next(context);
     }
 }

@@ -15,7 +15,6 @@ public class CerrarSesionEndpoint : IEndpoint
 
     private static IResult Manejador()
     {
-        
         Result<string> successResult = Result.Success("Sesion cerrada correctamente.");
         return successResult.ToHttpResult();
     }

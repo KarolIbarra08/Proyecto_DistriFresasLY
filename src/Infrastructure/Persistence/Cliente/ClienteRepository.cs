@@ -30,7 +30,7 @@ public class ClienteRepository : IClienteRepository
             FROM Clientes 
             WHERE id_cliente = @Id;
             """;
-        
+
         var registro = await conexion.QueryFirstOrDefaultAsync<ClienteRegistro>(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
 
@@ -51,7 +51,7 @@ public class ClienteRepository : IClienteRepository
                 activo AS Activo 
             FROM Clientes;
             """;
-        
+
         var registros = await conexion.QueryAsync<ClienteRegistro>(
             new CommandDefinition(sql, cancellationToken: cancellationToken));
 
@@ -67,23 +67,22 @@ public class ClienteRepository : IClienteRepository
             WHERE cedula_nit = @CedulaNit 
               AND (@IdExcluir IS NULL OR id_cliente <> @IdExcluir);
             """;
-        
+
         var count = await conexion.ExecuteScalarAsync<int>(
             new CommandDefinition(sql, new { CedulaNit = cedulaNit, IdExcluir = idExcluir }, cancellationToken: cancellationToken));
 
         return count > 0;
     }
-
     public async Task<bool> TienePedidosAsociadosAsync(int idCliente, CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();
 
-        // 1. Verificar si la tabla Pedidos existe en SQLite (case-insensitive)
+
         const string sqlTablaExiste = """
-            SELECT COUNT(1) 
-            FROM sqlite_master 
-            WHERE type = 'table' AND LOWER(name) = 'pedidos';
-            """;
+        SELECT COUNT(1) 
+        FROM sqlite_master 
+        WHERE type = 'table' AND LOWER(name) = 'pedidos';
+        """;
 
         var existeTabla = await conexion.ExecuteScalarAsync<int>(
             new CommandDefinition(sqlTablaExiste, cancellationToken: cancellationToken));
@@ -93,27 +92,25 @@ public class ClienteRepository : IClienteRepository
             return false;
         }
 
-        // 2. Obtener la información real de columnas de la tabla Pedidos
+
         const string sqlColumnas = "PRAGMA table_info(Pedidos);";
         var columnas = await conexion.QueryAsync<dynamic>(
             new CommandDefinition(sqlColumnas, cancellationToken: cancellationToken));
 
         var nombresColumnas = columnas.Select(c => ((string)c.name).ToLower()).ToList();
 
-        // 3. Identificar la columna de clave foránea que referencia al cliente
         string? columnaFk = null;
         if (nombresColumnas.Contains("id_cliente")) columnaFk = "id_cliente";
         else if (nombresColumnas.Contains("cliente_id")) columnaFk = "cliente_id";
         else if (nombresColumnas.Contains("idcliente")) columnaFk = "idcliente";
         else if (nombresColumnas.Contains("clienteid")) columnaFk = "clienteid";
 
-        // Si la tabla Pedidos no tiene ninguna columna vinculada a cliente, no hay dependencias
         if (columnaFk is null)
         {
             return false;
         }
 
-        // 4. Consultar usando el nombre exacto de la columna detectada
+  
         string sqlQuery = $"SELECT COUNT(1) FROM Pedidos WHERE {columnaFk} = @Id;";
 
         var cantidad = await conexion.ExecuteScalarAsync<int>(
@@ -134,7 +131,7 @@ public class ClienteRepository : IClienteRepository
 
         try
         {
-            // 1. Asegurar la existencia de la tabla de secuencias
+     
             const string sqlInitSecuencia = """
                 CREATE TABLE IF NOT EXISTS SecuenciaEntidades (
                     nombre_entidad TEXT PRIMARY KEY,
@@ -145,7 +142,7 @@ public class ClienteRepository : IClienteRepository
             await conexion.ExecuteAsync(
                 new CommandDefinition(sqlInitSecuencia, transaction: transaccion, cancellationToken: cancellationToken));
 
-            // 2. Sincronizar la secuencia con el ID máximo actual de la tabla Clientes
+       
             const string sqlSincronizarSecuencia = """
                 INSERT INTO SecuenciaEntidades (nombre_entidad, ultimo_valor)
                 VALUES ('Cliente', (SELECT COALESCE(MAX(id_cliente), 0) FROM Clientes))
@@ -156,7 +153,7 @@ public class ClienteRepository : IClienteRepository
             await conexion.ExecuteAsync(
                 new CommandDefinition(sqlSincronizarSecuencia, transaction: transaccion, cancellationToken: cancellationToken));
 
-            // 3. Incrementar y obtener el consecutivo libre
+      
             const string sqlObtenerSiguienteId = """
                 UPDATE SecuenciaEntidades 
                 SET ultimo_valor = ultimo_valor + 1 
@@ -170,7 +167,6 @@ public class ClienteRepository : IClienteRepository
             var nuevoIdCliente = await conexion.ExecuteScalarAsync<int>(
                 new CommandDefinition(sqlObtenerSiguienteId, transaction: transaccion, cancellationToken: cancellationToken));
 
-            // 4. Insertar el cliente con su ID asignado
             const string sqlInsert = """
                 INSERT INTO Clientes (id_cliente, nombre, cedula_nit, telefono, direccion, tipo_de_negocio, activo)
                 VALUES (@IdCliente, @Nombre, @CedulaNit, @Telefono, @Direccion, @TipoNegocio, @Activo);
@@ -226,12 +222,11 @@ public class ClienteRepository : IClienteRepository
         await conexion.ExecuteAsync(
             new CommandDefinition(sql, parametros, cancellationToken: cancellationToken));
     }
-
     public async Task EliminarAsync(int id, CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();
         const string sql = "DELETE FROM Clientes WHERE id_cliente = @Id;";
-        
+
         await conexion.ExecuteAsync(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
     }

@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Usuarios;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Usuarios;
@@ -14,21 +15,24 @@ public class EliminarUsuarioEndpoint : IEndpoint
            .WithSummary("Elimina un usuario del sistema por su ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IUsuarioRepository usuarioRepository,
+        CancellationToken cancellationToken)
     {
-        var index = UsuarioDataStore.UsuariosDb.FindIndex(u => u.Id == id);
-        if (index == -1)
+        var usuario = await usuarioRepository.ObtenerPorIdAsync(id, cancellationToken);
+        if (usuario is null)
         {
-            Result<bool> errorResult = Error.NotFound(
+            Result<string> errorResult = Error.NotFound(
                 "Usuario.NotFound",
-                $"No se encontro un usuario con el Id: {id}");
+                $"No se encontró un usuario con el Id: {id}");
 
             return errorResult.ToHttpResult();
         }
 
-        UsuarioDataStore.UsuariosDb.RemoveAt(index);
+        await usuarioRepository.EliminarAsync(id, cancellationToken);
 
-        Result<bool> successResult = Result.Success(true);
+        Result<string> successResult = Result.Success($"Usuario con Id {id} eliminado correctamente.");
         return successResult.ToHttpResult();
     }
 }

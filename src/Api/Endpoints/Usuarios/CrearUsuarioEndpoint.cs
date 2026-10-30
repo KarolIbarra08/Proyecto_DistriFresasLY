@@ -1,7 +1,8 @@
 using DistriFresasLY.Api.Contracts.Usuarios;
-using DistriFresasLY.Api.Endpoints.Roles;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Roles;
 using DistriFresasLY.Domain.Entities.Usuarios;
 
 namespace DistriFresasLY.Api.Endpoints.Usuarios;
@@ -13,68 +14,78 @@ public class CrearUsuarioEndpoint : IEndpoint
         app.MapPost("/usuarios", Manejador)
            .WithName("CrearUsuario")
            .WithTags("Usuarios")
-           .WithSummary("Registra un nuevo usuario en el sistema");
+           .WithSummary("Crea un nuevo usuario en el sistema");
     }
 
-    private static IResult Manejador(CrearUsuarioRequest request)
+    private static async Task<IResult> Manejador(
+        CrearUsuarioRequest request,
+        IUsuarioRepository usuarioRepository,
+        IRolRepository rolRepository,
+        CancellationToken cancellationToken)
     {
-       
-        if (UsuarioDataStore.UsuariosDb.Any(u => u.NombreUsuario.Equals(request.Usuario, StringComparison.OrdinalIgnoreCase)))
-        {
-            Result<UsuarioResponse> conflictResult = Error.Conflict(
-                "Usuario.Duplicado",
-                $"El usuario '{request.Usuario}' ya se encuentra registrado.");
 
-            return conflictResult.ToHttpResult();
+        var usuarioExistente = await usuarioRepository.ObtenerPorNombreUsuarioAsync(request.Usuario, cancellationToken);
+        if (usuarioExistente is not null)
+        {
+            Result<UsuarioResponse> errorUsuarioExistente = Error.Conflict(
+                "Usuario.NombreUsuarioDuplicado",
+                $"El nombre de usuario '{request.Usuario}' ya está en uso.");
+
+            return errorUsuarioExistente.ToHttpResult();
         }
 
-     
-        var rolNombre = string.IsNullOrWhiteSpace(request.Rol) ? "Usuario" : request.Rol;
-        bool existeRol = RolDataStore.RolesDb.Any(r => r.Nombre.Equals(rolNombre, StringComparison.OrdinalIgnoreCase));
 
-        if (!existeRol)
+        Rol? rolExistente = null;
+
+        if (int.TryParse(request.Rol, out int idRol))
         {
-            Result<UsuarioResponse> rolNotFoundResult = Error.NotFound(
+            rolExistente = await rolRepository.ObtenerPorIdAsync(idRol, cancellationToken);
+        }
+        else
+        {
+            rolExistente = await rolRepository.ObtenerPorNombreAsync(request.Rol, cancellationToken);
+        }
+
+        if (rolExistente is null)
+        {
+            Result<UsuarioResponse> errorRolNoEncontrado = Error.NotFound(
                 "Usuario.RolNoEncontrado",
-                $"El rol '{rolNombre}' no existe.");
+                $"El rol '{request.Rol}' no existe en la base de datos.");
 
-            return rolNotFoundResult.ToHttpResult();
+            return errorRolNoEncontrado.ToHttpResult();
         }
-
-
-        var nuevoId = UsuarioDataStore.UsuariosDb.Count != 0
-            ? UsuarioDataStore.UsuariosDb.Max(u => u.Id) + 1
-            : 1;
 
 
         var usuarioResult = Usuario.Create(
-            nombre: request.Nombre,
-            apellido: request.Apellido,
-            usuario: request.Usuario,
-            contrasena: request.Contrasena,
-            rol: rolNombre,
-            id: nuevoId);
+            request.Nombre,
+            request.Apellido,
+            request.Usuario,
+            request.Contrasena,
+            rolExistente.Id.ToString(),
+            request.Estado ? 1 : 0);
 
         if (usuarioResult.IsFailure)
         {
-            return Result.Failure<UsuarioResponse>(usuarioResult.Error).ToHttpResult();
+            Result<UsuarioResponse> errorResult = Result.Failure<UsuarioResponse>(usuarioResult.Error);
+            return errorResult.ToHttpResult();
         }
 
         var usuario = usuarioResult.Value;
-        UsuarioDataStore.UsuariosDb.Add(usuario);
 
-       
+
+        var idUsuario = await usuarioRepository.AgregarAsync(usuario, cancellationToken);
+
+   
         var response = new UsuarioResponse(
-            usuario.Id,
+            idUsuario,
             usuario.Nombre,
             usuario.Apellido,
             usuario.NombreUsuario,
             usuario.Contrasena,
-            usuario.Rol,
-            usuario.Estado
-        );
+            rolExistente.Nombre,
+            usuario.Estado);
 
-        Result<UsuarioResponse> createdResult = Result.Success(response);
-        return createdResult.ToHttpCreatedAtResult($"/api/usuarios/{usuario.Id}");
+        Result<UsuarioResponse> successResult = Result.Success(response);
+        return successResult.ToHttpResult();
     }
 }

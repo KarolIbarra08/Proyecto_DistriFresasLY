@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Roles;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Roles;
@@ -14,16 +15,19 @@ public class ObtenerRolesEndpoint : IEndpoint
            .WithSummary("Obtiene el listado de roles del sistema");
     }
 
-    private static IResult Manejador()
+    private static async Task<IResult> Manejador(
+        IRolRepository rolRepository,
+        CancellationToken cancellationToken)
     {
-        var lista = RolDataStore.RolesDb.Select(r => new RolResponse(
+        var roles = await rolRepository.ObtenerTodosAsync(cancellationToken);
+
+        var lista = roles.Select(r => new RolResponse(
             r.Id,
             r.Nombre,
             r.Descripcion,
             r.Permisos.ToList()
         )).ToList();
 
-        Result<List<RolResponse>> successResult = Result.Success(lista);
-        return successResult.ToHttpResult();
+        return Result.Success(lista).ToHttpResult();
     }
 }

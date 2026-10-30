@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Usuarios;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Usuarios;
@@ -11,17 +12,20 @@ public class ObtenerUsuarioPorIdEndpoint : IEndpoint
         app.MapGet("/usuarios/{id:int}", Manejador)
            .WithName("ObtenerUsuarioPorId")
            .WithTags("Usuarios")
-           .WithSummary("Obtiene los detalles de un usuario especifico por su ID");
+           .WithSummary("Obtiene un usuario por su ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IUsuarioRepository usuarioRepository,
+        CancellationToken cancellationToken)
     {
-        var usuario = UsuarioDataStore.UsuariosDb.FirstOrDefault(u => u.Id == id);
+        var usuario = await usuarioRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (usuario is null)
         {
             Result<UsuarioResponse> errorResult = Error.NotFound(
                 "Usuario.NotFound",
-                $"No se encontro un usuario con el Id: {id}");
+                $"No se encontró un usuario con el Id: {id}");
 
             return errorResult.ToHttpResult();
         }
@@ -36,6 +40,7 @@ public class ObtenerUsuarioPorIdEndpoint : IEndpoint
             usuario.Estado
         );
 
-        return Result.Success(response).ToHttpResult();
+        Result<UsuarioResponse> successResult = Result.Success(response);
+        return successResult.ToHttpResult();
     }
 }

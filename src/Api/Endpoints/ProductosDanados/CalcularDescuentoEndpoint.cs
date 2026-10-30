@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Descuentos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.ProductosDanados;
@@ -8,19 +9,18 @@ public class CalcularDescuentoEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost(
-                "/productos/danados/{id:int}/calcular-descuento",
-                Manejador)
-            .WithName("CalcularDescuento")
-            .WithTags("Productos Dañados")
-            .WithSummary("Calcula el descuento del producto dañado");
+        app.MapPost("/productos/danados/{id:int}/calcular-descuento", Manejador)
+           .WithName("CalcularDescuento")
+           .WithTags("Productos Dañados")
+           .WithSummary("Calcula el descuento del producto dañado");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IProductoDanadoRepository productoDanadoRepository,
+        CancellationToken cancellationToken)
     {
-        var entidad = ProductoDanadoDataStore
-            .ProductosDanadosDb
-            .FirstOrDefault(p => p.Id == id);
+        var entidad = await productoDanadoRepository.ObtenerPorIdAsync(id, cancellationToken);
 
         if (entidad is null)
         {
@@ -35,10 +35,11 @@ public class CalcularDescuentoEndpoint : IEndpoint
 
         if (calculoResult.IsFailure)
         {
-            return Result.Failure<object>(
-                calculoResult.Error)
-                .ToHttpResult();
+            return Result.Failure<object>(calculoResult.Error).ToHttpResult();
         }
+
+
+        await productoDanadoRepository.ActualizarAsync(entidad, cancellationToken);
 
         var response = new
         {

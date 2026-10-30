@@ -16,11 +16,15 @@ public static class DependencyInjection
             ?? configuration.GetConnectionString("DistriFresasLY")
             ?? throw new InvalidOperationException("Falta la cadena de conexión en appsettings.json.");
 
+        // Fábrica de conexiones para la base de datos
         services.AddSingleton<IDbConnectionFactory>(new SqliteConnectionFactory(connectionString));
 
-        // Registro de repositorios
+        // Repositorios
         services.AddScoped<IClienteRepository, ClienteRepository>();
         services.AddScoped<IProductoRepository, ProductoRepository>();
+        services.AddScoped<IProductoDanadoRepository, ProductoDanadoRepository>();
+        services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+        services.AddScoped<IRolRepository, RolRepository>();
 
         return services;
     }

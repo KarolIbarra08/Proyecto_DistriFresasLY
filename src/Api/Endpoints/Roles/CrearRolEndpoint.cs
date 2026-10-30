@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Roles;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Roles;
 
@@ -15,28 +16,25 @@ public class CrearRolEndpoint : IEndpoint
            .WithSummary("Registra un nuevo rol en el sistema");
     }
 
-    private static IResult Manejador(CrearRolRequest request)
+    private static async Task<IResult> Manejador(
+        CrearRolRequest request,
+        IRolRepository rolRepository,
+        CancellationToken cancellationToken)
     {
-        
-        if (RolDataStore.RolesDb.Any(r => r.Nombre.Equals(request.Nombre, StringComparison.OrdinalIgnoreCase)))
+        var rolExistente = await rolRepository.ObtenerPorNombreAsync(request.Nombre, cancellationToken);
+        if (rolExistente is not null)
         {
-            Result<RolResponse> conflictResult = Error.Conflict(
-                "Rol.Duplicado",
-                $"El rol '{request.Nombre}' ya se encuentra registrado.");
-
-            return conflictResult.ToHttpResult();
+            return Result.Failure<RolResponse>(
+                Error.Conflict(
+                    "Rol.Duplicado",
+                    $"El rol '{request.Nombre}' ya se encuentra registrado."))
+                .ToHttpResult();
         }
 
-      
-        var nuevoId = RolDataStore.RolesDb.Count != 0
-            ? RolDataStore.RolesDb.Max(r => r.Id) + 1
-            : 1;
-
-        
         var rolResult = Rol.Create(
             nombre: request.Nombre,
             descripcion: request.Descripcion,
-            id: nuevoId);
+            id: 0);
 
         if (rolResult.IsFailure)
         {
@@ -44,17 +42,17 @@ public class CrearRolEndpoint : IEndpoint
         }
 
         var rol = rolResult.Value;
-        RolDataStore.RolesDb.Add(rol);
 
-  
+        int nuevoId = await rolRepository.AgregarAsync(rol, cancellationToken);
+
         var response = new RolResponse(
-            rol.Id,
+            nuevoId,
             rol.Nombre,
             rol.Descripcion,
             rol.Permisos.ToList()
         );
 
-        Result<RolResponse> createdResult = Result.Success(response);
-        return createdResult.ToHttpCreatedAtResult($"/api/roles/{rol.Id}");
+        return Result.Success(response)
+            .ToHttpCreatedAtResult($"/api/roles/{nuevoId}");
     }
 }

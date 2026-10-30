@@ -28,11 +28,10 @@ public sealed class Rol : Entity
 
     public static Result<Rol> Create(
         string nombre,
-        string descripcion,
+        string? descripcion,
         List<string>? permisos = null,
         int id = 0)
     {
-
         if (string.IsNullOrWhiteSpace(nombre))
         {
             return Result.Failure<Rol>(
@@ -41,7 +40,6 @@ public sealed class Rol : Entity
                     "El nombre del rol es obligatorio."));
         }
 
-        
         if (string.IsNullOrWhiteSpace(descripcion))
         {
             return Result.Failure<Rol>(
@@ -51,13 +49,13 @@ public sealed class Rol : Entity
         var rol = new Rol(
             id,
             nombre.Trim(),
-            descripcion?.Trim() ?? string.Empty,
+            descripcion.Trim(),
             permisos);
 
         return Result.Success(rol);
     }
 
-    public Result Actualizar(string nombre, string descripcion)
+    public Result Actualizar(string nombre, string? descripcion)
     {
         if (string.IsNullOrWhiteSpace(nombre))
         {
@@ -67,8 +65,16 @@ public sealed class Rol : Entity
                     "El nombre del rol es obligatorio."));
         }
 
+        if (string.IsNullOrWhiteSpace(descripcion))
+        {
+            return Result.Failure(
+                Error.Validation(
+                    "Rol.DescripcionObligatoria",
+                    "La descripción del rol es obligatoria."));
+        }
+
         Nombre = nombre.Trim();
-        Descripcion = descripcion?.Trim() ?? string.Empty;
+        Descripcion = descripcion.Trim();
 
         return Result.Success();
     }

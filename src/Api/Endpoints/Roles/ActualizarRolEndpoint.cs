@@ -1,7 +1,7 @@
 using DistriFresasLY.Api.Contracts.Roles;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
-using DistriFresasLY.Domain.Entities.Roles;
 
 namespace DistriFresasLY.Api.Endpoints.Roles;
 
@@ -15,19 +15,19 @@ public class ActualizarRolEndpoint : IEndpoint
            .WithSummary("Actualiza los datos de un rol existente");
     }
 
-    private static IResult Manejador(int id, ActualizarRolRequest request)
+    private static async Task<IResult> Manejador(
+        int id,
+        ActualizarRolRequest request,
+        IRolRepository rolRepository,
+        CancellationToken cancellationToken)
     {
-        var index = RolDataStore.RolesDb.FindIndex(r => r.Id == id);
-        if (index == -1)
+        var rol = await rolRepository.ObtenerPorIdAsync(id, cancellationToken);
+        if (rol is null)
         {
-            Result<RolResponse> errorResult = Error.NotFound(
-                "Rol.NotFound",
-                $"No se encontro un rol con el Id: {id}");
-
-            return errorResult.ToHttpResult();
+            return Result.Failure<RolResponse>(
+                Error.NotFound("Rol.NotFound", $"No se encontró un rol con el Id: {id}")
+            ).ToHttpResult();
         }
-
-        var rol = RolDataStore.RolesDb[index];
 
         var nombre = !string.IsNullOrWhiteSpace(request.Nombre) ? request.Nombre.Trim() : rol.Nombre;
         var descripcion = request.Descripcion != null ? request.Descripcion.Trim() : rol.Descripcion;
@@ -37,6 +37,8 @@ public class ActualizarRolEndpoint : IEndpoint
         {
             return Result.Failure<RolResponse>(actualizarResult.Error).ToHttpResult();
         }
+
+        await rolRepository.ActualizarAsync(rol, cancellationToken);
 
         var response = new RolResponse(
             rol.Id,

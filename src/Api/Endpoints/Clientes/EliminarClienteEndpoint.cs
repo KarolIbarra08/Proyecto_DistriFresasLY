@@ -19,7 +19,7 @@ public class EliminarClienteEndpoint : IEndpoint
         IClienteRepository clienteRepository,
         CancellationToken cancellationToken)
     {
-        // 1. Verificar si el cliente existe
+        
         var cliente = await clienteRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (cliente is null)
         {
@@ -28,7 +28,7 @@ public class EliminarClienteEndpoint : IEndpoint
             ).ToHttpResult();
         }
 
-        // 2. Verificar si el cliente tiene pedidos vinculados
+   
         var tienePedidos = await clienteRepository.TienePedidosAsociadosAsync(id, cancellationToken);
         if (tienePedidos)
         {
@@ -39,7 +39,7 @@ public class EliminarClienteEndpoint : IEndpoint
             ).ToHttpResult();
         }
 
-        // 3. Proceder con la eliminación si no tiene dependencias
+
         await clienteRepository.EliminarAsync(id, cancellationToken);
 
         var respuesta = new 

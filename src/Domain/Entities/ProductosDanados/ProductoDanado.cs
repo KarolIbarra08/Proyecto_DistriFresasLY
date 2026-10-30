@@ -1,3 +1,4 @@
+using System.Globalization;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.ValueObjects;
 
@@ -71,6 +72,9 @@ public sealed class ProductoDanado : Entity
                     "El tipo de producto es obligatorio."));
         }
 
+        var tipoProductoFormateado = CultureInfo.InvariantCulture.TextInfo
+            .ToTitleCase(tipoProducto.Trim().ToLower());
+
         var cantidadResult = Cantidad.Create(cantidad);
 
         if (cantidadResult.IsFailure)
@@ -106,7 +110,7 @@ public sealed class ProductoDanado : Entity
             new ProductoDanado(
                 id,
                 productoId,
-                tipoProducto.Trim(),
+                tipoProductoFormateado,
                 cantidadResult.Value,
                 identificacion.Trim(),
                 valor,

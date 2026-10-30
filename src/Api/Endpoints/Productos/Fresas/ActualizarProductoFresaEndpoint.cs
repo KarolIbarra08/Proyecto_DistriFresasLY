@@ -35,25 +35,22 @@ public class ActualizarProductoFresaEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-      
+   
         int calibreFinal = request.Calibre > 0 ? request.Calibre : fresa.Calibre.Value;
         string calidadFinal = !string.IsNullOrWhiteSpace(request.Calidad) ? request.Calidad : fresa.Calidad;
         double pesoFinal = request.Peso > 0 ? request.Peso : fresa.Peso.Value;
         string descripcionFinal = !string.IsNullOrWhiteSpace(request.Descripcion) ? request.Descripcion : fresa.Descripcion;
 
+       
+        bool existeCalibreOtro = await productoRepository.ExisteCalibreAsync(calibreFinal, idExcluir: id, cancellationToken);
 
-        bool ExisteCalibreParaOtro(int c) => productoRepository
-            .ExisteCalibreAsync(c, idExcluir: id, cancellationToken)
-            .GetAwaiter()
-            .GetResult();
 
- 
         var updateResult = fresa.Actualizar(
             calibreFinal,
             calidadFinal,
             pesoFinal,
             descripcionFinal,
-            ExisteCalibreParaOtro);
+            _ => existeCalibreOtro);
 
         if (updateResult.IsFailure)
         {
@@ -62,10 +59,10 @@ public class ActualizarProductoFresaEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-
+     
         await productoRepository.ActualizarFresaAsync(fresa, cancellationToken);
 
-
+       
         var response = new ProductoFresaResponse(
             fresa.Id,
             fresa.TipoProducto.ToString(),

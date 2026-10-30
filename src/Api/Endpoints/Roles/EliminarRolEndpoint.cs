@@ -1,4 +1,5 @@
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Roles;
@@ -13,19 +14,21 @@ public class EliminarRolEndpoint : IEndpoint
            .WithSummary("Elimina un rol del sistema por su ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IRolRepository rolRepository,
+        CancellationToken cancellationToken)
     {
-        var index = RolDataStore.RolesDb.RemoveAll(r => r.Id == id);
-        if (index == 0)
+        var rol = await rolRepository.ObtenerPorIdAsync(id, cancellationToken);
+        if (rol is null)
         {
-            Result<bool> errorResult = Error.NotFound(
-                "Rol.NotFound",
-                $"No se encontro un rol con el Id: {id}");
-
-            return errorResult.ToHttpResult();
+            return Result.Failure<string>(
+                Error.NotFound("Rol.NotFound", $"No se encontró un rol con el Id: {id}")
+            ).ToHttpResult();
         }
 
-        Result<bool> successResult = Result.Success(true);
-        return successResult.ToHttpResult();
+        await rolRepository.EliminarAsync(id, cancellationToken);
+
+        return Result.Success($"El rol con ID {id} se eliminó correctamente.").ToHttpResult();
     }
 }
