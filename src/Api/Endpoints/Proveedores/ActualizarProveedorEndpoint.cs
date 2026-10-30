@@ -1,7 +1,7 @@
 using DistriFresasLY.Api.Contracts.Proveedores;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
-using DistriFresasLY.Domain.Entities.Proveedores;
 
 namespace DistriFresasLY.Api.Endpoints.Proveedores;
 
@@ -15,22 +15,33 @@ public class ActualizarProveedorEndpoint : IEndpoint
            .WithSummary("Actualiza los datos de un proveedor existente");
     }
 
-    private static IResult Manejador(int id, ActualizarProveedorRequest request)
+    private static async Task<IResult> Manejador(
+        int id,
+        ActualizarProveedorRequest request,
+        IProveedorRepository proveedorRepository,
+        CancellationToken cancellationToken)
     {
-        var index = ProveedorDataStore.ProveedoresDb.FindIndex(proveedor => proveedor.Id == id);
-        if (index == -1)
+        var proveedor = await proveedorRepository.ObtenerPorIdAsync(id, cancellationToken);
+        if (proveedor is null)
         {
             Result<ProveedorResponse> errorResult = Error.NotFound(
                 "Proveedor.NotFound",
-                $"No se encontro un proveedor con el Id: {id}");
+                $"No se encontró un proveedor con el Id: {id}");
 
             return errorResult.ToHttpResult();
         }
 
-        var proveedor = ProveedorDataStore.ProveedoresDb[index];
-
-        if (!string.IsNullOrWhiteSpace(request.CedulaNit))
+        if (!string.IsNullOrWhiteSpace(request.CedulaNit) &&
+            !request.CedulaNit.Trim().Equals(proveedor.Documento.Value, StringComparison.OrdinalIgnoreCase))
         {
+            var dupl = await proveedorRepository.ObtenerPorCedulaNitAsync(request.CedulaNit, cancellationToken);
+            if (dupl is not null && dupl.Id != id)
+            {
+                return Result.Failure<ProveedorResponse>(
+                    Error.Conflict("Proveedor.CedulaDuplicada", $"La Cédula/NIT '{request.CedulaNit}' ya está registrada.")
+                ).ToHttpResult();
+            }
+
             var documentoResult = proveedor.ActualizarDocumento(request.CedulaNit.Trim());
             if (documentoResult.IsFailure)
             {
@@ -49,6 +60,8 @@ public class ActualizarProveedorEndpoint : IEndpoint
         {
             return Result.Failure<ProveedorResponse>(actualizarResult.Error).ToHttpResult();
         }
+
+        await proveedorRepository.ActualizarAsync(proveedor, cancellationToken);
 
         var response = new ProveedorResponse(
             Id: proveedor.Id,

@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Proveedores;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Proveedores;
 
@@ -15,7 +16,10 @@ public class CrearProveedorEndpoint : IEndpoint
            .WithSummary("Registra un nuevo proveedor");
     }
 
-    private static IResult Manejador(CrearProveedorRequest request)
+    private static async Task<IResult> Manejador(
+        CrearProveedorRequest request,
+        IProveedorRepository proveedorRepository,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Nombre) || string.IsNullOrWhiteSpace(request.CedulaNit))
         {
@@ -26,7 +30,8 @@ public class CrearProveedorEndpoint : IEndpoint
             return validationResult.ToHttpResult();
         }
 
-        if (ProveedorDataStore.ProveedoresDb.Any(proveedor => proveedor.Documento.Value.Equals(request.CedulaNit, StringComparison.OrdinalIgnoreCase)))
+        var proveedorExistente = await proveedorRepository.ObtenerPorCedulaNitAsync(request.CedulaNit, cancellationToken);
+        if (proveedorExistente is not null)
         {
             Result<ProveedorResponse> conflictResult = Error.Conflict(
                 "Proveedor.CedulaDuplicada",
@@ -35,16 +40,13 @@ public class CrearProveedorEndpoint : IEndpoint
             return conflictResult.ToHttpResult();
         }
 
-        var nuevoId = ProveedorDataStore.ProveedoresDb.Count != 0 ? ProveedorDataStore.ProveedoresDb.Max(proveedor => proveedor.Id) + 1 : 1;
-
         var proveedorResult = Proveedor.Create(
             nombre: request.Nombre,
             apellido: request.Apellido,
             cedulaNit: request.CedulaNit,
             telefono: request.Telefono,
             direccion: request.Direccion,
-            nombreEmpresa: request.NombreEmpresa,
-            id: nuevoId);
+            nombreEmpresa: request.NombreEmpresa);
 
         if (proveedorResult.IsFailure)
         {
@@ -52,10 +54,10 @@ public class CrearProveedorEndpoint : IEndpoint
         }
 
         var proveedor = proveedorResult.Value;
-        ProveedorDataStore.ProveedoresDb.Add(proveedor);
+        var nuevoId = await proveedorRepository.AgregarAsync(proveedor, cancellationToken);
 
         var response = new ProveedorResponse(
-            Id: proveedor.Id,
+            Id: nuevoId,
             Nombre: proveedor.Nombre,
             Apellido: proveedor.Apellido,
             CedulaNit: proveedor.Documento.Value,
@@ -65,6 +67,6 @@ public class CrearProveedorEndpoint : IEndpoint
         );
 
         Result<ProveedorResponse> createdResult = Result.Success(response);
-        return createdResult.ToHttpCreatedAtResult($"/api/proveedores/{proveedor.Id}");
+        return createdResult.ToHttpCreatedAtResult($"/api/proveedores/{nuevoId}");
     }
 }

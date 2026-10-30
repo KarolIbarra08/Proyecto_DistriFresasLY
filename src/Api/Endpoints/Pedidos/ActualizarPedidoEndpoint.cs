@@ -2,8 +2,8 @@ using DistriFresasLY.Api.Contracts.Pagos.Proveedores;
 using DistriFresasLY.Api.Contracts.Pedidos;
 using DistriFresasLY.Api.Endpoints.Pagos.Proveedores;
 using DistriFresasLY.Api.Endpoints.Pagos;
-using DistriFresasLY.Api.Endpoints.Proveedores;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Pedidos;
 
@@ -19,7 +19,11 @@ public class ActualizarPedidoEndpoint : IEndpoint
            .WithSummary("Actualiza un pedido existente junto con sus detalles");
     }
 
-    private static IResult Manejador(int id, ActualizarPedidoRequest request)
+    private static async Task<IResult> Manejador(
+        int id,
+        ActualizarPedidoRequest request,
+        IProveedorRepository proveedorRepository,
+        CancellationToken cancellationToken)
     {
         var index = PedidoDataStore.PedidosDb.FindIndex(p => p.Id == id);
 
@@ -41,7 +45,8 @@ public class ActualizarPedidoEndpoint : IEndpoint
                 return Result.Failure<PedidoResponse>(Error.Validation("Pedido.ProveedorInvalido", "El ID del proveedor es obligatorio.")).ToHttpResult();
             }
 
-            if (ProveedorDataStore.ProveedoresDb.All(p => p.Id != request.ProveedorId.Value))
+            var proveedor = await proveedorRepository.ObtenerPorIdAsync(request.ProveedorId.Value, cancellationToken);
+            if (proveedor is null)
             {
                 return Result.Failure<PedidoResponse>(Error.NotFound("Pedido.ProveedorNoEncontrado", $"No se encontró un proveedor con ID {request.ProveedorId.Value}.")).ToHttpResult();
             }

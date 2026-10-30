@@ -82,6 +82,29 @@ public sealed class Proveedor : Entity
         return Result.Success(proveedor);
     }
 
+
+    public static Proveedor Reconstruir(
+        int id,
+        string nombre,
+        string apellido,
+        string cedulaNit,
+        string telefono,
+        string direccion,
+        string nombreEmpresa)
+    {
+        var doc = CedulaNit.Create(cedulaNit).Value;
+        var tel = Telefono.Create(telefono).Value;
+
+        return new Proveedor(
+            id,
+            nombre,
+            apellido ?? string.Empty,
+            doc,
+            tel,
+            direccion ?? string.Empty,
+            nombreEmpresa ?? string.Empty);
+    }
+
     public Result ActualizarDatos(
         string nombre,
         string apellido,

@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Proveedores;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Proveedores;
@@ -14,9 +15,13 @@ public class ObtenerProveedoresEndpoint : IEndpoint
            .WithSummary("Obtiene la lista de proveedores registrados");
     }
 
-    private static IResult Manejador()
+    private static async Task<IResult> Manejador(
+        IProveedorRepository proveedorRepository,
+        CancellationToken cancellationToken)
     {
-        var proveedores = ProveedorDataStore.ProveedoresDb
+        var proveedores = await proveedorRepository.ObtenerTodosAsync(cancellationToken);
+
+        var listaResponse = proveedores
             .Select(proveedor => new ProveedorResponse(
                 Id: proveedor.Id,
                 Nombre: proveedor.Nombre,
@@ -27,7 +32,7 @@ public class ObtenerProveedoresEndpoint : IEndpoint
                 NombreEmpresa: proveedor.NombreEmpresa))
             .ToList();
 
-        var result = Result.Success(proveedores);
+        var result = Result.Success(listaResponse);
         return result.ToHttpResult();
     }
 }

@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Proveedores;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Proveedores;
@@ -14,14 +15,17 @@ public class ObtenerProveedorPorIdEndpoint : IEndpoint
            .WithSummary("Obtiene los datos de un proveedor existente por su ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IProveedorRepository proveedorRepository,
+        CancellationToken cancellationToken)
     {
-        var proveedor = ProveedorDataStore.ProveedoresDb.FirstOrDefault(p => p.Id == id);
-        if (proveedor == null)
+        var proveedor = await proveedorRepository.ObtenerPorIdAsync(id, cancellationToken);
+        if (proveedor is null)
         {
             Result<ProveedorResponse> errorResult = Error.NotFound(
                 "Proveedor.NotFound",
-                $"No se encontro un proveedor con el Id: {id}");
+                $"No se encontró un proveedor con el Id: {id}");
 
             return errorResult.ToHttpResult();
         }

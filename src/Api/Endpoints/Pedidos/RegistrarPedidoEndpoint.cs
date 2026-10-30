@@ -1,6 +1,6 @@
 using DistriFresasLY.Api.Contracts.Pedidos;
-using DistriFresasLY.Api.Endpoints.Proveedores;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Pedidos;
 
@@ -16,7 +16,10 @@ public class RegistrarPedidoEndpoint : IEndpoint
            .WithSummary("Registra un nuevo pedido con sus detalles");
     }
 
-    private static IResult Manejador(CrearPedidoRequest request)
+    private static async Task<IResult> Manejador(
+        CrearPedidoRequest request,
+        IProveedorRepository proveedorRepository,
+        CancellationToken cancellationToken)
     {
         if (request.ProveedorId <= 0)
         {
@@ -27,7 +30,8 @@ public class RegistrarPedidoEndpoint : IEndpoint
             return validationResult.ToHttpResult();
         }
 
-        if (ProveedorDataStore.ProveedoresDb.All(p => p.Id != request.ProveedorId))
+        var proveedor = await proveedorRepository.ObtenerPorIdAsync(request.ProveedorId, cancellationToken);
+        if (proveedor is null)
         {
             Result<PedidoResponse> notFoundResult = Error.NotFound(
                 "Pedido.ProveedorNoEncontrado",
