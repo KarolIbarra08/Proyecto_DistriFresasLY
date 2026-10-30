@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Productos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Productos;
 
@@ -15,21 +16,17 @@ public class RegistrarProductoInsumoEndpoint : IEndpoint
            .WithSummary("Registra un nuevo producto insumo");
     }
 
-    private static IResult Manejador(
-        CrearProductoInsumoRequest request)
+    private static async Task<IResult> Manejador(
+        CrearProductoInsumoRequest request,
+        IProductoRepository productoRepository,
+        CancellationToken cancellationToken)
     {
-        var nuevoId = ProductoDataStore.InsumosDb.Count != 0
-            ? ProductoDataStore.InsumosDb.Max(p => p.Id) + 1
-            : 101;
-
-
-
+        // 1. Crear el Value Object/Entidad con las validaciones de Dominio
         var result = ProductoInsumo.Create(
             request.Nombre,
-            request.Tipo,
+            request.TipoInsumo,
             request.UnidadMedida,
-            request.Descripcion,
-            nuevoId);
+            request.Descripcion);
 
         if (result.IsFailure)
         {
@@ -40,20 +37,21 @@ public class RegistrarProductoInsumoEndpoint : IEndpoint
 
         var insumo = result.Value;
 
-        ProductoDataStore.InsumosDb.Add(insumo);
+        // 2. Guardar permanentemente en la Base de Datos SQLite
+        var idGenerado = await productoRepository.AgregarInsumoAsync(insumo, cancellationToken);
 
+        // 3. Crear el objeto de respuesta con el ID persistido
         var response = new ProductoInsumoResponse(
-            insumo.Id,
+            idGenerado,
             insumo.TipoProducto,
             insumo.Nombre,
-            insumo.Tipo,
+            insumo.TipoInsumo,
             insumo.UnidadMedida,
             insumo.Descripcion
         );
 
         return Result
             .Success(response)
-            .ToHttpCreatedAtResult(
-                $"/api/productos/insumo/{insumo.Id}");
+            .ToHttpCreatedAtResult($"/api/productos/insumo/{idGenerado}");
     }
 }

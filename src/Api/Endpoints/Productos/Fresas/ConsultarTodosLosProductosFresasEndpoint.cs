@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Productos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Productos.Fresas;
@@ -14,12 +15,18 @@ public class ConsultarTodosLosProductosFresasEndpoint : IEndpoint
            .WithSummary("Consulta todos los productos fresa");
     }
 
-    private static IResult Manejador()
+    private static async Task<IResult> Manejador(
+        IProductoRepository productoRepository,
+        CancellationToken cancellationToken)
     {
-        var lista = ProductoDataStore.FresasDb
+
+        var fresasEntities = await productoRepository.ObtenerTodasFresasAsync(cancellationToken);
+
+
+        var lista = fresasEntities
             .Select(fresa => new ProductoFresaResponse(
                 fresa.Id,
-                fresa.TipoProducto,
+                fresa.TipoProducto.ToString(),
                 fresa.Calibre.Value,
                 fresa.Calidad,
                 fresa.Peso.Value,

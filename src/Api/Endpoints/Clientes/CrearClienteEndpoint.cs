@@ -1,7 +1,8 @@
 using DistriFresasLY.Api.Contracts.Clientes;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
-using DistriFresasLY.Domain.Entities.Cliente;
+using DistriFresasLY.Domain.Entities.Cliente; 
 
 namespace DistriFresasLY.Api.Endpoints.Clientes;
 
@@ -12,62 +13,52 @@ public class CrearClienteEndpoint : IEndpoint
         app.MapPost("/clientes", Manejador)
            .WithName("CrearCliente")
            .WithTags("Clientes")
-           .WithSummary("Registra un nuevo cliente");
+           .WithSummary("Crea un nuevo cliente en el sistema");
     }
 
-    private static IResult Manejador(CrearClienteRequest request)
+    private static async Task<IResult> Manejador(
+        CrearClienteRequest request,
+        IClienteRepository clienteRepository,
+        CancellationToken cancellationToken)
     {
-        // Verificar si ya existe un cliente con la misma Cedula/NIT
-        if (ClienteDataStore.ClientesDb.Any(
-            cliente => cliente.Documento.Value.Equals(
-                request.CedulaNit,
-                StringComparison.OrdinalIgnoreCase)))
-        {
-            Result<ClienteResponse> conflictResult = Error.Conflict(
-                "Cliente.CedulaDuplicada",
-                $"Ya existe un cliente registrado con la Cédula/NIT '{request.CedulaNit}'.");
+        var existeDocumento = await clienteRepository.ExistePorDocumentoAsync(
+            request.CedulaNit, 
+            cancellationToken: cancellationToken);
 
-            return conflictResult.ToHttpResult();
+        if (existeDocumento)
+        {
+            return Result.Failure<ClienteResponse>(
+                Error.Conflict("Cliente.CedulaNitDuplicada", "La Cédula/NIT ya está registrada.")
+            ).ToHttpResult();
         }
 
-        // Generar el identificador del nuevo cliente
-        var nuevoId = ClienteDataStore.ClientesDb.Count != 0
-            ? ClienteDataStore.ClientesDb.Max(cliente => cliente.Id) + 1
-            : 1;
-
-
+      
         var clienteResult = Cliente.Create(
-            nombre: request.Nombre,
-            cedulaNit: request.CedulaNit,
-            telefono: request.Telefono,
-            direccion: request.Direccion,
-            tipoNegocio: request.TipoNegocio,
-            id: nuevoId);
-
-   
-        if (clienteResult.IsFailure)
-        {
-            return clienteResult.ToHttpResult();
-        }
-
-        var cliente = clienteResult.Value;
-
-        // Crear la respuesta de la API
-        var response = new ClienteResponse(
-            Id: cliente.Id,
-            Nombre: cliente.Nombre,
-            CedulaNit: cliente.Documento.Value,
-            Telefono: cliente.Telefono.Valor,
-            Direccion: cliente.Direccion,
-            TipoNegocio: cliente.TipoNegocio
+            request.Nombre,
+            request.CedulaNit,
+            request.Telefono,
+            request.Direccion,
+            request.TipoNegocio
         );
 
-        // Guardar el cliente
-        ClienteDataStore.ClientesDb.Add(cliente);
+        if (clienteResult.IsFailure)
+        {
+            return Result.Failure<ClienteResponse>(clienteResult.Error).ToHttpResult();
+        }
 
-        Result<ClienteResponse> createdResult = Result.Success(response);
+        var idGenerado = await clienteRepository.AgregarAsync(clienteResult.Value, cancellationToken);
 
-        return createdResult.ToHttpCreatedAtResult(
-            $"/api/clientes/{cliente.Id}");
+        var clienteCreado = await clienteRepository.ObtenerPorIdAsync(idGenerado, cancellationToken);
+
+        var response = new ClienteResponse(
+            Id: clienteCreado!.Id,
+            Nombre: clienteCreado.Nombre,
+            CedulaNit: clienteCreado.Documento.Value,
+            Telefono: clienteCreado.Telefono.Valor,
+            Direccion: clienteCreado.Direccion,
+            TipoNegocio: clienteCreado.TipoNegocio
+        );
+
+        return Result.Success(response).ToHttpResult();
     }
 }

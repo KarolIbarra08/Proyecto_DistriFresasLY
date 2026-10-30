@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Productos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Productos.Insumos;
@@ -11,24 +12,29 @@ public class ConsultarProductosInsumoEndpoint : IEndpoint
         app.MapGet("/productos/insumo", Manejador)
            .WithName("ConsultarProductosInsumo")
            .WithTags("Productos Insumo")
-           .WithSummary("Consulta todos los productos insumo");
+           .WithSummary("Consulta la lista de productos insumo");
     }
 
-    private static IResult Manejador()
+    private static async Task<IResult> Manejador(
+        IProductoRepository productoRepository,
+        CancellationToken cancellationToken)
     {
-        var lista = ProductoDataStore.InsumosDb
+      
+        var insumosEntities = await productoRepository.ObtenerTodosInsumosAsync(cancellationToken);
+
+    
+        var insumosResponse = insumosEntities
             .Select(insumo => new ProductoInsumoResponse(
                 insumo.Id,
-                insumo.TipoProducto,
+                insumo.TipoProducto.ToString(),
                 insumo.Nombre,
-                insumo.Tipo,
+                insumo.TipoInsumo,
                 insumo.UnidadMedida,
                 insumo.Descripcion
             ))
             .ToList();
 
-        return Result
-            .Success(lista)
-            .ToHttpResult();
+        
+        return Result.Success(insumosResponse).ToHttpResult();
     }
 }

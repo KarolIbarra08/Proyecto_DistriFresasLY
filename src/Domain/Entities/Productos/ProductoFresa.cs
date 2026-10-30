@@ -24,6 +24,19 @@ public class ProductoFresa : Producto
         Descripcion = descripcion;
     }
 
+    public static ProductoFresa Rehidratar(
+        int id,
+        int calibre,
+        string calidad,
+        double peso,
+        string descripcion)
+    {
+        var calibreVo = Calibre.Create(calibre).Value;
+        var pesoVo = Peso.Create(peso).Value;
+
+        return new ProductoFresa(id, calibreVo, calidad, pesoVo, descripcion);
+    }
+
     public static Result<ProductoFresa> Create(
         int calibre,
         string calidad,
@@ -32,7 +45,6 @@ public class ProductoFresa : Producto
         Func<int, bool> existeCalibre, 
         int id = 0)
     {
-
         if (string.IsNullOrWhiteSpace(descripcion))
         {
             return Result.Failure<ProductoFresa>(
@@ -49,7 +61,6 @@ public class ProductoFresa : Producto
                     "La calidad no puede estar vacía."));
         }
 
-
         if (existeCalibre(calibre))
         {
             return Result.Failure<ProductoFresa>(
@@ -58,7 +69,6 @@ public class ProductoFresa : Producto
                     $"El calibre {calibre} ya se encuentra registrado."));
         }
 
-   
         var calibreResult = Calibre.Create(calibre);
         if (calibreResult.IsFailure)
         {
@@ -103,7 +113,6 @@ public class ProductoFresa : Producto
                     "La calidad no puede estar vacía."));
         }
 
-  
         if (existeCalibreParaOtro(calibre))
         {
             return Result.Failure(

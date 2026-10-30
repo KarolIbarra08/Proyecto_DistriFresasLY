@@ -1,7 +1,10 @@
+using DistriFresasLY.Api.Contracts.Productos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Productos;
 
-namespace DistriFresasLY.Api.Endpoints.Productos.Insumo;
+namespace DistriFresasLY.Api.Endpoints.Productos.Insumos;
 
 public class EliminarProductoInsumoEndpoint : IEndpoint
 {
@@ -10,20 +13,33 @@ public class EliminarProductoInsumoEndpoint : IEndpoint
         app.MapDelete("/productos/insumo/{id:int}", Manejador)
            .WithName("EliminarProductoInsumo")
            .WithTags("Productos Insumo")
-           .WithSummary("Elimina un producto insumo por ID");
+           .WithSummary("Elimina un producto insumo por su ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id, 
+        IProductoRepository productoRepository, 
+        CancellationToken cancellationToken)
     {
-        var index = ProductoDataStore.InsumosDb.FindIndex(p => p.Id == id);
-        if (index == -1)
+
+        var productoExistente = await productoRepository.ObtenerPorIdAsync(id, cancellationToken);
+
+        if (productoExistente is not ProductoInsumo)
         {
-            return Result.Failure<bool>(Error.NotFound(
-                "ProductoInsumo.NotFound", $"No se encontro el insumo con ID: {id}"))
-                .ToHttpResult();
+            return Result.Failure(
+                Error.NotFound("ProductoInsumo.NotFound", $"No se encontró el insumo con ID {id}")
+            ).ToHttpResult();
         }
 
-        ProductoDataStore.InsumosDb.RemoveAt(index);
-        return Result.Success(true).ToHttpResult();
+
+        await productoRepository.EliminarAsync(id, cancellationToken);
+
+
+        var respuesta = new 
+        { 
+            mensaje = $"El producto insumo con ID {id} se eliminó correctamente." 
+        };
+
+        return Result.Success(respuesta).ToHttpResult();
     }
 }

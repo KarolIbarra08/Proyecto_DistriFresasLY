@@ -4,7 +4,7 @@ public record ProductoInsumoResponse(
     int Id,
     string TipoProducto,
     string Nombre,
-    string Tipo,
+    string TipoInsumo,
     string UnidadMedida,
     string Descripcion
 );

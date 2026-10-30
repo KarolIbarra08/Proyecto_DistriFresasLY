@@ -1,6 +1,8 @@
 using DistriFresasLY.Api.Contracts.Productos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Productos;
 
 namespace DistriFresasLY.Api.Endpoints.Productos.Insumos;
 
@@ -14,12 +16,16 @@ public class ConsultarProductoInsumoPorIdEndpoint : IEndpoint
            .WithSummary("Consulta un producto insumo por ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id, 
+        IProductoRepository productoRepository, 
+        CancellationToken cancellationToken)
     {
-        var insumo = ProductoDataStore.InsumosDb
-            .FirstOrDefault(p => p.Id == id);
+       
+        var producto = await productoRepository.ObtenerPorIdAsync(id, cancellationToken);
 
-        if (insumo is null)
+    
+        if (producto is not ProductoInsumo insumo)
         {
             return Result
                 .Failure<ProductoInsumoResponse>(
@@ -29,15 +35,17 @@ public class ConsultarProductoInsumoPorIdEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
+
         var response = new ProductoInsumoResponse(
             insumo.Id,
-            insumo.TipoProducto,
+            insumo.TipoProducto.ToString(),
             insumo.Nombre,
-            insumo.Tipo,
+            insumo.TipoInsumo,
             insumo.UnidadMedida,
             insumo.Descripcion
         );
 
+       
         return Result
             .Success(response)
             .ToHttpResult();

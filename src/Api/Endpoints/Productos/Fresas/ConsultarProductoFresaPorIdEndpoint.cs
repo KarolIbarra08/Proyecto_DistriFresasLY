@@ -1,6 +1,8 @@
 using DistriFresasLY.Api.Contracts.Productos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Productos;
 
 namespace DistriFresasLY.Api.Endpoints.Productos.Fresas;
 
@@ -8,18 +10,21 @@ public class ConsultarProductoFresaPorIdEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
+        // DEBE SER MapGet, NO MapDelete
         app.MapGet("/productos/fresa/{id:int}", Manejador)
            .WithName("ConsultarProductoFresaPorId")
            .WithTags("Productos Fresa")
            .WithSummary("Consulta un producto fresa por ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IProductoRepository productoRepository,
+        CancellationToken cancellationToken)
     {
-        var fresa = ProductoDataStore.FresasDb
-            .FirstOrDefault(p => p.Id == id);
+        var producto = await productoRepository.ObtenerPorIdAsync(id, cancellationToken);
 
-        if (fresa is null)
+        if (producto is not ProductoFresa fresa)
         {
             return Result
                 .Failure<ProductoFresaResponse>(
@@ -31,7 +36,7 @@ public class ConsultarProductoFresaPorIdEndpoint : IEndpoint
 
         var response = new ProductoFresaResponse(
             fresa.Id,
-            fresa.TipoProducto,
+            fresa.TipoProducto.ToString(),
             fresa.Calibre.Value,
             fresa.Calidad,
             fresa.Peso.Value,

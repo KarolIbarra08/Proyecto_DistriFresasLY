@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Clientes;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Clientes;
@@ -14,16 +15,20 @@ public class ObtenerClientePorIdEndpoint : IEndpoint
            .WithSummary("Obtiene el detalle de un cliente por su ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IClienteRepository clienteRepository,
+        CancellationToken cancellationToken)
     {
-        var cliente = ClienteDataStore.ClientesDb.FirstOrDefault(cliente => cliente.Id == id);
+        var cliente = await clienteRepository.ObtenerPorIdAsync(id, cancellationToken);
+        
         if (cliente is null)
         {
-            Result<ClienteResponse> errorResult = Error.NotFound(
+            var errorResult = Error.NotFound(
                 "Cliente.NotFound",
                 $"No se encontro un cliente con el Id: {id}");
 
-            return errorResult.ToHttpResult();
+            return Result.Failure<ClienteResponse>(errorResult).ToHttpResult();
         }
 
         var response = new ClienteResponse(
@@ -35,7 +40,6 @@ public class ObtenerClientePorIdEndpoint : IEndpoint
             TipoNegocio: cliente.TipoNegocio
         );
 
-        Result<ClienteResponse> successResult = Result.Success(response);
-        return successResult.ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

@@ -1,7 +1,9 @@
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
+using DistriFresasLY.Domain.Entities.Productos;
 
-namespace DistriFresasLY.Api.Endpoints.Productos.Fresa;
+namespace DistriFresasLY.Api.Endpoints.Productos.Fresas;
 
 public class EliminarProductoFresaEndpoint : IEndpoint
 {
@@ -13,17 +15,30 @@ public class EliminarProductoFresaEndpoint : IEndpoint
            .WithSummary("Elimina un producto fresa por ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IProductoRepository productoRepository,
+        CancellationToken cancellationToken)
     {
-        var index = ProductoDataStore.FresasDb.FindIndex(p => p.Id == id);
-        if (index == -1)
+
+        var productoExistente = await productoRepository.ObtenerPorIdAsync(id, cancellationToken);
+
+        if (productoExistente is not ProductoFresa)
         {
-            return Result.Failure<bool>(Error.NotFound(
-                "ProductoFresa.NotFound", $"No se encontro la fresa con ID: {id}"))
-                .ToHttpResult();
+            return Result.Failure(
+                Error.NotFound("ProductoFresa.NotFound", $"No se encontró la fresa con ID: {id}")
+            ).ToHttpResult();
         }
 
-        ProductoDataStore.FresasDb.RemoveAt(index);
-        return Result.Success(true).ToHttpResult();
+
+        await productoRepository.EliminarAsync(id, cancellationToken);
+
+
+        var respuesta = new 
+        { 
+            mensaje = $"El producto fresa con ID {id} se eliminó correctamente." 
+        };
+
+        return Result.Success(respuesta).ToHttpResult();
     }
 }

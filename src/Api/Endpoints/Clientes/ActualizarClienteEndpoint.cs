@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Clientes;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Cliente;
 
@@ -12,42 +13,57 @@ public class ActualizarClienteEndpoint : IEndpoint
         app.MapPut("/clientes/{id:int}", Manejador)
            .WithName("ActualizarCliente")
            .WithTags("Clientes")
-           .WithSummary("Actualiza los datos de un cliente existente");
+           .WithSummary("Actualiza la información de un cliente existente");
     }
 
-    private static IResult Manejador(int id, ActualizarClienteRequest request)
+    private static async Task<IResult> Manejador(
+        int id,
+        ActualizarClienteRequest request,
+        IClienteRepository clienteRepository,
+        CancellationToken cancellationToken)
     {
-        var index = ClienteDataStore.ClientesDb.FindIndex(cliente => cliente.Id == id);
-        if (index == -1)
+        var cliente = await clienteRepository.ObtenerPorIdAsync(id, cancellationToken);
+        if (cliente is null)
         {
-            Result<ClienteResponse> errorResult = Error.NotFound(
-                "Cliente.NotFound",
-                $"No se encontro un cliente con el Id: {id}");
-
-            return errorResult.ToHttpResult();
+            return Result.Failure<ClienteResponse>(
+                Error.NotFound("Cliente.NotFound", $"No se encontró el cliente con ID {id}")
+            ).ToHttpResult();
         }
 
-        var cliente = ClienteDataStore.ClientesDb[index];
-
-        if (!string.IsNullOrWhiteSpace(request.CedulaNit))
+        if (!string.IsNullOrWhiteSpace(request.CedulaNit) && cliente.Documento.Value != request.CedulaNit)
         {
-            var documentoResult = cliente.ActualizarDocumento(request.CedulaNit.Trim());
-            if (documentoResult.IsFailure)
+            var existeDocumento = await clienteRepository.ExistePorDocumentoAsync(
+                request.CedulaNit, 
+                id, 
+                cancellationToken);
+
+            if (existeDocumento)
             {
-                return Result.Failure<ClienteResponse>(documentoResult.Error).ToHttpResult();
+                return Result.Failure<ClienteResponse>(
+                    Error.Conflict("Cliente.CedulaNitDuplicada", "La Cédula/NIT ya está registrada por otro cliente.")
+                ).ToHttpResult();
+            }
+
+            var docResult = cliente.ActualizarDocumento(request.CedulaNit);
+            if (docResult.IsFailure)
+            {
+                return Result.Failure<ClienteResponse>(docResult.Error).ToHttpResult();
             }
         }
 
-        var nombre = !string.IsNullOrWhiteSpace(request.Nombre) ? request.Nombre.Trim() : cliente.Nombre;
-        var telefono = !string.IsNullOrWhiteSpace(request.Telefono) ? request.Telefono.Trim() : cliente.Telefono.Valor;
-        var direccion = !string.IsNullOrWhiteSpace(request.Direccion) ? request.Direccion.Trim() : cliente.Direccion;
-        var tipoNegocio = !string.IsNullOrWhiteSpace(request.TipoNegocio) ? request.TipoNegocio.Trim() : cliente.TipoNegocio;
 
-        var actualizarResult = cliente.ActualizarDatos(nombre, telefono, direccion, tipoNegocio);
-        if (actualizarResult.IsFailure)
+        var updateResult = cliente.ActualizarDatos(
+            request.Nombre,
+            request.Telefono,
+            request.Direccion,
+            request.TipoNegocio);
+
+        if (updateResult.IsFailure)
         {
-            return Result.Failure<ClienteResponse>(actualizarResult.Error).ToHttpResult();
+            return Result.Failure<ClienteResponse>(updateResult.Error).ToHttpResult();
         }
+
+        await clienteRepository.ActualizarAsync(cliente, cancellationToken);
 
         var response = new ClienteResponse(
             Id: cliente.Id,
@@ -58,7 +74,6 @@ public class ActualizarClienteEndpoint : IEndpoint
             TipoNegocio: cliente.TipoNegocio
         );
 
-        Result<ClienteResponse> successResult = Result.Success(response);
-        return successResult.ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

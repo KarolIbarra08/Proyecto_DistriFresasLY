@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Productos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Productos;
 
@@ -15,20 +16,25 @@ public class RegistrarProductoFresaEndpoint : IEndpoint
            .WithSummary("Registra un nuevo producto fresa");
     }
 
-    private static IResult Manejador(
-        CrearProductoFresaRequest request)
+    private static async Task<IResult> Manejador(
+        CrearProductoFresaRequest request,
+        IProductoRepository productoRepository,
+        CancellationToken cancellationToken)
     {
-        var nuevoId = ProductoDataStore.FresasDb.Count != 0
-            ? ProductoDataStore.FresasDb.Max(p => p.Id) + 1
-            : 1;
 
+        bool ExisteCalibre(int c) => productoRepository
+            .ExisteCalibreAsync(c, idExcluir: null, cancellationToken)
+            .GetAwaiter()
+            .GetResult();
+
+       
         var result = ProductoFresa.Create(
             request.Calibre,
             request.Calidad,
             request.Peso,
             request.Descripcion,
-            c => ProductoDataStore.FresasDb.Any(p => p.Calibre.Value == c), 
-            nuevoId);
+            ExisteCalibre,
+            id: 0);
 
         if (result.IsFailure)
         {
@@ -39,11 +45,13 @@ public class RegistrarProductoFresaEndpoint : IEndpoint
 
         var fresa = result.Value;
 
-        ProductoDataStore.FresasDb.Add(fresa);
 
+        var idGenerado = await productoRepository.AgregarFresaAsync(fresa, cancellationToken);
+
+  
         var response = new ProductoFresaResponse(
-            fresa.Id,
-            fresa.TipoProducto,
+            idGenerado,
+            fresa.TipoProducto.ToString(),
             fresa.Calibre.Value, 
             fresa.Calidad,
             fresa.Peso.Value,    
@@ -52,7 +60,6 @@ public class RegistrarProductoFresaEndpoint : IEndpoint
 
         return Result
             .Success(response)
-            .ToHttpCreatedAtResult(
-                $"/api/productos/fresa/{fresa.Id}");
+            .ToHttpCreatedAtResult($"/api/productos/fresa/{idGenerado}");
     }
 }

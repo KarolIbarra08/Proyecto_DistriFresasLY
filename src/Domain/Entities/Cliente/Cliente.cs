@@ -12,7 +12,6 @@ public sealed class Cliente : Entity
     public string TipoNegocio { get; private set; }
     public bool Activo { get; private set; }
 
-
     private Cliente(
         int id,
         string nombre,
@@ -22,7 +21,7 @@ public sealed class Cliente : Entity
         string tipoNegocio,
         bool activo)
     {
-        Id = id;
+        Id = id; 
         Nombre = nombre;
         Documento = documento;
         Telefono = telefono;
@@ -31,6 +30,27 @@ public sealed class Cliente : Entity
         Activo = activo;
     }
 
+    public static Cliente Rehidratar(
+        int id,
+        string nombre,
+        string cedulaNit,
+        string telefono,
+        string direccion,
+        string tipoNegocio,
+        bool activo)
+    {
+        var documento = CedulaNit.Rehidratar(cedulaNit);
+        var telefonoObj = Telefono.Rehidratar(telefono);
+
+        return new Cliente(
+            id,
+            nombre ?? string.Empty,
+            documento,
+            telefonoObj,
+            direccion ?? string.Empty,
+            tipoNegocio ?? string.Empty,
+            activo);
+    }
 
     public static Result<Cliente> Create(
         string nombre,
@@ -40,13 +60,10 @@ public sealed class Cliente : Entity
         string tipoNegocio,
         int id = 0)
     {
-        // Validar nombre
         if (string.IsNullOrWhiteSpace(nombre))
         {
             return Result.Failure<Cliente>(
-                Error.Validation(
-                    "Cliente.NombreObligatorio",
-                    "El nombre del cliente es obligatorio."));
+                Error.Validation("Cliente.NombreObligatorio", "El nombre del cliente es obligatorio."));
         }
 
         nombre = nombre.Trim();
@@ -54,63 +71,43 @@ public sealed class Cliente : Entity
         if (nombre.Length < 3)
         {
             return Result.Failure<Cliente>(
-                Error.Validation(
-                    "Cliente.NombreInvalido",
-                    "El nombre del cliente debe tener al menos 3 caracteres."));
+                Error.Validation("Cliente.NombreInvalido", "El nombre del cliente debe tener al menos 3 caracteres."));
         }
 
-
-        // Validar Cédula/NIT
         if (string.IsNullOrWhiteSpace(cedulaNit))
         {
             return Result.Failure<Cliente>(
-                Error.Validation(
-                    "Cliente.CedulaNitObligatoria",
-                    "La Cedula/NIT es obligatoria."));
+                Error.Validation("Cliente.CedulaNitObligatoria", "La Cédula/NIT es obligatoria."));
         }
 
         var documentoResult = CedulaNit.Create(cedulaNit);
-
         if (documentoResult.IsFailure)
         {
             return Result.Failure<Cliente>(documentoResult.Error);
         }
 
-
-        // Validar teléfono
         var telefonoResult = Telefono.Create(telefono);
-
         if (telefonoResult.IsFailure)
         {
             return Result.Failure<Cliente>(telefonoResult.Error);
         }
 
-
-        // Validar dirección
         if (string.IsNullOrWhiteSpace(direccion))
         {
             return Result.Failure<Cliente>(
-                Error.Validation(
-                    "Cliente.DireccionObligatoria",
-                    "La direccion es obligatoria."));
+                Error.Validation("Cliente.DireccionObligatoria", "La dirección es obligatoria."));
         }
 
         direccion = direccion.Trim();
 
-
-        // Validar tipo de negocio
         if (string.IsNullOrWhiteSpace(tipoNegocio))
         {
             return Result.Failure<Cliente>(
-                Error.Validation(
-                    "Cliente.TipoNegocioObligatorio",
-                    "El tipo de negocio es obligatorio."));
+                Error.Validation("Cliente.TipoNegocioObligatorio", "El tipo de negocio es obligatorio."));
         }
 
         tipoNegocio = tipoNegocio.Trim();
 
-
-        // Crear cliente
         var cliente = new Cliente(
             id,
             nombre,
@@ -123,88 +120,59 @@ public sealed class Cliente : Entity
         return Result.Success(cliente);
     }
 
-
     public Result ActualizarDatos(
-        string nombre,
-        string telefono,
-        string direccion,
-        string tipoNegocio)
+        string? nombre,
+        string? telefono,
+        string? direccion,
+        string? tipoNegocio)
     {
-        // Validar nombre
-        if (string.IsNullOrWhiteSpace(nombre))
+    
+        if (!string.IsNullOrWhiteSpace(nombre))
         {
-            return Result.Failure(
-                Error.Validation(
-                    "Cliente.NombreObligatorio",
-                    "El nombre del cliente es obligatorio."));
+            nombre = nombre.Trim();
+
+            if (nombre.Length < 3)
+            {
+                return Result.Failure(
+                    Error.Validation("Cliente.NombreInvalido", "El nombre del cliente debe tener al menos 3 caracteres."));
+            }
+
+            Nombre = nombre;
         }
 
-        nombre = nombre.Trim();
-
-        if (nombre.Length < 3)
+        if (!string.IsNullOrWhiteSpace(telefono))
         {
-            return Result.Failure(
-                Error.Validation(
-                    "Cliente.NombreInvalido",
-                    "El nombre del cliente debe tener al menos 3 caracteres."));
+            var telefonoResult = Telefono.Create(telefono);
+            if (telefonoResult.IsFailure)
+            {
+                return Result.Failure(telefonoResult.Error);
+            }
+
+            Telefono = telefonoResult.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(direccion))
+        {
+            Direccion = direccion.Trim();
         }
 
 
-        // Validar teléfono
-        var telefonoResult = Telefono.Create(telefono);
-
-        if (telefonoResult.IsFailure)
+        if (!string.IsNullOrWhiteSpace(tipoNegocio))
         {
-            return Result.Failure(telefonoResult.Error);
+            TipoNegocio = tipoNegocio.Trim();
         }
-
-
-        // Validar dirección
-        if (string.IsNullOrWhiteSpace(direccion))
-        {
-            return Result.Failure(
-                Error.Validation(
-                    "Cliente.DireccionObligatoria",
-                    "La dirección es obligatoria."));
-        }
-
-        direccion = direccion.Trim();
-
-
-        // Validar tipo de negocio
-        if (string.IsNullOrWhiteSpace(tipoNegocio))
-        {
-            return Result.Failure(
-                Error.Validation(
-                    "Cliente.TipoNegocioObligatorio",
-                    "El tipo de negocio es obligatorio."));
-        }
-
-        tipoNegocio = tipoNegocio.Trim();
-
-
-        // Actualizar
-        Nombre = nombre;
-        Telefono = telefonoResult.Value;
-        Direccion = direccion;
-        TipoNegocio = tipoNegocio;
 
         return Result.Success();
     }
 
-
-    public Result ActualizarDocumento(string nuevaCedulaNit)
+    public Result ActualizarDocumento(string? nuevaCedulaNit)
     {
         if (string.IsNullOrWhiteSpace(nuevaCedulaNit))
         {
-            return Result.Failure(
-                Error.Validation(
-                    "Cliente.CedulaNitObligatoria",
-                    "La Cédula/NIT es obligatoria."));
+            return Result.Success();
         }
 
         var docResult = CedulaNit.Create(nuevaCedulaNit);
-
         if (docResult.IsFailure)
         {
             return Result.Failure(docResult.Error);
@@ -214,7 +182,6 @@ public sealed class Cliente : Entity
 
         return Result.Success();
     }
-
 
     public void Desactivar() => Activo = false;
     public void Activar() => Activo = true;

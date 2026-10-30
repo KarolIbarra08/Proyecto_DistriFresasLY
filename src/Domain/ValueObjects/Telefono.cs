@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Domain.ValueObjects;
@@ -20,7 +19,7 @@ public sealed record Telefono
             return Result.Failure<Telefono>(
                 Error.Validation(
                     "Telefono.Obligatorio",
-                    "El telefono es obligatorio."));
+                    "El teléfono es obligatorio."));
         }
 
         valor = valor.Trim();
@@ -35,4 +34,10 @@ public sealed record Telefono
 
         return Result.Success(new Telefono(valor));
     }
+
+    public static Telefono Rehidratar(string? valor) => new(valor?.Trim() ?? string.Empty);
+
+    public static implicit operator string(Telefono telefono) => telefono.Valor;
+
+    public override string ToString() => Valor;
 }

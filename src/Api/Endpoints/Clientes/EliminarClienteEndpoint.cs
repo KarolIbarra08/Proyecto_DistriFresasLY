@@ -1,4 +1,5 @@
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Clientes;
@@ -10,24 +11,42 @@ public class EliminarClienteEndpoint : IEndpoint
         app.MapDelete("/clientes/{id:int}", Manejador)
            .WithName("EliminarCliente")
            .WithTags("Clientes")
-           .WithSummary("Elimina un cliente por su ID");
+           .WithSummary("Elimina un cliente por ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IClienteRepository clienteRepository,
+        CancellationToken cancellationToken)
     {
-        var cliente = ClienteDataStore.ClientesDb.FirstOrDefault(cliente => cliente.Id == id);
+        // 1. Verificar si el cliente existe
+        var cliente = await clienteRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (cliente is null)
         {
-            Result<bool> errorResult = Error.NotFound(
-                "Cliente.NotFound",
-                $"No se encontro un cliente con el Id: {id}");
-
-            return errorResult.ToHttpResult();
+            return Result.Failure(
+                Error.NotFound("Cliente.NotFound", $"No se encontró el cliente con ID: {id}")
+            ).ToHttpResult();
         }
 
-        ClienteDataStore.ClientesDb.Remove(cliente);
+        // 2. Verificar si el cliente tiene pedidos vinculados
+        var tienePedidos = await clienteRepository.TienePedidosAsociadosAsync(id, cancellationToken);
+        if (tienePedidos)
+        {
+            return Result.Failure(
+                Error.Conflict(
+                    "Cliente.TienePedidos", 
+                    $"No se puede eliminar el cliente con ID {id} porque tiene pedidos asociados.")
+            ).ToHttpResult();
+        }
 
-        Result<bool> successResult = Result.Success(true);
-        return successResult.ToHttpResult();
+        // 3. Proceder con la eliminación si no tiene dependencias
+        await clienteRepository.EliminarAsync(id, cancellationToken);
+
+        var respuesta = new 
+        { 
+            mensaje = $"El cliente con ID {id} se eliminó correctamente." 
+        };
+
+        return Result.Success(respuesta).ToHttpResult();
     }
 }

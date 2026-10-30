@@ -22,7 +22,7 @@ public sealed record CedulaNit
         {
             return Result.Failure<CedulaNit>(Error.Validation(
                 "CedulaNit.Requerida",
-                "El numero de Cedula o NIT es obligatorio."));
+                "El número de Cédula o NIT es obligatorio."));
         }
 
         var docLimpio = documento.Trim();
@@ -31,11 +31,13 @@ public sealed record CedulaNit
         {
             return Result.Failure<CedulaNit>(Error.Validation(
                 "CedulaNit.FormatoInvalido",
-                "El formato de la Cédula o NIT no es valido."));
+                "El formato de la Cédula o NIT no es válido."));
         }
 
         return Result.Success(new CedulaNit(docLimpio.ToUpperInvariant()));
     }
+
+    public static CedulaNit Rehidratar(string? valor) => new(valor?.Trim() ?? string.Empty);
 
     public static implicit operator string(CedulaNit cedulaNit) => cedulaNit.Value;
 
