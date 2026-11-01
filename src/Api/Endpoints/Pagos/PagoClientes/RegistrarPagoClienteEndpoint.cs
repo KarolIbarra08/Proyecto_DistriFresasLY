@@ -8,6 +8,8 @@ namespace DistriFresasLY.Api.Endpoints.Pagos.Clientes;
 
 public class RegistrarPagoClienteEndpoint : IEndpoint
 {
+    private static readonly string[] EstadosProhibidosVenta = { "Completada", "Pagada", "Cancelada", "Anulada" };
+
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/pagos/clientes", Manejador)
@@ -22,18 +24,43 @@ public class RegistrarPagoClienteEndpoint : IEndpoint
         IPagoClienteRepository pagoRepository,
         CancellationToken cancellationToken)
     {
+
+        if (request.ClienteId <= 0 || request.VentaId <= 0)
+        {
+            return Result.Failure<PagoClienteResponse>(
+                Error.Validation("PagoCliente.IdsInvalidos", "El ClienteId y VentaId deben ser obligatorios y mayores a 0."))
+                .ToHttpResult();
+        }
+
+        if (request.Valor <= 0)
+        {
+            return Result.Failure<PagoClienteResponse>(
+                Error.Validation("PagoCliente.ValorInvalido", "El valor del pago debe ser mayor a 0."))
+                .ToHttpResult();
+        }
+
         var venta = await ventaRepository.ObtenerPorIdAsync(request.VentaId, cancellationToken);
         if (venta is null)
         {
             return Result.Failure<PagoClienteResponse>(
-                Error.NotFound("Venta.NotFound", $"No existe la venta con ID {request.VentaId}"))
+                Error.NotFound("Venta.NotFound", $"No existe la venta con ID {request.VentaId}."))
                 .ToHttpResult();
         }
 
+       
         if (venta.ClienteId != request.ClienteId)
         {
             return Result.Failure<PagoClienteResponse>(
                 Error.Validation("PagoCliente.ClienteNoCoincide", "El ClienteID no coincide con el cliente de la venta."))
+                .ToHttpResult();
+        }
+
+
+        if (EstadosProhibidosVenta.Contains(venta.Estado))
+        {
+            return Result.Failure<PagoClienteResponse>(
+                Error.Validation("PagoCliente.VentaCerrada",
+                    $"No se pueden registrar pagos porque la venta #{request.VentaId} se encuentra en estado '{venta.Estado}'."))
                 .ToHttpResult();
         }
 
@@ -60,9 +87,10 @@ public class RegistrarPagoClienteEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
+       
         var nuevoTotalPagado = pagadoAnteriormente + request.Valor;
-        var estadoCalculado = nuevoTotalPagado >= venta.Total ? "Completado" : "Abono Parcial";
-        var estadoFinal = string.IsNullOrWhiteSpace(request.Estado) ? estadoCalculado : request.Estado.Trim();
+        var estadoFinal = nuevoTotalPagado >= venta.Total ? "Completado" : "Abono Parcial";
+
 
         var pagoResult = PagoCliente.Create(
             clienteId: request.ClienteId,
@@ -77,7 +105,19 @@ public class RegistrarPagoClienteEndpoint : IEndpoint
             return Result.Failure<PagoClienteResponse>(pagoResult.Error).ToHttpResult();
         }
 
+        
         var nuevoId = await pagoRepository.AgregarAsync(pagoResult.Value, cancellationToken);
+
+
+        if (nuevoTotalPagado >= venta.Total)
+        {
+            var actualizarVentaResult = venta.ActualizarEstado("Completada");
+            if (actualizarVentaResult.IsSuccess)
+            {
+                await ventaRepository.ActualizarAsync(venta, cancellationToken);
+            }
+        }
+
         var pago = await pagoRepository.ObtenerPorIdAsync(nuevoId, cancellationToken);
 
         if (pago is null)

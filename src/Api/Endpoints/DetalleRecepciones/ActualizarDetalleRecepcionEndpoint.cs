@@ -21,6 +21,21 @@ public class ActualizarDetalleRecepcionEndpoint : IEndpoint
         IRecepcionRepository recepcionRepository,
         CancellationToken cancellationToken)
     {
+  
+        if (request.Cantidad <= 0)
+        {
+            return Result.Failure<DetalleRecepcionResponse>(
+                Error.Validation("DetalleRecepcion.CantidadInvalida", "La cantidad debe ser mayor a 0."))
+                .ToHttpResult();
+        }
+
+        if (request.PrecioUnitario <= 0)
+        {
+            return Result.Failure<DetalleRecepcionResponse>(
+                Error.Validation("DetalleRecepcion.PrecioInvalido", "El precio unitario debe ser mayor a 0."))
+                .ToHttpResult();
+        }
+
         var recepciones = await recepcionRepository.ObtenerTodosAsync(cancellationToken);
 
         var recepcion = recepciones.FirstOrDefault(r => r.Detalles.Any(d => d.Id == id));
@@ -29,6 +44,15 @@ public class ActualizarDetalleRecepcionEndpoint : IEndpoint
             return Result.Failure<DetalleRecepcionResponse>(
                 Error.NotFound("DetalleRecepcion.NotFound",
                     $"No se encontró el detalle con ID: {id}"))
+                .ToHttpResult();
+        }
+
+       
+        if (recepcion.ProcesadaEnInventario)
+        {
+            return Result.Failure<DetalleRecepcionResponse>(
+                Error.Validation("DetalleRecepcion.RecepcionProcesada",
+                    "No se pueden modificar detalles de una recepción que ya fue procesada en inventario."))
                 .ToHttpResult();
         }
 

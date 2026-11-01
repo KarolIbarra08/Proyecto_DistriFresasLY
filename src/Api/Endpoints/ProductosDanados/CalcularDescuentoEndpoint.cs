@@ -12,16 +12,17 @@ public class CalcularDescuentoEndpoint : IEndpoint
         app.MapPost("/productos/danados/{id:int}/calcular-descuento", Manejador)
            .WithName("CalcularDescuento")
            .WithTags("Productos Dañados")
-           .WithSummary("Calcula el descuento del producto dañado");
+           .WithSummary("Calcula el descuento del producto dañado buscando su recepción correspondiente");
     }
 
     private static async Task<IResult> Manejador(
         int id,
         IProductoDanadoRepository productoDanadoRepository,
+        IRecepcionRepository recepcionRepository,
         CancellationToken cancellationToken)
     {
-        var entidad = await productoDanadoRepository.ObtenerPorIdAsync(id, cancellationToken);
 
+        var entidad = await productoDanadoRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (entidad is null)
         {
             return Result.Failure<object>(
@@ -31,8 +32,28 @@ public class CalcularDescuentoEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-        var calculoResult = entidad.CalcularDescuento();
 
+        var recepciones = await recepcionRepository.ObtenerTodosAsync(cancellationToken);
+        
+        var recepcionConProducto = recepciones
+            .FirstOrDefault(r => r.Detalles.Any(d => d.IdProducto == entidad.ProductoId));
+
+        if (recepcionConProducto is null)
+        {
+            return Result.Failure<object>(
+                Error.NotFound(
+                    "Recepcion.NotFound",
+                    $"No se encontró ninguna recepción asociada al producto ID {entidad.ProductoId}."))
+                .ToHttpResult();
+        }
+
+        var detalleProducto = recepcionConProducto.Detalles.First(d => d.IdProducto == entidad.ProductoId);
+
+
+        decimal precioUnitarioDecimal = (decimal)detalleProducto.PrecioUnitario;
+
+
+        var calculoResult = entidad.CalcularDescuento(precioUnitarioDecimal);
         if (calculoResult.IsFailure)
         {
             return Result.Failure<object>(calculoResult.Error).ToHttpResult();
@@ -45,16 +66,16 @@ public class CalcularDescuentoEndpoint : IEndpoint
         {
             entidad.Id,
             entidad.ProductoId,
+            RecepcionIdAsociada = recepcionConProducto.Id,
             entidad.TipoProducto,
-            entidad.Cantidad,
-            entidad.Identificacion,
-            entidad.Valor,
+            Cantidad = (int)entidad.Cantidad,
+            PrecioUnitario = detalleProducto.PrecioUnitario,
             entidad.FechaProductoDanado,
             entidad.Motivo,
-            Descuento = new DescuentoResponse(
-                entidad.Descuento!.Valor,
+            Descuento = entidad.Descuento is not null ? new DescuentoResponse(
+                entidad.Descuento.Valor,
                 entidad.Descuento.Fecha,
-                entidad.Descuento.Motivo)
+                entidad.Descuento.Motivo) : null
         };
 
         return Result.Success(response).ToHttpResult();

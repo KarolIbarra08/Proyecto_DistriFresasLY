@@ -119,12 +119,15 @@ public sealed class ProductoDanado : Entity
                 descuento));
     }
 
-    public Result CalcularDescuento()
+
+    public Result CalcularDescuento(decimal? precioUnitario = null)
     {
+        decimal precioAplicar = precioUnitario ?? Valor;
+
         var descuentoResult =
             Descuento.CalcularValor(
                 Cantidad,
-                Valor,
+                precioAplicar,
                 Motivo);
 
         if (descuentoResult.IsFailure)

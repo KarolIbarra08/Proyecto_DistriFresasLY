@@ -20,8 +20,27 @@ public class RegistrarRecepcionEndpoint : IEndpoint
     private static async Task<IResult> Manejador(
         [FromBody] RegistrarRecepcionRequest request,
         IRecepcionRepository recepcionRepository,
+        IPedidoRepository pedidoRepository,
         CancellationToken cancellationToken)
     {
+
+        if (request.PedidoId <= 0)
+        {
+            return Result.Failure<RecepcionResponse>(
+                Error.Validation("Recepcion.PedidoIdInvalido", "El PedidoId es obligatorio y debe ser mayor a 0."))
+                .ToHttpResult();
+        }
+
+        
+        var pedidoExiste = await pedidoRepository.ObtenerPorIdAsync(request.PedidoId, cancellationToken);
+        if (pedidoExiste is null)
+        {
+            return Result.Failure<RecepcionResponse>(
+                Error.NotFound("Pedido.NotFound", $"No existe el pedido con ID {request.PedidoId}."))
+                .ToHttpResult();
+        }
+
+
         var recepcionResult = Recepcion.Create(
             id: 0,
             fechaRecepcion: request.FechaRecepcion,

@@ -24,6 +24,28 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
         IInventarioRepository inventarioRepository,
         CancellationToken cancellationToken)
     {
+        
+        if (request.IdRecepcion <= 0 || request.IdProducto <= 0)
+        {
+            return Result.Failure<DetalleRecepcionResponse>(
+                Error.Validation("DetalleRecepcion.IdsInvalidos", "El IdRecepcion y el IdProducto deben ser mayores a 0."))
+                .ToHttpResult();
+        }
+
+        if (request.Cantidad <= 0)
+        {
+            return Result.Failure<DetalleRecepcionResponse>(
+                Error.Validation("DetalleRecepcion.CantidadInvalida", "La cantidad debe ser mayor a 0."))
+                .ToHttpResult();
+        }
+
+        if (request.PrecioUnitario <= 0)
+        {
+            return Result.Failure<DetalleRecepcionResponse>(
+                Error.Validation("DetalleRecepcion.PrecioInvalido", "El precio unitario debe ser mayor a 0."))
+                .ToHttpResult();
+        }
+
         var recepcion = await recepcionRepository.ObtenerPorIdAsync(request.IdRecepcion, cancellationToken);
         if (recepcion is null)
         {
@@ -33,6 +55,7 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
+
         var producto = await productoRepository.ObtenerPorIdAsync(request.IdProducto, cancellationToken);
         if (producto is null)
         {
@@ -41,6 +64,7 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
                     $"No se encontró el producto con ID: {request.IdProducto}."))
                 .ToHttpResult();
         }
+
 
         var detalleResult = DetalleRecepcion.Create(
             idProducto: request.IdProducto,
@@ -61,6 +85,7 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
         }
 
         await recepcionRepository.ActualizarAsync(recepcion, cancellationToken);
+
 
         var inventario = await inventarioRepository.ObtenerPorProductoIdAsync(request.IdProducto, cancellationToken);
 
@@ -85,6 +110,7 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
             await inventarioRepository.ActualizarAsync(inventario, cancellationToken);
         }
 
+        // 6. Obtener detalle creado y mapear respuesta
         var guardada = await recepcionRepository.ObtenerPorIdAsync(request.IdRecepcion, cancellationToken);
         var detalle = guardada!.Detalles
             .LastOrDefault(d => d.IdProducto == request.IdProducto);

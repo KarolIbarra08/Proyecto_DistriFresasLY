@@ -8,6 +8,8 @@ namespace DistriFresasLY.Api.Endpoints.Pagos.Proveedores;
 
 public class RegistrarPagoProveedorEndpoint : IEndpoint
 {
+    private static readonly string[] EstadosProhibidosPedido = { "Recibido", "Completado", "Cancelado", "Anulado" };
+
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/pagos/proveedores", Manejador)
@@ -22,20 +24,40 @@ public class RegistrarPagoProveedorEndpoint : IEndpoint
         IPagoProveedorRepository pagoRepository,
         CancellationToken cancellationToken)
     {
+   
+        if (request.Valor <= 0)
+        {
+            return Result.Failure<PagoProveedorResponse>(
+                Error.Validation("PagoProveedor.ValorInvalido", "El valor del pago debe ser mayor a 0."))
+                .ToHttpResult();
+        }
+
+       
         var pedido = await pedidoRepository.ObtenerPorIdAsync(request.PedidoId, cancellationToken);
         if (pedido is null)
         {
             return Result.Failure<PagoProveedorResponse>(
-                Error.NotFound("Pedido.NotFound", $"No existe el pedido con ID {request.PedidoId}"))
+                Error.NotFound("Pedido.NotFound", $"No existe el pedido con ID {request.PedidoId}."))
                 .ToHttpResult();
         }
 
+    
         if (pedido.ProveedorId != request.ProveedorId)
         {
             return Result.Failure<PagoProveedorResponse>(
                 Error.Validation("PagoProveedor.ProveedorNoCoincide", "El proveedor del pago no coincide con el proveedor del pedido."))
                 .ToHttpResult();
         }
+
+
+        if (EstadosProhibidosPedido.Contains(pedido.Estado))
+        {
+            return Result.Failure<PagoProveedorResponse>(
+                Error.Validation("PagoProveedor.PedidoCerrado", 
+                    $"No se pueden registrar pagos porque el pedido #{request.PedidoId} se encuentra en estado '{pedido.Estado}'."))
+                .ToHttpResult();
+        }
+
 
         var pagos = await pagoRepository.ObtenerTodosAsync(cancellationToken);
 
@@ -60,10 +82,11 @@ public class RegistrarPagoProveedorEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
+        
         var nuevoTotalPagado = pagadoAnteriormente + request.Valor;
-        var estadoCalculado = nuevoTotalPagado >= pedido.Total ? "Completado" : "Abono Parcial";
-        var estadoFinal = string.IsNullOrWhiteSpace(request.Estado) ? estadoCalculado : request.Estado.Trim();
+        var estadoFinal = nuevoTotalPagado >= pedido.Total ? "Completado" : "Abono Parcial";
 
+     
         var pagoResult = PagoProveedor.Create(
             proveedorId: request.ProveedorId,
             pedidoId: request.PedidoId,
@@ -77,6 +100,7 @@ public class RegistrarPagoProveedorEndpoint : IEndpoint
             return Result.Failure<PagoProveedorResponse>(pagoResult.Error).ToHttpResult();
         }
 
+        // 8. Persistencia y respuesta
         var nuevoId = await pagoRepository.AgregarAsync(pagoResult.Value, cancellationToken);
         var pago = await pagoRepository.ObtenerPorIdAsync(nuevoId, cancellationToken);
 
