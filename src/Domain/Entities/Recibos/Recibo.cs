@@ -44,4 +44,14 @@ public sealed class Recibo : Entity
 
         return Result.Success(recibo);
     }
+
+    public static Recibo Rehidratar(
+        int id,
+        DateTime fechaRecibo,
+        int numeroRecibo,
+        double total,
+        int ventaId)
+    {
+        return new Recibo(id, fechaRecibo, numeroRecibo, total, ventaId);
+    }
 }

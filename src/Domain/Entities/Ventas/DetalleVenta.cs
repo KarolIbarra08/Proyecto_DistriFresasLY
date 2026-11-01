@@ -44,4 +44,12 @@ public sealed class DetalleVenta : Entity
 
         return new DetalleVenta(id, productoId, cantidadResult.Value, precioUnitario);
     }
+
+    public static DetalleVenta Rehidratar(int id, int productoId, int cantidad, double precioUnitario)
+    {
+        var cantidadResult = Cantidad.Create(cantidad <= 0 ? 1 : cantidad);
+        var cantidadFinal = cantidadResult.IsSuccess ? cantidadResult.Value : Cantidad.Create(1).Value;
+
+        return new DetalleVenta(id, productoId, cantidadFinal, precioUnitario);
+    }
 }

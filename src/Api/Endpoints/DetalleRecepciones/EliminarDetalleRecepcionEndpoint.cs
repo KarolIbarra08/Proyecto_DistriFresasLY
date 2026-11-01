@@ -1,5 +1,5 @@
-using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.DetalleRecepciones;
@@ -8,49 +8,52 @@ public class EliminarDetalleRecepcionEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapDelete(
-            "/detalles-recepcion/{id:int}",
-            Manejador)
+        app.MapDelete("/detalles-recepcion/{id:int}", Manejador)
            .WithName("EliminarDetalleRecepcion")
            .WithTags("DetalleRecepciones")
            .WithSummary("Elimina un detalle y actualiza el inventario");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IRecepcionRepository recepcionRepository,
+        IInventarioRepository inventarioRepository,
+        CancellationToken cancellationToken)
     {
-        var detalle =
-            DetalleRecepcionDataStore.DetallesDb
-                .FirstOrDefault(d => d.Id == id);
+        var recepciones = await recepcionRepository.ObtenerTodosAsync(cancellationToken);
 
-        if (detalle is null)
+        var recepcion = recepciones.FirstOrDefault(r => r.Detalles.Any(d => d.Id == id));
+        if (recepcion is null)
         {
             return Result.Failure(
-                Error.NotFound(
-                    "DetalleRecepcion.NotFound",
+                Error.NotFound("DetalleRecepcion.NotFound",
                     $"No se encontró el detalle con ID: {id}"))
                 .ToHttpResult();
         }
 
-        
-        var resultado =
-            InventarioDataStore.DisminuirStock(
-                detalle.IdProducto,
-                (int)detalle.Cantidad);
+        var detalle = recepcion.Detalles.First(d => d.Id == id);
+        var cantidad = (int)detalle.Cantidad;
 
-        if (!resultado.exito)
+        var inventario = await inventarioRepository.ObtenerPorProductoIdAsync(detalle.IdProducto, cancellationToken);
+        if (inventario is not null)
         {
-            return Result.Failure(
-                Error.Validation(
-                    "Inventario.Error",
-                    resultado.mensajeError ??
-                    "No fue posible actualizar el inventario."))
-                .ToHttpResult();
+            var disminuirResult = inventario.Disminuir(cantidad);
+            if (disminuirResult.IsFailure)
+            {
+                return Result.Failure(disminuirResult.Error).ToHttpResult();
+            }
+
+            await inventarioRepository.ActualizarAsync(inventario, cancellationToken);
         }
 
-        DetalleRecepcionDataStore.DetallesDb
-            .Remove(detalle);
+        var removerResult = recepcion.RemoverDetalle(detalle.IdProducto);
+        if (removerResult.IsFailure)
+        {
+            return Result.Failure(removerResult.Error).ToHttpResult();
+        }
 
-        return Result.Success()
-            .ToHttpResult();
+        await recepcionRepository.ActualizarAsync(recepcion, cancellationToken);
+
+        return Result.Success().ToHttpResult();
     }
 }

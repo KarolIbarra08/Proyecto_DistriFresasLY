@@ -22,15 +22,16 @@ public class UsuarioRepository : IUsuarioRepository
 
         const string sql = """
             SELECT 
-                id_usuario AS Id_Usuario,
-                nombre AS Nombre,
-                apellido AS Apellido,
-                usuario AS Nombre_Usuario,
-                contrasena AS Contrasena,
-                id_rol AS Rol,
-                estado AS Estado
-            FROM Usuarios
-            WHERE id_usuario = @Id;
+                u.id_usuario AS Id_Usuario,
+                u.nombre AS Nombre,
+                u.apellido AS Apellido,
+                u.usuario AS Nombre_Usuario,
+                u.contrasena AS Contrasena,
+                r.nombre AS Rol,
+                u.estado AS Estado
+            FROM Usuarios u
+            INNER JOIN Roles r ON u.id_rol = r.id_rol
+            WHERE u.id_usuario = @Id;
             """;
 
         var registro = await conexion.QueryFirstOrDefaultAsync<UsuarioRegistro>(
@@ -46,15 +47,16 @@ public class UsuarioRepository : IUsuarioRepository
 
         const string sql = """
             SELECT 
-                id_usuario AS Id_Usuario,
-                nombre AS Nombre,
-                apellido AS Apellido,
-                usuario AS Nombre_Usuario,
-                contrasena AS Contrasena,
-                id_rol AS Rol,
-                estado AS Estado
-            FROM Usuarios
-            WHERE LOWER(usuario) = LOWER(@NombreUsuario);
+                u.id_usuario AS Id_Usuario,
+                u.nombre AS Nombre,
+                u.apellido AS Apellido,
+                u.usuario AS Nombre_Usuario,
+                u.contrasena AS Contrasena,
+                r.nombre AS Rol,
+                u.estado AS Estado
+            FROM Usuarios u
+            INNER JOIN Roles r ON u.id_rol = r.id_rol
+            WHERE LOWER(u.usuario) = LOWER(@NombreUsuario);
             """;
 
         var registro = await conexion.QueryFirstOrDefaultAsync<UsuarioRegistro>(
@@ -70,14 +72,15 @@ public class UsuarioRepository : IUsuarioRepository
 
         const string sql = """
             SELECT 
-                id_usuario AS Id_Usuario,
-                nombre AS Nombre,
-                apellido AS Apellido,
-                usuario AS Nombre_Usuario,
-                contrasena AS Contrasena,
-                id_rol AS Rol,
-                estado AS Estado
-            FROM Usuarios;
+                u.id_usuario AS Id_Usuario,
+                u.nombre AS Nombre,
+                u.apellido AS Apellido,
+                u.usuario AS Nombre_Usuario,
+                u.contrasena AS Contrasena,
+                r.nombre AS Rol,
+                u.estado AS Estado
+            FROM Usuarios u
+            INNER JOIN Roles r ON u.id_rol = r.id_rol;
             """;
 
         var registros = await conexion.QueryAsync<UsuarioRegistro>(
@@ -93,13 +96,17 @@ public class UsuarioRepository : IUsuarioRepository
 
         const string sql = """
             INSERT INTO Usuarios (nombre, apellido, usuario, contrasena, id_rol, estado)
-            VALUES (@Nombre, @Apellido, @NombreUsuario, @Contrasena, @RolId, @Estado);
+            VALUES (
+                @Nombre,
+                @Apellido,
+                @NombreUsuario,
+                @Contrasena,
+                (SELECT id_rol FROM Roles WHERE LOWER(nombre) = LOWER(@RolNombre)),
+                @Estado
+            );
 
             SELECT last_insert_rowid();
             """;
-
-       
-        _ = int.TryParse(usuario.Rol, out int idRol);
 
         var parametros = new
         {
@@ -107,7 +114,7 @@ public class UsuarioRepository : IUsuarioRepository
             Apellido = usuario.Apellido,
             NombreUsuario = usuario.NombreUsuario,
             Contrasena = usuario.Contrasena,
-            RolId = idRol,
+            RolNombre = usuario.Rol,
             Estado = usuario.Estado ? 1 : 0
         };
 
@@ -126,12 +133,10 @@ public class UsuarioRepository : IUsuarioRepository
                 apellido = @Apellido,
                 usuario = @NombreUsuario,
                 contrasena = @Contrasena,
-                id_rol = @RolId,
+                id_rol = (SELECT id_rol FROM Roles WHERE LOWER(nombre) = LOWER(@RolNombre)),
                 estado = @Estado
             WHERE id_usuario = @Id;
             """;
-
-        _ = int.TryParse(usuario.Rol, out int idRol);
 
         var parametros = new
         {
@@ -140,7 +145,7 @@ public class UsuarioRepository : IUsuarioRepository
             Apellido = usuario.Apellido,
             NombreUsuario = usuario.NombreUsuario,
             Contrasena = usuario.Contrasena,
-            RolId = idRol,
+            RolNombre = usuario.Rol,
             Estado = usuario.Estado ? 1 : 0
         };
 

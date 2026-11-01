@@ -1,4 +1,5 @@
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Recepciones;
@@ -13,9 +14,12 @@ public class CalcularTotalRecepcionesEndpoint : IEndpoint
            .WithSummary("Calcula el valor total de una recepción");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IRecepcionRepository recepcionRepository,
+        CancellationToken cancellationToken)
     {
-        var recepcion = RecepcionDataStore.RecepcionesDb.FirstOrDefault(r => r.Id == id);
+        var recepcion = await recepcionRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (recepcion is null)
         {
             Result<double> errorResult = Error.NotFound(
@@ -25,8 +29,6 @@ public class CalcularTotalRecepcionesEndpoint : IEndpoint
             return errorResult.ToHttpResult();
         }
 
-        double total = recepcion.CalcularTotal();
-
-        return Result.Success(total).ToHttpResult();
+        return Result.Success(recepcion.CalcularTotal()).ToHttpResult();
     }
 }

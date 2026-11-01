@@ -94,6 +94,19 @@ public sealed class Venta : Entity
         return venta;
     }
 
+    public static Venta Rehidratar(
+        int id,
+        DateTime fechaVenta,
+        string estado,
+        int clienteId,
+        List<DetalleVenta> detalles)
+    {
+        var estadoResult = EstadoVenta.Create(estado);
+        var estadoFinal = estadoResult.IsSuccess ? estadoResult.Value : EstadoVenta.Pendiente;
+
+        return new Venta(id, fechaVenta, estadoFinal, clienteId, detalles ?? []);
+    }
+
     public Result ActualizarEstado(string nuevoEstado)
     {
         var estadoResult = EstadoVenta.Create(nuevoEstado);

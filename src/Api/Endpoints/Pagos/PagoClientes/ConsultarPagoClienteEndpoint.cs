@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Pagos.Clientes;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Pagos.PagoClientes;
@@ -14,14 +15,17 @@ public class ConsultarPagoClienteEndpoint : IEndpoint
            .WithSummary("Consulta un pago de cliente por su ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IPagoClienteRepository pagoRepository,
+        CancellationToken cancellationToken)
     {
-        var pago = PagoDataStore.PagosClientesDb.FirstOrDefault(p => p.Id == id);
-
+        var pago = await pagoRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (pago is null)
         {
             return Result.Failure<PagoClienteResponse>(
-                Error.NotFound("PagoCliente.NotFound", $"No se encontró el pago con ID {id}")).ToHttpResult();
+                Error.NotFound("PagoCliente.NotFound", $"No se encontró el pago con ID {id}"))
+                .ToHttpResult();
         }
 
         var response = new PagoClienteResponse(
@@ -31,8 +35,7 @@ public class ConsultarPagoClienteEndpoint : IEndpoint
             pago.Valor,
             pago.MedioPago,
             pago.FechaPago,
-            pago.Estado
-        );
+            pago.Estado);
 
         return Result.Success(response).ToHttpResult();
     }

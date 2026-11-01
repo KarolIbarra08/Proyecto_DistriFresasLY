@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Ventas;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Ventas;
@@ -11,19 +12,22 @@ public class ObtenerVentasEndpoint : IEndpoint
         app.MapGet("/ventas", Manejador)
            .WithName("ObtenerVentas")
            .WithTags("Ventas")
-           .WithSummary("Consulta el listado general de ventas");
+           .WithSummary("Obtiene todas las ventas registradas");
     }
 
-    private static IResult Manejador()
+    private static async Task<IResult> Manejador(
+        IVentaRepository ventaRepository,
+        CancellationToken cancellationToken)
     {
-        var lista = VentaDataStore.VentasDb.Select(v => new VentaResponse(
+        var ventas = await ventaRepository.ObtenerTodosAsync(cancellationToken);
+
+        var response = ventas.Select(v => new VentaResponse(
             v.Id,
             v.FechaVenta,
             v.Total,
-            v.Estado,
-            v.ClienteId
-        )).ToList();
+            v.Estado.Value,
+            v.ClienteId == 0 ? null : v.ClienteId)).ToList();
 
-        return Result.Success(lista).ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

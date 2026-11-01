@@ -22,18 +22,17 @@ public class RegistrarProductoFresaEndpoint : IEndpoint
         CancellationToken cancellationToken)
     {
 
-        bool ExisteCalibre(int c) => productoRepository
-            .ExisteCalibreAsync(c, idExcluir: null, cancellationToken)
-            .GetAwaiter()
-            .GetResult();
+        var existeCalibre = await productoRepository.ExisteCalibreAsync(
+            request.Calibre,
+            idExcluir: null,
+            cancellationToken: cancellationToken);
 
-       
         var result = ProductoFresa.Create(
             request.Calibre,
             request.Calidad,
             request.Peso,
             request.Descripcion,
-            ExisteCalibre,
+            _ => existeCalibre,
             id: 0);
 
         if (result.IsFailure)

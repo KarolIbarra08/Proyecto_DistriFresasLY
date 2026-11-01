@@ -33,6 +33,17 @@ public sealed class Inventario : Entity
         return new Inventario(id, productoId, cantidadDisponible);
     }
 
+    public static Inventario Rehidratar(
+        int id,
+        int productoId,
+        int cantidadDisponible,
+        DateTime fechaActualizacion)
+    {
+        var inventario = new Inventario(id, productoId, cantidadDisponible);
+        inventario.FechaActualizacion = fechaActualizacion;
+        return inventario;
+    }
+
     public Result Ajustar(int nuevaCantidad)
     {
         if (nuevaCantidad < 0)

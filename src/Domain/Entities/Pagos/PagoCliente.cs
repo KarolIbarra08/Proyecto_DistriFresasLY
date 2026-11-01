@@ -82,6 +82,25 @@ public sealed class PagoCliente : Entity
                 estado.Trim()));
     }
 
+    public static PagoCliente Rehidratar(
+        int id,
+        int clienteId,
+        int ventaId,
+        double valor,
+        string medioPago,
+        DateTime fechaPago,
+        string estado)
+    {
+        return new PagoCliente(
+            id,
+            clienteId,
+            ventaId,
+            valor,
+            medioPago ?? string.Empty,
+            fechaPago,
+            estado ?? string.Empty);
+    }
+
     public Result Actualizar(
         int? clienteId,
         int? ventaId,

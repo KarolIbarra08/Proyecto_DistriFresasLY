@@ -1,6 +1,6 @@
 using DistriFresasLY.Api.Contracts.Pagos.Clientes;
-using DistriFresasLY.Api.Endpoints.Ventas;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Pagos;
 
@@ -16,48 +16,53 @@ public class RegistrarPagoClienteEndpoint : IEndpoint
            .WithSummary("Registra un abono o pago completo asociado a una venta");
     }
 
-    private static IResult Manejador(CrearPagoClienteRequest request)
+    private static async Task<IResult> Manejador(
+        CrearPagoClienteRequest request,
+        IVentaRepository ventaRepository,
+        IPagoClienteRepository pagoRepository,
+        CancellationToken cancellationToken)
     {
-        var venta = VentaDataStore.VentasDb.FirstOrDefault(v => v.Id == request.VentaId);
+        var venta = await ventaRepository.ObtenerPorIdAsync(request.VentaId, cancellationToken);
         if (venta is null)
         {
             return Result.Failure<PagoClienteResponse>(
-                Error.NotFound("Venta.NotFound", $"No existe la venta con ID {request.VentaId}")).ToHttpResult();
+                Error.NotFound("Venta.NotFound", $"No existe la venta con ID {request.VentaId}"))
+                .ToHttpResult();
         }
 
         if (venta.ClienteId != request.ClienteId)
         {
             return Result.Failure<PagoClienteResponse>(
-                Error.Validation("PagoCliente.ClienteNoCoincide", "El ClienteID no coincide con el cliente de la venta.")).ToHttpResult();
+                Error.Validation("PagoCliente.ClienteNoCoincide", "El ClienteID no coincide con el cliente de la venta."))
+                .ToHttpResult();
         }
 
-        double pagadoAnteriormente = (double)PagoDataStore.PagosClientesDb
+        var pagos = await pagoRepository.ObtenerTodosAsync(cancellationToken);
+
+        var pagadoAnteriormente = pagos
             .Where(p => p.VentaId == request.VentaId && p.Estado != "Anulado")
             .Sum(p => p.Valor);
 
-        double saldoPendiente = (double)venta.Total - pagadoAnteriormente;
+        var saldoPendiente = venta.Total - pagadoAnteriormente;
 
         if (saldoPendiente <= 0)
         {
             return Result.Failure<PagoClienteResponse>(
-                Error.Validation("PagoCliente.VentaSaldada", "Esta venta ya se encuentra totalmente pagada.")).ToHttpResult();
+                Error.Validation("PagoCliente.VentaSaldada", "Esta venta ya se encuentra totalmente pagada."))
+                .ToHttpResult();
         }
 
-        if ((double)request.Valor > saldoPendiente)
+        if (request.Valor > saldoPendiente)
         {
             return Result.Failure<PagoClienteResponse>(
-                Error.Validation("PagoCliente.MontoExcedido", 
-                    $"El abono (${request.Valor}) supera el saldo pendiente de la venta (${saldoPendiente}).")).ToHttpResult();
+                Error.Validation("PagoCliente.MontoExcedido",
+                    $"El abono (${request.Valor}) supera el saldo pendiente de la venta (${saldoPendiente})."))
+                .ToHttpResult();
         }
 
-        double nuevoTotalPagado = pagadoAnteriormente + (double)request.Valor;
-        string estadoCalculado = (nuevoTotalPagado >= (double)venta.Total) ? "Completado" : "Abono Parcial";
-
-        string estadoFinal = string.IsNullOrWhiteSpace(request.Estado) ? estadoCalculado : request.Estado.Trim();
-
-        var nuevoId = PagoDataStore.PagosClientesDb.Count != 0
-            ? PagoDataStore.PagosClientesDb.Max(p => p.Id) + 1
-            : 1;
+        var nuevoTotalPagado = pagadoAnteriormente + request.Valor;
+        var estadoCalculado = nuevoTotalPagado >= venta.Total ? "Completado" : "Abono Parcial";
+        var estadoFinal = string.IsNullOrWhiteSpace(request.Estado) ? estadoCalculado : request.Estado.Trim();
 
         var pagoResult = PagoCliente.Create(
             clienteId: request.ClienteId,
@@ -65,16 +70,22 @@ public class RegistrarPagoClienteEndpoint : IEndpoint
             valor: request.Valor,
             medioPago: request.MedioPago,
             fechaPago: request.FechaPago,
-            estado: estadoFinal,
-            id: nuevoId);
+            estado: estadoFinal);
 
         if (pagoResult.IsFailure)
         {
             return Result.Failure<PagoClienteResponse>(pagoResult.Error).ToHttpResult();
         }
 
-        var pago = pagoResult.Value;
-        PagoDataStore.PagosClientesDb.Add(pago);
+        var nuevoId = await pagoRepository.AgregarAsync(pagoResult.Value, cancellationToken);
+        var pago = await pagoRepository.ObtenerPorIdAsync(nuevoId, cancellationToken);
+
+        if (pago is null)
+        {
+            return Result.Failure<PagoClienteResponse>(
+                Error.Failure("PagoCliente.ErrorCreacion", "No se pudo recuperar el pago creado."))
+                .ToHttpResult();
+        }
 
         var response = new PagoClienteResponse(
             pago.Id,
@@ -83,10 +94,8 @@ public class RegistrarPagoClienteEndpoint : IEndpoint
             pago.Valor,
             pago.MedioPago,
             pago.FechaPago,
-            pago.Estado
-        );
+            pago.Estado);
 
-        Result<PagoClienteResponse> createdResult = Result.Success(response);
-        return createdResult.ToHttpCreatedAtResult($"/api/pagos/clientes/{pago.Id}");
+        return Result.Success(response).ToHttpCreatedAtResult($"/api/pagos/clientes/{pago.Id}");
     }
 }

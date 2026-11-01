@@ -1,7 +1,7 @@
 using DistriFresasLY.Api.Contracts.Recepciones;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
-using DistriFresasLY.Domain.Entities.Recepciones;
 
 namespace DistriFresasLY.Api.Endpoints.Recepciones;
 
@@ -15,22 +15,27 @@ public class ActualizarRecepcionEndpoint : IEndpoint
            .WithSummary("Actualiza los datos de una recepción existente");
     }
 
-    private static IResult Manejador(int id, ActualizarRecepcionRequest request)
+    private static async Task<IResult> Manejador(
+        int id,
+        ActualizarRecepcionRequest request,
+        IRecepcionRepository recepcionRepository,
+        CancellationToken cancellationToken)
     {
-        var recepcion = RecepcionDataStore.RecepcionesDb.FirstOrDefault(r => r.Id == id);
+        var recepcion = await recepcionRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (recepcion is null)
         {
             return Result.Failure<RecepcionResponse>(
-                Error.NotFound("Recepcion.NotFound", $"No se encontró una recepción con el Id: {id}")
-            ).ToHttpResult();
+                Error.NotFound("Recepcion.NotFound", $"No se encontró una recepción con el Id: {id}"))
+                .ToHttpResult();
         }
 
         var actualizarResult = recepcion.Actualizar();
-
         if (actualizarResult.IsFailure)
         {
             return Result.Failure<RecepcionResponse>(actualizarResult.Error).ToHttpResult();
         }
+
+        await recepcionRepository.ActualizarAsync(recepcion, cancellationToken);
 
         var response = new RecepcionResponse(
             recepcion.Id,

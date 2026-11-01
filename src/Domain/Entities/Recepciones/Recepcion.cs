@@ -37,6 +37,29 @@ public class Recepcion : Entity
                 fechaRecepcion ?? ColombiaTime.Ahora));
     }
 
+    public static Recepcion Rehidratar(
+        int id,
+        int? pedidoId,
+        DateTime fechaRecepcion,
+        bool procesadaEnInventario,
+        IEnumerable<DetalleRecepcion>? detalles = null)
+    {
+        var recepcion = new Recepcion(id, pedidoId, fechaRecepcion);
+
+        if (detalles is not null)
+        {
+            foreach (var detalle in detalles)
+            {
+                detalle.AsignarRecepcion(id);
+                recepcion._detalles.Add(detalle);
+            }
+        }
+
+        recepcion.ProcesadaEnInventario = procesadaEnInventario;
+
+        return recepcion;
+    }
+
     public Result Actualizar()
     {
         if (ProcesadaEnInventario)

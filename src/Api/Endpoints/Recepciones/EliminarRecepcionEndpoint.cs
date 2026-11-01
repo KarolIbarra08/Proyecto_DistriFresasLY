@@ -1,6 +1,5 @@
-using DistriFresasLY.Api.Endpoints.DetalleRecepciones;
-using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Recepciones;
@@ -12,52 +11,22 @@ public class EliminarRecepcionEndpoint : IEndpoint
         app.MapDelete("/recepciones/{id:int}", Manejador)
            .WithName("EliminarRecepcion")
            .WithTags("Recepciones")
-           .WithSummary("Elimina una recepción y sus detalles");
+           .WithSummary("Elimina una recepción por su ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IRecepcionRepository recepcionRepository,
+        CancellationToken cancellationToken)
     {
-        var recepcion =
-            RecepcionDataStore.ObtenerPorId(id);
-
+        var recepcion = await recepcionRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (recepcion is null)
         {
-            return Result.Failure(
-                Error.NotFound(
-                    "Recepcion.NotFound",
-                    $"No se encontró la recepción con ID: {id}"))
+            return Result.Failure(Error.NotFound("Recepcion.NotFound", $"No se encontró la recepción con ID {id}."))
                 .ToHttpResult();
         }
 
-        var detalles = DetalleRecepcionDataStore.DetallesDb
-            .Where(d => d.IdRecepcion == id)
-            .ToList();
-
-        foreach (var detalle in detalles)
-        {
-
-            var resultado = InventarioDataStore.DisminuirStock(
-                detalle.IdProducto,
-                (int)detalle.Cantidad);
-
-            if (!resultado.exito)
-            {
-                return Result.Failure(
-                    Error.Validation(
-                        "Inventario.Error",
-                        resultado.mensajeError ??
-                        "No fue posible actualizar el inventario."))
-                    .ToHttpResult();
-            }
-        }
-
-        DetalleRecepcionDataStore.DetallesDb
-            .RemoveAll(d => d.IdRecepcion == id);
-
-        RecepcionDataStore.RecepcionesDb
-            .Remove(recepcion);
-
-        return Result.Success()
-            .ToHttpResult();
+        await recepcionRepository.EliminarAsync(id, cancellationToken);
+        return Result.Success().ToHttpResult();
     }
 }

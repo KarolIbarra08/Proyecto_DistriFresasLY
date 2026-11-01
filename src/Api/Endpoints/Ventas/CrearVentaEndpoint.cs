@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using DistriFresasLY.Api.Contracts.Ventas;
-using DistriFresasLY.Api.Endpoints.Inventario;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Ventas;
 
@@ -14,85 +14,116 @@ public class CrearVentaEndpoint : IEndpoint
         app.MapPost("/ventas", Manejador)
            .WithName("CrearVenta")
            .WithTags("Ventas")
-           .WithSummary("Registra una nueva venta");
+           .WithSummary("Registra una nueva venta y descuenta el inventario");
     }
 
-    private static IResult Manejador([FromBody] CrearVentaRequest request, [FromHeader(Name = "X-Es-Admin")] bool esAdministrador = false)
+    private static async Task<IResult> Manejador(
+        CrearVentaRequest request,
+        IVentaRepository ventaRepository,
+        IClienteRepository clienteRepository,
+        IInventarioRepository inventarioRepository,
+        CancellationToken cancellationToken,
+        [FromHeader(Name = "X-Es-Admin")] bool esAdministrador = false)
     {
-        if (request.Detalles is null || !request.Detalles.Any())
+        if (request.ClienteId is null || request.ClienteId.Value <= 0)
         {
-            return Result.Failure(Error.Validation(
-                "Venta.Validacion",
-                "La venta debe incluir al menos un producto en el detalle."))
+            return Result.Failure<VentaResponse>(Error.Validation(
+                "Venta.ClienteRequerido",
+                "El cliente es obligatorio para registrar una venta."))
                 .ToHttpResult();
         }
 
-
-        var stockDisponiblePorProducto = new Dictionary<int, int>();
-
-        foreach (var d in request.Detalles)
+        var cliente = await clienteRepository.ObtenerPorIdAsync(request.ClienteId.Value, cancellationToken);
+        if (cliente is null)
         {
-            var itemStock = InventarioDataStore.ObtenerPorProductoId(d.ProductoId);
+            return Result.Failure<VentaResponse>(Error.NotFound(
+                "Venta.ClienteNoEncontrado",
+                $"No se encontró un cliente con ID {request.ClienteId.Value}."))
+                .ToHttpResult();
+        }
 
-            if (itemStock is null)
+        if (request.Detalles is null || request.Detalles.Count == 0)
+        {
+            return Result.Failure<VentaResponse>(Error.Validation(
+                "Venta.SinDetalles",
+                "La venta debe contener al menos un producto en el detalle."))
+                .ToHttpResult();
+        }
+
+        var detalles = new List<DetalleVenta>();
+        var stockPorProducto = new Dictionary<int, int>();
+
+        foreach (var detReq in request.Detalles)
+        {
+            var inventario = await inventarioRepository.ObtenerPorProductoIdAsync(detReq.ProductoId, cancellationToken);
+            if (inventario is null)
             {
-                return Result.Failure(Error.NotFound(
+                return Result.Failure<VentaResponse>(Error.NotFound(
                     "Inventario.NotFound",
-                    $"No existe registro de inventario para el producto ID: {d.ProductoId}"))
+                    $"No existe registro de inventario para el producto ID: {detReq.ProductoId}"))
                     .ToHttpResult();
             }
 
-            stockDisponiblePorProducto[d.ProductoId] = itemStock.CantidadDisponible;
+            stockPorProducto[detReq.ProductoId] = inventario.CantidadDisponible;
+
+            var detalleResult = DetalleVenta.Create(
+                productoId: detReq.ProductoId,
+                cantidad: detReq.Cantidad,
+                precioUnitario: detReq.PrecioUnitario);
+
+            if (detalleResult.IsFailure)
+            {
+                return Result.Failure<VentaResponse>(detalleResult.Error).ToHttpResult();
+            }
+
+            detalles.Add(detalleResult.Value);
         }
-
-
-        var detallesResult = request.Detalles
-            .Select(d => DetalleVenta.Create(d.ProductoId, d.Cantidad, d.PrecioUnitario))
-            .ToList();
-
-        var detalleInvalido = detallesResult.FirstOrDefault(r => r.IsFailure);
-        if (detalleInvalido is not null)
-        {
-            return Result.Failure<VentaResponse>(detalleInvalido.Error).ToHttpResult();
-        }
-
-        var detalles = detallesResult.Select(r => r.Value).ToList();
-
-        var nuevoId = VentaDataStore.VentasDb.Count != 0
-            ? VentaDataStore.VentasDb.Max(v => v.Id) + 1
-            : 1;
-
 
         var ventaResult = Venta.Create(
-            detalles,
-            request.ClienteId ?? 0,
-            stockDisponiblePorProducto,
-            esAdministrador,
-            nuevoId);
+            detalles: detalles,
+            clienteId: request.ClienteId.Value,
+            stockDisponiblePorProducto: stockPorProducto,
+            esAdministrador: esAdministrador);
 
         if (ventaResult.IsFailure)
         {
             return Result.Failure<VentaResponse>(ventaResult.Error).ToHttpResult();
         }
 
+        var nuevoId = await ventaRepository.AgregarAsync(ventaResult.Value, cancellationToken);
 
-        foreach (var d in request.Detalles)
+        foreach (var detReq in request.Detalles)
         {
-            InventarioDataStore.DisminuirStock(d.ProductoId, d.Cantidad);
+            var inventario = await inventarioRepository.ObtenerPorProductoIdAsync(detReq.ProductoId, cancellationToken);
+            if (inventario is null) continue;
+
+            var disminuirResult = inventario.Disminuir(detReq.Cantidad);
+            if (disminuirResult.IsFailure)
+            {
+                await ventaRepository.EliminarAsync(nuevoId, cancellationToken);
+                return Result.Failure<VentaResponse>(disminuirResult.Error).ToHttpResult();
+            }
+
+            await inventarioRepository.ActualizarAsync(inventario, cancellationToken);
         }
 
-        var venta = ventaResult.Value;
+        var ventaCreada = await ventaRepository.ObtenerPorIdAsync(nuevoId, cancellationToken);
 
-        VentaDataStore.VentasDb.Add(venta);
+        if (ventaCreada is null)
+        {
+            return Result.Failure<VentaResponse>(Error.Failure(
+                "Venta.ErrorCreacion",
+                "No se pudo recuperar la venta creada."))
+                .ToHttpResult();
+        }
 
         var response = new VentaResponse(
-            venta.Id,
-            venta.FechaVenta,
-            venta.Total,
-            venta.Estado,
-            venta.ClienteId
-        );
+            ventaCreada.Id,
+            ventaCreada.FechaVenta,
+            ventaCreada.Total,
+            ventaCreada.Estado.Value,
+            ventaCreada.ClienteId == 0 ? null : ventaCreada.ClienteId);
 
-        return Result.Success(response).ToHttpCreatedAtResult($"/api/ventas/{venta.Id}");
+        return Result.Success(response).ToHttpCreatedAtResult($"/api/ventas/{ventaCreada.Id}");
     }
 }

@@ -1,6 +1,6 @@
 using DistriFresasLY.Api.Contracts.Pagos.Proveedores;
-using DistriFresasLY.Api.Endpoints.Pagos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Pagos.Proveedores;
@@ -15,20 +15,20 @@ public class ActualizarPagoProveedorEndpoint : IEndpoint
            .WithSummary("Actualiza un pago a proveedor existente");
     }
 
-    private static IResult Manejador(int id, ActualizarPagoProveedorRequest request)
+    private static async Task<IResult> Manejador(
+        int id,
+        ActualizarPagoProveedorRequest request,
+        IPagoProveedorRepository pagoRepository,
+        CancellationToken cancellationToken)
     {
-        var index = PagoDataStore.PagosProveedoresDb.FindIndex(p => p.Id == id);
-
-        if (index == -1)
+        var pago = await pagoRepository.ObtenerPorIdAsync(id, cancellationToken);
+        if (pago is null)
         {
-            Result<PagoProveedorResponse> notFoundResult = Error.NotFound(
-                "PagoProveedor.NotFound",
-                $"No se encontro un pago de proveedor registrado con el ID '{id}'.");
-
-            return notFoundResult.ToHttpResult();
+            return Result.Failure<PagoProveedorResponse>(
+                Error.NotFound("PagoProveedor.NotFound",
+                    $"No se encontro un pago de proveedor registrado con el ID '{id}'."))
+                .ToHttpResult();
         }
-
-        var pago = PagoDataStore.PagosProveedoresDb[index];
 
         var actualizarResult = pago.Actualizar(
             proveedorId: request.ProveedorId,
@@ -43,6 +43,8 @@ public class ActualizarPagoProveedorEndpoint : IEndpoint
             return Result.Failure<PagoProveedorResponse>(actualizarResult.Error).ToHttpResult();
         }
 
+        await pagoRepository.ActualizarAsync(pago, cancellationToken);
+
         var response = new PagoProveedorResponse(
             pago.Id,
             pago.ProveedorId,
@@ -50,8 +52,7 @@ public class ActualizarPagoProveedorEndpoint : IEndpoint
             pago.Valor,
             pago.MedioPago,
             pago.FechaPago,
-            pago.Estado
-        );
+            pago.Estado);
 
         return Result.Success(response).ToHttpResult();
     }

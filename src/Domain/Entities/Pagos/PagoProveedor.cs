@@ -97,6 +97,25 @@ public sealed class PagoProveedor : Entity
                 estado.Trim()));
     }
 
+    public static PagoProveedor Rehidratar(
+        int id,
+        int proveedorId,
+        int pedidoId,
+        double valor,
+        string medioPago,
+        DateTime fechaPago,
+        string estado)
+    {
+        return new PagoProveedor(
+            id,
+            proveedorId,
+            pedidoId,
+            valor,
+            medioPago ?? string.Empty,
+            fechaPago,
+            estado ?? string.Empty);
+    }
+
     public Result Actualizar(
         int? proveedorId,
         int? pedidoId,

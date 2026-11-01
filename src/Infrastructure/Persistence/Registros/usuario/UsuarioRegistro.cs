@@ -20,6 +20,7 @@ public class UsuarioRegistro
             usuario: Nombre_Usuario,
             contrasena: Contrasena,
             rol: Rol,
+            estado: Estado,
             id: Id_Usuario);
 
         return result.Value;

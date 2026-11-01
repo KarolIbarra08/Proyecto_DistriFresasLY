@@ -140,7 +140,7 @@ public class PedidoRepository : IPedidoRepository
                 var parametrosDetalle = new
                 {
                     Descripcion = detalle.Descripcion,
-                    Cantidad = detalle.Cantidad,
+                    Cantidad = detalle.Cantidad.Value,
                     PrecioUnitario = detalle.ValorUnitario,
                     PedidoId = pedidoId,
                     ProductoId = 1 
@@ -204,7 +204,7 @@ public class PedidoRepository : IPedidoRepository
                 var parametrosDetalle = new
                 {
                     Descripcion = detalle.Descripcion,
-                    Cantidad = detalle.Cantidad,
+                    Cantidad = detalle.Cantidad.Value,
                     PrecioUnitario = detalle.ValorUnitario,
                     PedidoId = pedido.Id,
                     ProductoId = 1

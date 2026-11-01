@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Inventario;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Inventario;
@@ -14,9 +15,12 @@ public class ConsultarStockEndpoint : IEndpoint
            .WithSummary("Consulta el stock disponible de un producto");
     }
 
-    private static IResult Manejador(int productoId)
+    private static async Task<IResult> Manejador(
+        int productoId,
+        IInventarioRepository inventarioRepository,
+        CancellationToken cancellationToken)
     {
-        var inventario = InventarioDataStore.ObtenerPorProductoId(productoId);
+        var inventario = await inventarioRepository.ObtenerPorProductoIdAsync(productoId, cancellationToken);
         if (inventario is null)
         {
             return Result.Failure<InventarioResponse>(Error.NotFound(

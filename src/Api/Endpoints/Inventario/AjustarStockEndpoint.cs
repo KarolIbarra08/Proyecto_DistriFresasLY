@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Mvc;
 using DistriFresasLY.Api.Contracts.Inventario;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Inventario;
@@ -10,21 +12,38 @@ public class AjustarStockEndpoint : IEndpoint
     {
         app.MapPost("/inventario/ajustar", Manejador)
            .WithName("AjustarStock")
-           .WithTags("Inventario");
+           .WithTags("Inventario")
+           .WithSummary("Ajusta directamente el stock de un producto en el inventario");
     }
 
-    private static IResult Manejador(AjustarStockRequest request)
+    private static async Task<IResult> Manejador(
+        [FromBody] ActualizarStockRequest request,
+        IInventarioRepository inventarioRepository,
+        CancellationToken cancellationToken)
     {
-        // Ajusta o reinicia el stock base del producto
-        InventarioDataStore.InicializarStock(request.ProductoId, request.Cantidad);
-        
-        var inventario = InventarioDataStore.ObtenerPorProductoId(request.ProductoId);
-        
+        var inventario = await inventarioRepository.ObtenerPorProductoIdAsync(request.ProductoId, cancellationToken);
         if (inventario is null)
         {
-            return Result.Failure(Error.NotFound("Inventario.NotFound", "No se encontró el registro de inventario."))
-                         .ToHttpResult();
+            var nuevoInventarioResult = Domain.Entities.Inventario.Inventario.Create(request.ProductoId, request.Cantidad);
+            if (nuevoInventarioResult.IsFailure)
+            {
+                return Result.Failure<InventarioResponse>(nuevoInventarioResult.Error).ToHttpResult();
+            }
+
+            var nuevoId = await inventarioRepository.AgregarAsync(nuevoInventarioResult.Value, cancellationToken);
+            var creado = await inventarioRepository.ObtenerPorIdAsync(nuevoId, cancellationToken);
+
+            var respCreado = new InventarioResponse(creado!.Id, creado.ProductoId, creado.CantidadDisponible, creado.FechaActualizacion);
+            return Result.Success(respCreado).ToHttpResult();
         }
+
+        var ajustarResult = inventario.Ajustar(request.Cantidad);
+        if (ajustarResult.IsFailure)
+        {
+            return Result.Failure<InventarioResponse>(ajustarResult.Error).ToHttpResult();
+        }
+
+        await inventarioRepository.ActualizarAsync(inventario, cancellationToken);
 
         var response = new InventarioResponse(
             inventario.Id,
@@ -36,5 +55,3 @@ public class AjustarStockEndpoint : IEndpoint
         return Result.Success(response).ToHttpResult();
     }
 }
-
-public record AjustarStockRequest(int ProductoId, int Cantidad);

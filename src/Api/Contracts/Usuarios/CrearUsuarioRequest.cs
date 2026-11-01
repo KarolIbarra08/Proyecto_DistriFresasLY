@@ -6,5 +6,5 @@ public record CrearUsuarioRequest(
     string Usuario,
     string Contrasena,
     string Rol,
-    bool Estado
+    bool? Estado
 );

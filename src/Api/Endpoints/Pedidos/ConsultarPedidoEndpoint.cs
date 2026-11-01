@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Pedidos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Pedidos;
@@ -14,17 +15,19 @@ public class ConsultarPedidoEndpoint : IEndpoint
            .WithSummary("Consulta un pedido por su ID con sus detalles");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IPedidoRepository pedidoRepository,
+        CancellationToken cancellationToken)
     {
-        var pedido = PedidoDataStore.PedidosDb.FirstOrDefault(p => p.Id == id);
+        var pedido = await pedidoRepository.ObtenerPorIdAsync(id, cancellationToken);
 
         if (pedido is null)
         {
-            Result<PedidoResponse> notFoundResult = Error.NotFound(
+            return Result.Failure<PedidoResponse>(Error.NotFound(
                 "Pedido.NotFound",
-                $"No se encontro un pedido registrado con el ID '{id}'.");
-
-            return notFoundResult.ToHttpResult();
+                $"No se encontro un pedido registrado con el ID '{id}'."))
+                .ToHttpResult();
         }
 
         var response = new PedidoResponse(
@@ -39,10 +42,8 @@ public class ConsultarPedidoEndpoint : IEndpoint
                 d.Descripcion,
                 d.Cantidad,
                 d.ValorUnitario,
-                d.Subtotal)).ToList()
-        );
+                d.Subtotal)).ToList());
 
-        Result<PedidoResponse> successResult = Result.Success(response);
-        return successResult.ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

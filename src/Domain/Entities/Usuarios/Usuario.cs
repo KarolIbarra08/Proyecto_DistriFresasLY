@@ -34,6 +34,7 @@ public sealed class Usuario : Entity
         string usuario,
         string contrasena,
         string rol,
+        bool estado = true,
         int id = 0)
     {
         if (string.IsNullOrWhiteSpace(nombre))
@@ -58,7 +59,7 @@ public sealed class Usuario : Entity
             usuario.Trim(),
             contrasena,
             rol.Trim(),
-            estado: true);
+            estado);
 
         return Result.Success(usuarioCrear);
     }
@@ -69,7 +70,8 @@ public sealed class Usuario : Entity
         string apellido,
         string usuario,
         string contrasena,
-        string rol)
+        string rol,
+        bool estado)
     {
         if (string.IsNullOrWhiteSpace(nombre))
             return Result.Failure(Error.Validation("Usuario.NombreObligatorio", "El nombre del usuario es obligatorio."));
@@ -91,6 +93,7 @@ public sealed class Usuario : Entity
         NombreUsuario = usuario.Trim();
         Contrasena = contrasena;
         Rol = rol.Trim();
+        Estado = estado;
 
         return Result.Success();
     }

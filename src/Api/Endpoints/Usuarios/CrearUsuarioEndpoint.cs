@@ -61,8 +61,8 @@ public class CrearUsuarioEndpoint : IEndpoint
             request.Apellido,
             request.Usuario,
             request.Contrasena,
-            rolExistente.Id.ToString(),
-            request.Estado ? 1 : 0);
+            rolExistente.Nombre,
+            request.Estado ?? true);
 
         if (usuarioResult.IsFailure)
         {

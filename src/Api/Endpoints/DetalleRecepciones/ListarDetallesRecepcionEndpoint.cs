@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.DetalleRecepciones;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.DetalleRecepciones;
@@ -14,9 +15,14 @@ public class ListarDetallesRecepcionEndpoint : IEndpoint
            .WithSummary("Muestra todos los detalles de recepción");
     }
 
-    private static IResult Manejador()
+    private static async Task<IResult> Manejador(
+        IRecepcionRepository recepcionRepository,
+        CancellationToken cancellationToken)
     {
-        var response = DetalleRecepcionDataStore.DetallesDb
+        var recepciones = await recepcionRepository.ObtenerTodosAsync(cancellationToken);
+
+        var response = recepciones
+            .SelectMany(r => r.Detalles)
             .Select(d => new DetalleRecepcionResponse(
                 d.Id,
                 d.IdRecepcion,
@@ -27,8 +33,6 @@ public class ListarDetallesRecepcionEndpoint : IEndpoint
                 d.FechaIngreso))
             .ToList();
 
-        return Result.Success(response)
-            .ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }
-    

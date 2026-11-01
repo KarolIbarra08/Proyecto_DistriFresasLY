@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Pedidos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Pedidos;
@@ -14,9 +15,13 @@ public class ConsultarTodosPedidosEndpoint : IEndpoint
            .WithSummary("Consulta todos los pedidos con sus detalles");
     }
 
-    private static IResult Manejador()
+    private static async Task<IResult> Manejador(
+        IPedidoRepository pedidoRepository,
+        CancellationToken cancellationToken)
     {
-        var listaPedidos = PedidoDataStore.PedidosDb.Select(pedido => new PedidoResponse(
+        var pedidos = await pedidoRepository.ObtenerTodosAsync(cancellationToken);
+
+        var response = pedidos.Select(pedido => new PedidoResponse(
             pedido.Id,
             pedido.ProveedorId,
             pedido.FechaPedido,
@@ -28,10 +33,8 @@ public class ConsultarTodosPedidosEndpoint : IEndpoint
                 d.Descripcion,
                 d.Cantidad,
                 d.ValorUnitario,
-                d.Subtotal)).ToList()
-        )).ToList();
+                d.Subtotal)).ToList())).ToList();
 
-        Result<List<PedidoResponse>> successResult = Result.Success(listaPedidos);
-        return successResult.ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

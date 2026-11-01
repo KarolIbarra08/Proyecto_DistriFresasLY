@@ -19,76 +19,76 @@ public class RegistrarPedidoEndpoint : IEndpoint
     private static async Task<IResult> Manejador(
         CrearPedidoRequest request,
         IProveedorRepository proveedorRepository,
+        IPedidoRepository pedidoRepository,
         CancellationToken cancellationToken)
     {
         if (request.ProveedorId <= 0)
         {
-            Result<PedidoResponse> validationResult = Error.Validation(
+            return Result.Failure<PedidoResponse>(Error.Validation(
                 "Pedido.ProveedorInvalido",
-                "El ID del proveedor es obligatorio.");
-
-            return validationResult.ToHttpResult();
+                "El ID del proveedor es obligatorio."))
+                .ToHttpResult();
         }
 
         var proveedor = await proveedorRepository.ObtenerPorIdAsync(request.ProveedorId, cancellationToken);
         if (proveedor is null)
         {
-            Result<PedidoResponse> notFoundResult = Error.NotFound(
+            return Result.Failure<PedidoResponse>(Error.NotFound(
                 "Pedido.ProveedorNoEncontrado",
-                $"No se encontró un proveedor con ID {request.ProveedorId}.");
-
-            return notFoundResult.ToHttpResult();
+                $"No se encontró un proveedor con ID {request.ProveedorId}."))
+                .ToHttpResult();
         }
 
-        if (request.Detalles is null || !request.Detalles.Any())
+        if (request.Detalles is null || request.Detalles.Count == 0)
         {
-            Result<PedidoResponse> validationResult = Error.Validation(
-                "Pedido.Validacion",
-                "El pedido debe incluir al menos un producto en el detalle.");
-
-            return validationResult.ToHttpResult();
+            return Result.Failure<PedidoResponse>(Error.Validation(
+                "Pedido.SinDetalles",
+                "El pedido debe incluir al menos un producto en el detalle."))
+                .ToHttpResult();
         }
 
-        var nuevoPedidoId = PedidoDataStore.PedidosDb.Count != 0
-            ? PedidoDataStore.PedidosDb.Max(p => p.Id) + 1
-            : 1;
+        var detalles = new List<DetallePedido>();
 
-        var maxDetalleId = PedidoDataStore.PedidosDb
-            .SelectMany(p => p.Detalles)
-            .Select(d => d.Id)
-            .DefaultIfEmpty(0)
-            .Max();
-
-        var siguienteDetalleId = maxDetalleId + 1;
-
-        var detallesResult = request.Detalles
-            .Select((detalleReq, index) => DetallePedido.Create(
-                pedidoId: nuevoPedidoId,
-                descripcion: detalleReq.Descripcion,
-                cantidad: detalleReq.Cantidad,
-                valorUnitario: detalleReq.ValorUnitario,
-                id: siguienteDetalleId + index))
-            .ToList();
-
-        var detalleInvalido = detallesResult.FirstOrDefault(r => r.IsFailure);
-        if (detalleInvalido is not null)
+        foreach (var detReq in request.Detalles)
         {
-            return Result.Failure<PedidoResponse>(detalleInvalido.Error).ToHttpResult();
+            var detalleResult = DetallePedido.Create(
+                pedidoId: 0,
+                descripcion: detReq.Descripcion,
+                cantidad: detReq.Cantidad,
+                valorUnitario: detReq.ValorUnitario);
+
+            if (detalleResult.IsFailure)
+            {
+                return Result.Failure<PedidoResponse>(detalleResult.Error).ToHttpResult();
+            }
+
+            detalles.Add(detalleResult.Value);
         }
 
-        var detalles = detallesResult.Select(r => r.Value).ToList();
-
-        var fechaPedido = request.FechaPedido ?? ColombiaTime.Ahora;
         var estado = string.IsNullOrWhiteSpace(request.Estado) ? "Pendiente" : request.Estado.Trim();
+        var fechaPedido = request.FechaPedido ?? ColombiaTime.Ahora;
 
-        var pedidoResult = Pedido.Create(request.ProveedorId, detalles, fechaPedido, estado, nuevoPedidoId);
+        var pedidoResult = Pedido.Create(
+            proveedorId: request.ProveedorId,
+            detalles: detalles,
+            fechaPedido: fechaPedido,
+            estado: estado);
+
         if (pedidoResult.IsFailure)
         {
             return Result.Failure<PedidoResponse>(pedidoResult.Error).ToHttpResult();
         }
 
-        var pedido = pedidoResult.Value;
-        PedidoDataStore.PedidosDb.Add(pedido);
+        var nuevoId = await pedidoRepository.AgregarAsync(pedidoResult.Value, cancellationToken);
+        var pedido = await pedidoRepository.ObtenerPorIdAsync(nuevoId, cancellationToken);
+
+        if (pedido is null)
+        {
+            return Result.Failure<PedidoResponse>(Error.Failure(
+                "Pedido.ErrorCreacion",
+                "No se pudo recuperar el pedido creado."))
+                .ToHttpResult();
+        }
 
         var response = new PedidoResponse(
             pedido.Id,
@@ -102,10 +102,8 @@ public class RegistrarPedidoEndpoint : IEndpoint
                 d.Descripcion,
                 d.Cantidad,
                 d.ValorUnitario,
-                d.Subtotal)).ToList()
-        );
+                d.Subtotal)).ToList());
 
-        Result<PedidoResponse> createdResult = Result.Success(response);
-        return createdResult.ToHttpCreatedAtResult($"/api/pedidos/{pedido.Id}");
+        return Result.Success(response).ToHttpCreatedAtResult($"/api/pedidos/{pedido.Id}");
     }
 }

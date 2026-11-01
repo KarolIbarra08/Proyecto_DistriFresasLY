@@ -1,5 +1,5 @@
-using DistriFresasLY.Api.Contracts.Ventas;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Ventas;
@@ -11,22 +11,63 @@ public class EliminarVentaEndpoint : IEndpoint
         app.MapDelete("/ventas/{id:int}", Manejador)
            .WithName("EliminarVenta")
            .WithTags("Ventas")
-           .WithSummary("Elimina un registro de venta por su ID");
+           .WithSummary("Elimina una venta por su ID y devuelve el inventario");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IVentaRepository ventaRepository,
+        IInventarioRepository inventarioRepository,
+        CancellationToken cancellationToken)
     {
-        var index = VentaDataStore.VentasDb.FindIndex(v => v.Id == id);
-        if (index == -1)
+        var venta = await ventaRepository.ObtenerPorIdAsync(id, cancellationToken);
+        if (venta is null)
         {
-            return Result.Failure<bool>(Error.NotFound(
-                "Venta.NotFound",
-                $"No se encontro una venta con el Id: {id}"))
+            return Result.Failure(
+                Error.NotFound("Venta.NotFound", $"No se encontró una venta con el ID: {id}"))
                 .ToHttpResult();
         }
 
-        VentaDataStore.VentasDb.RemoveAt(index);
+        if (await ventaRepository.TienePagosAsociadosAsync(id, cancellationToken))
+        {
+            return Result.Failure(
+                Error.Conflict(
+                    "Venta.PagosAsociados",
+                    $"No se puede eliminar la venta con ID {id} porque tiene pagos asociados."))
+                .ToHttpResult();
+        }
 
-        return Result.Success(true).ToHttpResult();
+        if (await ventaRepository.TieneReciboAsociadoAsync(id, cancellationToken))
+        {
+            return Result.Failure(
+                Error.Conflict(
+                    "Venta.ReciboAsociado",
+                    $"No se puede eliminar la venta con ID {id} porque tiene un recibo asociado."))
+                .ToHttpResult();
+        }
+
+        await ventaRepository.EliminarAsync(id, cancellationToken);
+
+        var cantidades = venta.Detalles
+            .GroupBy(d => d.ProductoId)
+            .ToDictionary(g => g.Key, g => g.Sum(d => d.Cantidad.Value));
+
+        foreach (var producto in cantidades)
+        {
+            var inventario = await inventarioRepository.ObtenerPorProductoIdAsync(producto.Key, cancellationToken);
+            if (inventario is null) continue;
+
+            var aumentarResult = inventario.Aumentar(producto.Value);
+            if (aumentarResult.IsFailure) continue;
+
+            await inventarioRepository.ActualizarAsync(inventario, cancellationToken);
+        }
+
+        var respuesta = new
+        {
+            mensaje = $"La venta con ID {id} se eliminó correctamente."
+        };
+
+        return Result.Success(respuesta).ToHttpResult();
     }
 }

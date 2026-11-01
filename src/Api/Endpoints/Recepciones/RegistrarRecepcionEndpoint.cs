@@ -1,6 +1,7 @@
+using Microsoft.AspNetCore.Mvc;
 using DistriFresasLY.Api.Contracts.Recepciones;
-using DistriFresasLY.Api.Endpoints.Pedidos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Recepciones;
 
@@ -13,47 +14,43 @@ public class RegistrarRecepcionEndpoint : IEndpoint
         app.MapPost("/recepciones", Manejador)
            .WithName("RegistrarRecepcion")
            .WithTags("Recepciones")
-           .WithSummary("Registra una nueva recepción");
+           .WithSummary("Registra una nueva recepción de pedido");
     }
 
-    private static IResult Manejador(RegistrarRecepcionRequest request)
+    private static async Task<IResult> Manejador(
+        [FromBody] RegistrarRecepcionRequest request,
+        IRecepcionRepository recepcionRepository,
+        CancellationToken cancellationToken)
     {
-        if (request.PedidoId.HasValue)
+        var recepcionResult = Recepcion.Create(
+            id: 0,
+            fechaRecepcion: request.FechaRecepcion,
+            pedidoId: request.PedidoId);
+
+        if (recepcionResult.IsFailure)
         {
-            var pedido = PedidoDataStore.PedidosDb.FirstOrDefault(p => p.Id == request.PedidoId.Value);
-            if (pedido is null)
-            {
-                return Result.Failure<RecepcionResponse>(
-                    Error.NotFound("Recepcion.PedidoNoEncontrado", $"No existe el pedido con ID {request.PedidoId.Value}.")).ToHttpResult();
-            }
+            return Result.Failure<RecepcionResponse>(recepcionResult.Error).ToHttpResult();
         }
 
-        var nuevoId = RecepcionDataStore.RecepcionesDb.Count != 0
-            ? RecepcionDataStore.RecepcionesDb.Max(r => r.Id) + 1
-            : 1;
+        var recepcion = recepcionResult.Value;
+        var nuevoId = await recepcionRepository.AgregarAsync(recepcion, cancellationToken);
 
-        var result = Recepcion.Create(
-            nuevoId,
-            request.FechaRecepcion,
-            request.PedidoId);
-
-        if (result.IsFailure)
+        var creada = await recepcionRepository.ObtenerPorIdAsync(nuevoId, cancellationToken);
+        if (creada is null)
         {
-            return Result.Failure<RecepcionResponse>(result.Error).ToHttpResult();
+            return Result.Failure<RecepcionResponse>(
+                Error.Failure("Recepcion.ErrorCreacion", "No se pudo recuperar la recepción creada."))
+                .ToHttpResult();
         }
-
-        var recepcion = result.Value;
-        RecepcionDataStore.RecepcionesDb.Add(recepcion);
 
         var response = new RecepcionResponse(
-            recepcion.Id,
-            recepcion.PedidoId,
-            recepcion.FechaRecepcion,
-            recepcion.ValorPago,
-            recepcion.ProcesadaEnInventario,
-            recepcion.CalcularTotal());
+            creada.Id,
+            creada.PedidoId,
+            creada.FechaRecepcion,
+            creada.ValorPago,
+            creada.ProcesadaEnInventario,
+            creada.CalcularTotal());
 
-        return Result.Success(response)
-            .ToHttpCreatedAtResult($"/api/recepciones/{recepcion.Id}");
+        return Result.Success(response).ToHttpCreatedAtResult($"/api/recepciones/{creada.Id}");
     }
 }

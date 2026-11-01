@@ -1,7 +1,7 @@
 using DistriFresasLY.Api.Contracts.Pagos.Clientes;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
-using DistriFresasLY.Domain.Entities.Pagos;
 
 namespace DistriFresasLY.Api.Endpoints.Pagos.PagoClientes;
 
@@ -15,14 +15,18 @@ public class ActualizarPagoClienteEndpoint : IEndpoint
            .WithSummary("Actualiza un pago de cliente existente");
     }
 
-    private static IResult Manejador(int id, ActualizarPagoClienteRequest request)
+    private static async Task<IResult> Manejador(
+        int id,
+        ActualizarPagoClienteRequest request,
+        IPagoClienteRepository pagoRepository,
+        CancellationToken cancellationToken)
     {
-        var pago = PagoDataStore.PagosClientesDb.FirstOrDefault(p => p.Id == id);
-
+        var pago = await pagoRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (pago is null)
         {
             return Result.Failure<PagoClienteResponse>(
-                Error.NotFound("PagoCliente.NotFound", $"No se encontró el pago con ID {id}")).ToHttpResult();
+                Error.NotFound("PagoCliente.NotFound", $"No se encontró el pago con ID {id}"))
+                .ToHttpResult();
         }
 
         var updateResult = pago.Actualizar(
@@ -35,8 +39,10 @@ public class ActualizarPagoClienteEndpoint : IEndpoint
 
         if (updateResult.IsFailure)
         {
-            return updateResult.ToHttpResult();
+            return Result.Failure<PagoClienteResponse>(updateResult.Error).ToHttpResult();
         }
+
+        await pagoRepository.ActualizarAsync(pago, cancellationToken);
 
         var response = new PagoClienteResponse(
             pago.Id,
@@ -45,8 +51,7 @@ public class ActualizarPagoClienteEndpoint : IEndpoint
             pago.Valor,
             pago.MedioPago,
             pago.FechaPago,
-            pago.Estado
-        );
+            pago.Estado);
 
         return Result.Success(response).ToHttpResult();
     }

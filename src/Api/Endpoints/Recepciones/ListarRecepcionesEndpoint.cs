@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Recepciones;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Recepciones;
@@ -11,21 +12,23 @@ public class ListarRecepcionesEndpoint : IEndpoint
         app.MapGet("/recepciones", Manejador)
            .WithName("ListarRecepciones")
            .WithTags("Recepciones")
-           .WithSummary("Obtiene el listado general de recepciones");
+           .WithSummary("Lista todas las recepciones registradas");
     }
 
-    private static IResult Manejador()
+    private static async Task<IResult> Manejador(
+        IRecepcionRepository recepcionRepository,
+        CancellationToken cancellationToken)
     {
-        var lista = RecepcionDataStore.RecepcionesDb
-            .Select(r => new RecepcionResponse(
-                r.Id,
-                r.PedidoId,
-                r.FechaRecepcion,
-                r.ValorPago,
-                r.ProcesadaEnInventario,
-                r.CalcularTotal()))
-            .ToList();
+        var recepciones = await recepcionRepository.ObtenerTodosAsync(cancellationToken);
 
-        return Result.Success(lista).ToHttpResult();
+        var response = recepciones.Select(r => new RecepcionResponse(
+            r.Id,
+            r.PedidoId,
+            r.FechaRecepcion,
+            r.ValorPago,
+            r.ProcesadaEnInventario,
+            r.CalcularTotal())).ToList();
+
+        return Result.Success(response).ToHttpResult();
     }
 }

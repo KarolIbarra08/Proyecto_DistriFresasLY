@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Pagos.Proveedores;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Pagos.Proveedores;
@@ -14,17 +15,18 @@ public class ConsultarPagoProveedorEndpoint : IEndpoint
            .WithSummary("Consulta un pago de proveedor por ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IPagoProveedorRepository pagoRepository,
+        CancellationToken cancellationToken)
     {
-        var pago = PagoDataStore.PagosProveedoresDb.FirstOrDefault(p => p.Id == id);
-
+        var pago = await pagoRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (pago is null)
         {
-            Result<PagoProveedorResponse> notFoundResult = Error.NotFound(
-                "PagoProveedor.NotFound",
-                $"No se encontro un pago de proveedor registrado con el ID '{id}'.");
-
-            return notFoundResult.ToHttpResult();
+            return Result.Failure<PagoProveedorResponse>(
+                Error.NotFound("PagoProveedor.NotFound",
+                    $"No se encontro un pago de proveedor registrado con el ID '{id}'."))
+                .ToHttpResult();
         }
 
         var response = new PagoProveedorResponse(
@@ -34,10 +36,8 @@ public class ConsultarPagoProveedorEndpoint : IEndpoint
             pago.Valor,
             pago.MedioPago,
             pago.FechaPago,
-            pago.Estado
-        );
+            pago.Estado);
 
-        Result<PagoProveedorResponse> successResult = Result.Success(response);
-        return successResult.ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

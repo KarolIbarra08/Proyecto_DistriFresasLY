@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Ventas;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Ventas;
@@ -11,17 +12,19 @@ public class ObtenerVentaPorIdEndpoint : IEndpoint
         app.MapGet("/ventas/{id:int}", Manejador)
            .WithName("ObtenerVentaPorId")
            .WithTags("Ventas")
-           .WithSummary("Consulta una venta especifica por su ID");
+           .WithSummary("Obtiene una venta por su ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IVentaRepository ventaRepository,
+        CancellationToken cancellationToken)
     {
-        var venta = VentaDataStore.VentasDb.FirstOrDefault(v => v.Id == id);
+        var venta = await ventaRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (venta is null)
         {
-            return Result.Failure<VentaResponse>(Error.NotFound(
-                "Venta.NotFound",
-                $"No se encontro una venta con el Id: {id}"))
+            return Result.Failure<VentaResponse>(
+                Error.NotFound("Venta.NotFound", $"No se encontró una venta con el ID: {id}"))
                 .ToHttpResult();
         }
 
@@ -29,9 +32,8 @@ public class ObtenerVentaPorIdEndpoint : IEndpoint
             venta.Id,
             venta.FechaVenta,
             venta.Total,
-            venta.Estado,
-            venta.ClienteId
-        );
+            venta.Estado.Value,
+            venta.ClienteId == 0 ? null : venta.ClienteId);
 
         return Result.Success(response).ToHttpResult();
     }

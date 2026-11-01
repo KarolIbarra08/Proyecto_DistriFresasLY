@@ -51,39 +51,44 @@ public sealed class ProductoInsumo : Producto
         if (string.IsNullOrWhiteSpace(tipoInsumo))
             return Result.Failure<ProductoInsumo>(Error.Validation("ProductoInsumo.TipoVacio", "El tipo de insumo es obligatorio."));
 
+        if (string.IsNullOrWhiteSpace(unidadMedida))
+            return Result.Failure<ProductoInsumo>(Error.Validation("ProductoInsumo.UnidadMedidaVacia", "La unidad de medida es obligatoria."));
+
+        if (string.IsNullOrWhiteSpace(descripcion))
+            return Result.Failure<ProductoInsumo>(Error.Validation("ProductoInsumo.DescripcionVacia", "La descripción es obligatoria."));
+
         return Result.Success(new ProductoInsumo(
             id, 
             nombre.Trim(), 
             tipoInsumo.Trim(), 
-            (unidadMedida ?? string.Empty).Trim(), 
-            (descripcion ?? string.Empty).Trim()));
+            unidadMedida.Trim(), 
+            descripcion.Trim()));
     }
 
     public Result ActualizarDatos(string? nombre, string? tipoInsumo, string? unidadMedida, string? descripcion)
     {
-        // 1. Si enviaron un nuevo nombre (no nulo ni vacío), actualizar
-        if (!string.IsNullOrWhiteSpace(nombre))
-        {
-            Nombre = nombre.Trim();
-        }
+        // Los valores nulos significan "no modificar"; los vacíos no son válidos.
+        var nombreFinal = nombre ?? Nombre;
+        var tipoInsumoFinal = tipoInsumo ?? TipoInsumo;
+        var unidadMedidaFinal = unidadMedida ?? UnidadMedida;
+        var descripcionFinal = descripcion ?? Descripcion;
 
-        // 2. Si enviaron un nuevo tipo de insumo, actualizar
-        if (!string.IsNullOrWhiteSpace(tipoInsumo))
-        {
-            TipoInsumo = tipoInsumo.Trim();
-        }
+        if (string.IsNullOrWhiteSpace(nombreFinal))
+            return Result.Failure(Error.Validation("ProductoInsumo.NombreVacio", "El nombre es obligatorio."));
 
-        // 3. Si enviaron una nueva unidad de medida, actualizar
-        if (!string.IsNullOrWhiteSpace(unidadMedida))
-        {
-            UnidadMedida = unidadMedida.Trim();
-        }
+        if (string.IsNullOrWhiteSpace(tipoInsumoFinal))
+            return Result.Failure(Error.Validation("ProductoInsumo.TipoVacio", "El tipo de insumo es obligatorio."));
 
-        // 4. Si enviaron una nueva descripción (no nula), actualizar
-        if (descripcion is not null)
-        {
-            Descripcion = descripcion.Trim();
-        }
+        if (string.IsNullOrWhiteSpace(unidadMedidaFinal))
+            return Result.Failure(Error.Validation("ProductoInsumo.UnidadMedidaVacia", "La unidad de medida es obligatoria."));
+
+        if (string.IsNullOrWhiteSpace(descripcionFinal))
+            return Result.Failure(Error.Validation("ProductoInsumo.DescripcionVacia", "La descripción es obligatoria."));
+
+        Nombre = nombreFinal.Trim();
+        TipoInsumo = tipoInsumoFinal.Trim();
+        UnidadMedida = unidadMedidaFinal.Trim();
+        Descripcion = descripcionFinal.Trim();
 
         return Result.Success();
     }

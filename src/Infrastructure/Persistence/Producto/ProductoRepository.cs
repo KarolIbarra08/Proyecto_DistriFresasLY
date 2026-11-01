@@ -1,8 +1,10 @@
 using System.Data;
 using Dapper;
 using DistriFresasLY.Application.Abstractions.Persistence;
+using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Productos;
 using DistriFresasLY.Infrastructure.Persistence.Registros;
+using Microsoft.Data.Sqlite;
 
 namespace DistriFresasLY.Infrastructure.Persistence.Repositories;
 
@@ -138,52 +140,17 @@ public class ProductoRepository : IProductoRepository
 
     try
     {
-        // 1. Crear la tabla de secuencias si no existe
-        const string sqlInitSecuencia = """
-            CREATE TABLE IF NOT EXISTS SecuenciaEntidades (
-                nombre_entidad TEXT PRIMARY KEY,
-                ultimo_valor INTEGER NOT NULL
-            );
-            """;
-
-        await conexion.ExecuteAsync(
-            new CommandDefinition(sqlInitSecuencia, transaction: transaccion, cancellationToken: cancellationToken));
-
-        // 2. Sincronizar secuencia: asegura iniciar mínimo en 100 y detecta si ya existen IDs de Insumo mayores
-        const string sqlSincronizarSecuencia = """
-            INSERT INTO SecuenciaEntidades (nombre_entidad, ultimo_valor)
-            VALUES ('Insumo', MAX(100, (SELECT COALESCE(MAX(id_producto), 100) FROM Producto WHERE LOWER(tipo_producto) = 'insumo')))
-            ON CONFLICT(nombre_entidad) DO UPDATE SET
-                ultimo_valor = MAX(SecuenciaEntidades.ultimo_valor, MAX(100, (SELECT COALESCE(MAX(id_producto), 100) FROM Producto WHERE LOWER(tipo_producto) = 'insumo')));
-            """;
-
-        await conexion.ExecuteAsync(
-            new CommandDefinition(sqlSincronizarSecuencia, transaction: transaccion, cancellationToken: cancellationToken));
-
-        // 3. Incrementar y obtener el siguiente ID libre exclusivo para Insumos (101, 102, ...)
-        const string sqlObtenerSiguienteId = """
-            UPDATE SecuenciaEntidades 
-            SET ultimo_valor = ultimo_valor + 1 
-            WHERE nombre_entidad = 'Insumo';
-
-            SELECT ultimo_valor 
-            FROM SecuenciaEntidades 
-            WHERE nombre_entidad = 'Insumo';
+        // 1. Insertar en la tabla padre y obtener el ID consecutivo que asigna SQLite
+        const string sqlProductoPadre = """
+            INSERT INTO Producto (tipo_producto)
+            VALUES ('Insumo')
+            RETURNING id_producto;
             """;
 
         var nuevoIdInsumo = await conexion.ExecuteScalarAsync<int>(
-            new CommandDefinition(sqlObtenerSiguienteId, transaction: transaccion, cancellationToken: cancellationToken));
+            new CommandDefinition(sqlProductoPadre, transaction: transaccion, cancellationToken: cancellationToken));
 
-        // 4. Insertar en Producto con el ID explícito
-        const string sqlProductoPadre = """
-            INSERT INTO Producto (id_producto, tipo_producto)
-            VALUES (@IdProducto, 'Insumo');
-            """;
-
-        await conexion.ExecuteAsync(
-            new CommandDefinition(sqlProductoPadre, new { IdProducto = nuevoIdInsumo }, transaction: transaccion, cancellationToken: cancellationToken));
-
-        // 5. Insertar en ProductoInsumo
+        // 2. Insertar en ProductoInsumo usando ese mismo ID
         const string sqlProductoInsumo = """
             INSERT INTO ProductoInsumo (id_producto, nombre, tipo_insumo, unidad_medida, descripcion)
             VALUES (@IdProducto, @Nombre, @TipoInsumo, @UnidadMedida, @Descripcion);
@@ -291,52 +258,17 @@ public class ProductoRepository : IProductoRepository
 
     try
     {
-        // 1. Asegurar que exista la tabla de secuencias
-        const string sqlInitSecuencia = """
-            CREATE TABLE IF NOT EXISTS SecuenciaEntidades (
-                nombre_entidad TEXT PRIMARY KEY,
-                ultimo_valor INTEGER NOT NULL
-            );
-            """;
-
-        await conexion.ExecuteAsync(
-            new CommandDefinition(sqlInitSecuencia, transaction: transaccion, cancellationToken: cancellationToken));
-
-        // 2. Sincronizar la secuencia de Fresas con el máximo ID actual registrado en SQLite
-        const string sqlSincronizarSecuencia = """
-            INSERT INTO SecuenciaEntidades (nombre_entidad, ultimo_valor)
-            VALUES ('Fresa', (SELECT COALESCE(MAX(id_producto), 0) FROM Producto WHERE LOWER(tipo_producto) = 'fresa'))
-            ON CONFLICT(nombre_entidad) DO UPDATE SET
-                ultimo_valor = MAX(SecuenciaEntidades.ultimo_valor, (SELECT COALESCE(MAX(id_producto), 0) FROM Producto WHERE LOWER(tipo_producto) = 'fresa'));
-            """;
-
-        await conexion.ExecuteAsync(
-            new CommandDefinition(sqlSincronizarSecuencia, transaction: transaccion, cancellationToken: cancellationToken));
-
-        // 3. Incrementar y obtener el siguiente ID consecutivo disponible para Fresas (1, 2, 3...)
-        const string sqlObtenerSiguienteId = """
-            UPDATE SecuenciaEntidades 
-            SET ultimo_valor = ultimo_valor + 1 
-            WHERE nombre_entidad = 'Fresa';
-
-            SELECT ultimo_valor 
-            FROM SecuenciaEntidades 
-            WHERE nombre_entidad = 'Fresa';
+        // 1. Insertar en la tabla padre y obtener el ID consecutivo que asigna SQLite
+        const string sqlProductoPadre = """
+            INSERT INTO Producto (tipo_producto)
+            VALUES ('Fresa')
+            RETURNING id_producto;
             """;
 
         var nuevoIdFresa = await conexion.ExecuteScalarAsync<int>(
-            new CommandDefinition(sqlObtenerSiguienteId, transaction: transaccion, cancellationToken: cancellationToken));
+            new CommandDefinition(sqlProductoPadre, transaction: transaccion, cancellationToken: cancellationToken));
 
-        // 4. Insertar en la tabla padre Producto con el ID consecutivo asignado
-        const string sqlProductoPadre = """
-            INSERT INTO Producto (id_producto, tipo_producto)
-            VALUES (@IdProducto, 'Fresa');
-            """;
-
-        await conexion.ExecuteAsync(
-            new CommandDefinition(sqlProductoPadre, new { IdProducto = nuevoIdFresa }, transaction: transaccion, cancellationToken: cancellationToken));
-
-        // 5. Insertar los datos correspondientes en ProductoFresa
+        // 2. Insertar los datos correspondientes en ProductoFresa
         const string sqlProductoFresa = """
             INSERT INTO ProductoFresa (id_producto, calibre, calidad, peso, descripcion)
             VALUES (@IdProducto, @Calibre, @Calidad, @Peso, @Descripcion);
@@ -419,10 +351,95 @@ public class ProductoRepository : IProductoRepository
 
             transaccion.Commit();
         }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19 && ex.Message.Contains("FOREIGN KEY", StringComparison.OrdinalIgnoreCase))
+        {
+            transaccion.Rollback();
+
+            var referencias = await ObtenerReferenciasAsync(conexion, id, cancellationToken);
+            var detalle = referencias.TieneReferencias
+                ? referencias.Descripcion()
+                : "registros relacionados en el sistema";
+
+            var tipo = referencias.TipoProducto?.ToLowerInvariant() switch
+            {
+                "fresa" => "la fresa",
+                "insumo" => "el insumo",
+                _ => "el producto"
+            };
+
+            throw new ConflictoException(
+                "Producto.ConReferencias",
+                $"No se puede eliminar {tipo} con ID {id} porque tiene registros asociados: {detalle}. Elimine o reasigne esos registros primero.");
+        }
         catch
         {
             transaccion.Rollback();
             throw;
         }
+    }
+
+    private static async Task<ReferenciasProducto> ObtenerReferenciasAsync(
+        IDbConnection conexion,
+        int id,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT
+                (SELECT tipo_producto FROM Producto WHERE id_producto = @Id) AS TipoProducto,
+                (SELECT COUNT(*) FROM ProductoDanado WHERE id_producto = @Id) AS ProductosDanados,
+                (SELECT COUNT(*) FROM DetalleVenta WHERE id_producto = @Id) AS DetallesVenta,
+                (SELECT COUNT(*) FROM DetallePedido WHERE id_producto = @Id) AS DetallesPedido,
+                (SELECT COUNT(*) FROM DetalleRecepcion WHERE id_producto = @Id) AS DetallesRecepcion;
+            """;
+
+        return await conexion.QuerySingleAsync<ReferenciasProducto>(
+            new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
+    }
+}
+
+internal sealed class ReferenciasProducto
+{
+    public string? TipoProducto { get; set; }
+    public int ProductosDanados { get; set; }
+    public int DetallesVenta { get; set; }
+    public int DetallesPedido { get; set; }
+    public int DetallesRecepcion { get; set; }
+
+    public bool TieneReferencias =>
+        ProductosDanados > 0 || DetallesVenta > 0 || DetallesPedido > 0 || DetallesRecepcion > 0;
+
+    public string Descripcion()
+    {
+        var partes = new List<string>();
+
+        if (ProductosDanados > 0)
+        {
+            partes.Add(ProductosDanados == 1
+                ? "1 registro de producto dañado"
+                : $"{ProductosDanados} registros de productos dañados");
+        }
+
+        if (DetallesVenta > 0)
+        {
+            partes.Add(DetallesVenta == 1
+                ? "1 detalle de venta"
+                : $"{DetallesVenta} detalles de venta");
+        }
+
+        if (DetallesPedido > 0)
+        {
+            partes.Add(DetallesPedido == 1
+                ? "1 detalle de pedido"
+                : $"{DetallesPedido} detalles de pedido");
+        }
+
+        if (DetallesRecepcion > 0)
+        {
+            partes.Add(DetallesRecepcion == 1
+                ? "1 detalle de recepción"
+                : $"{DetallesRecepcion} detalles de recepción");
+        }
+
+        return string.Join(", ", partes);
     }
 }

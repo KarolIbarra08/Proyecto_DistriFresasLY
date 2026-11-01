@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Pagos.Proveedores;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Pagos.Proveedores;
@@ -14,19 +15,21 @@ public class ConsultarTodosPagosProveedoresEndpoint : IEndpoint
            .WithSummary("Consulta todos los pagos a proveedores");
     }
 
-    private static IResult Manejador()
+    private static async Task<IResult> Manejador(
+        IPagoProveedorRepository pagoRepository,
+        CancellationToken cancellationToken)
     {
-        var lista = PagoDataStore.PagosProveedoresDb.Select(pago => new PagoProveedorResponse(
+        var pagos = await pagoRepository.ObtenerTodosAsync(cancellationToken);
+
+        var response = pagos.Select(pago => new PagoProveedorResponse(
             pago.Id,
             pago.ProveedorId,
             pago.PedidoId,
             pago.Valor,
             pago.MedioPago,
             pago.FechaPago,
-            pago.Estado
-        )).ToList();
+            pago.Estado)).ToList();
 
-        Result<List<PagoProveedorResponse>> successResult = Result.Success(lista);
-        return successResult.ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

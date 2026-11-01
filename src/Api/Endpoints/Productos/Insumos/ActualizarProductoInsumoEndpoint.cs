@@ -33,17 +33,11 @@ public class ActualizarProductoInsumoEndpoint : IEndpoint
         }
 
 
-        var nombreNuevo = string.IsNullOrWhiteSpace(request.Nombre) ? insumo.Nombre : request.Nombre;
-        var tipoInsumoNuevo = string.IsNullOrWhiteSpace(request.TipoInsumo) ? insumo.TipoInsumo : request.TipoInsumo;
-        var unidadMedidaNueva = string.IsNullOrWhiteSpace(request.UnidadMedida) ? insumo.UnidadMedida : request.UnidadMedida;
-        var descripcionNueva = request.Descripcion ?? insumo.Descripcion;
-
-
         var updateResult = insumo.ActualizarDatos(
-            nombreNuevo,
-            tipoInsumoNuevo,
-            unidadMedidaNueva,
-            descripcionNueva);
+            request.Nombre,
+            request.TipoInsumo,
+            request.UnidadMedida,
+            request.Descripcion);
 
         if (updateResult.IsFailure)
         {

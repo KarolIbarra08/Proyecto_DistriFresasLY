@@ -1,6 +1,6 @@
 using DistriFresasLY.Api.Contracts.Pedidos;
-using DistriFresasLY.Api.Endpoints.Pagos;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Pedidos;
@@ -15,27 +15,33 @@ public class EliminarPedidoEndpoint : IEndpoint
            .WithSummary("Elimina un pedido y todos sus detalles asociados");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IPedidoRepository pedidoRepository,
+        IPagoProveedorRepository pagoRepository,
+        CancellationToken cancellationToken)
     {
-        var pedido = PedidoDataStore.PedidosDb.FirstOrDefault(p => p.Id == id);
+        var pedido = await pedidoRepository.ObtenerPorIdAsync(id, cancellationToken);
 
         if (pedido is null)
         {
-            Result<bool> notFoundResult = Error.NotFound(
+            return Result.Failure<bool>(Error.NotFound(
                 "Pedido.NotFound",
-                $"No se encontro un pedido registrado con el ID '{id}'.");
-
-            return notFoundResult.ToHttpResult();
+                $"No se encontro un pedido registrado con el ID '{id}'."))
+                .ToHttpResult();
         }
 
-        if (PagoDataStore.PagosProveedoresDb.Any(p => p.PedidoId == id))
+        var pagos = await pagoRepository.ObtenerTodosAsync(cancellationToken);
+        if (pagos.Any(p => p.PedidoId == id))
         {
-            return Result.Failure<bool>(Error.Conflict("Pedido.PagosAsociados", "No se puede eliminar un pedido con pagos asociados.")).ToHttpResult();
+            return Result.Failure<bool>(Error.Conflict(
+                "Pedido.PagosAsociados",
+                "No se puede eliminar un pedido con pagos asociados."))
+                .ToHttpResult();
         }
 
-        PedidoDataStore.PedidosDb.Remove(pedido);
+        await pedidoRepository.EliminarAsync(id, cancellationToken);
 
-        Result<bool> successResult = Result.Success(true);
-        return successResult.ToHttpResult();
+        return Result.Success(true).ToHttpResult();
     }
 }

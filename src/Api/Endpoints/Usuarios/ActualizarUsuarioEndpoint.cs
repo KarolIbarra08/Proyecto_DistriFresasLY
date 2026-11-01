@@ -38,6 +38,7 @@ public class ActualizarUsuarioEndpoint : IEndpoint
         var nuevoNombreUsuario = !string.IsNullOrWhiteSpace(request.Usuario) ? request.Usuario : usuario.NombreUsuario;
         var nuevaContrasena = !string.IsNullOrWhiteSpace(request.Contrasena) ? request.Contrasena : usuario.Contrasena;
         var nuevoRol = !string.IsNullOrWhiteSpace(request.Rol) ? request.Rol : usuario.Rol;
+        var nuevoEstado = request.Estado ?? usuario.Estado;
 
         if (!nuevoNombreUsuario.Equals(usuario.NombreUsuario, StringComparison.OrdinalIgnoreCase))
         {
@@ -78,7 +79,8 @@ public class ActualizarUsuarioEndpoint : IEndpoint
             nuevoApellido, 
             nuevoNombreUsuario, 
             nuevaContrasena, 
-            rolExistente.Id.ToString());
+            rolExistente.Nombre,
+            nuevoEstado);
 
         if (actualizarResult.IsFailure)
         {

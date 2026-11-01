@@ -1,5 +1,5 @@
-using DistriFresasLY.Api.Contracts.Pagos.Proveedores;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Pagos.Proveedores;
@@ -14,10 +14,12 @@ public class EliminarPagoProveedorEndpoint : IEndpoint
            .WithSummary("Elimina un pago de proveedor por ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IPagoProveedorRepository pagoRepository,
+        CancellationToken cancellationToken)
     {
-        var pago = PagoDataStore.PagosProveedoresDb.FirstOrDefault(p => p.Id == id);
-
+        var pago = await pagoRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (pago is null)
         {
             Result<bool> notFoundResult = Error.NotFound(
@@ -27,9 +29,8 @@ public class EliminarPagoProveedorEndpoint : IEndpoint
             return notFoundResult.ToHttpResult();
         }
 
-        PagoDataStore.PagosProveedoresDb.Remove(pago);
+        await pagoRepository.EliminarAsync(id, cancellationToken);
 
-        Result<bool> successResult = Result.Success(true);
-        return successResult.ToHttpResult();
+        return Result.Success(true).ToHttpResult();
     }
 }

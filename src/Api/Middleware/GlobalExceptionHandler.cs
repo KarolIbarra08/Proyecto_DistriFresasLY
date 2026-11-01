@@ -1,3 +1,4 @@
+using DistriFresasLY.Domain.Common;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +23,32 @@ public class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
+        if (exception is ConflictoException conflicto)
+        {
+            _logger.LogWarning(
+                "Conflicto de negocio: {Message} | Ruta: {Path}",
+                conflicto.Message,
+                httpContext.Request.Path);
+
+            var conflictoDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "Conflicto de Estado",
+                Detail = conflicto.Message,
+                Type = "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.8",
+                Instance = httpContext.Request.Path
+            };
+
+            conflictoDetails.Extensions["errorCode"] = conflicto.Code;
+            conflictoDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+
+            httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+
+            await httpContext.Response.WriteAsJsonAsync(conflictoDetails, cancellationToken);
+
+            return true;
+        }
+
         _logger.LogError(
             exception,
             "Excepción no controlada capturada: {Message} | Ruta: {Path}",

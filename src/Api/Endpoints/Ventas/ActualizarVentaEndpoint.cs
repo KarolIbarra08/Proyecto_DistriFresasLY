@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Ventas;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Ventas;
 
@@ -12,21 +13,111 @@ public class ActualizarVentaEndpoint : IEndpoint
         app.MapPut("/ventas/{id:int}", Manejador)
            .WithName("ActualizarVenta")
            .WithTags("Ventas")
-           .WithSummary("Actualiza la informacion de una venta existente");
+           .WithSummary("Actualiza una venta existente y ajusta el inventario");
     }
 
-    private static IResult Manejador(int id, ActualizarVentaRequest request)
+    private static async Task<IResult> Manejador(
+        int id,
+        ActualizarVentaRequest request,
+        IVentaRepository ventaRepository,
+        IClienteRepository clienteRepository,
+        IInventarioRepository inventarioRepository,
+        CancellationToken cancellationToken)
     {
-        var index = VentaDataStore.VentasDb.FindIndex(v => v.Id == id);
-        if (index == -1)
+        var venta = await ventaRepository.ObtenerPorIdAsync(id, cancellationToken);
+        if (venta is null)
         {
-            return Result.Failure<VentaResponse>(Error.NotFound(
-                "Venta.NotFound",
-                $"No se encontro una venta con el Id: {id}"))
+            return Result.Failure<VentaResponse>(
+                Error.NotFound("Venta.NotFound", $"No se encontró la venta con ID {id}."))
                 .ToHttpResult();
         }
 
-        var venta = VentaDataStore.VentasDb[index];
+        if (request.ClienteId.HasValue)
+        {
+            if (request.ClienteId.Value <= 0)
+            {
+                return Result.Failure<VentaResponse>(Error.Validation(
+                    "Venta.ClienteRequerido",
+                    "El ID del cliente debe ser mayor a 0."))
+                    .ToHttpResult();
+            }
+
+            var cliente = await clienteRepository.ObtenerPorIdAsync(request.ClienteId.Value, cancellationToken);
+            if (cliente is null)
+            {
+                return Result.Failure<VentaResponse>(Error.NotFound(
+                    "Venta.ClienteNoEncontrado",
+                    $"No se encontró un cliente con ID {request.ClienteId.Value}."))
+                    .ToHttpResult();
+            }
+
+            var clienteResult = venta.AsignarCliente(request.ClienteId.Value);
+            if (clienteResult.IsFailure)
+            {
+                return Result.Failure<VentaResponse>(clienteResult.Error).ToHttpResult();
+            }
+        }
+
+        var cantidadesAnteriores = venta.Detalles
+            .GroupBy(d => d.ProductoId)
+            .ToDictionary(g => g.Key, g => g.Sum(d => d.Cantidad.Value));
+
+        Dictionary<int, int>? cantidadesNuevas = null;
+
+        if (request.Detalles is not null)
+        {
+            var detalles = new List<DetalleVenta>();
+
+            foreach (var detReq in request.Detalles)
+            {
+                var detalleResult = DetalleVenta.Create(
+                    productoId: detReq.ProductoId,
+                    cantidad: detReq.Cantidad,
+                    precioUnitario: detReq.PrecioUnitario);
+
+                if (detalleResult.IsFailure)
+                {
+                    return Result.Failure<VentaResponse>(detalleResult.Error).ToHttpResult();
+                }
+
+                detalles.Add(detalleResult.Value);
+            }
+
+            cantidadesNuevas = detalles
+                .GroupBy(d => d.ProductoId)
+                .ToDictionary(g => g.Key, g => g.Sum(d => d.Cantidad.Value));
+
+            foreach (var producto in cantidadesNuevas)
+            {
+                var anterior = cantidadesAnteriores.GetValueOrDefault(producto.Key, 0);
+                var incremento = producto.Value - anterior;
+
+                if (incremento <= 0) continue;
+
+                var inventario = await inventarioRepository.ObtenerPorProductoIdAsync(producto.Key, cancellationToken);
+                if (inventario is null)
+                {
+                    return Result.Failure<VentaResponse>(Error.NotFound(
+                        "Inventario.NotFound",
+                        $"No existe registro de inventario para el producto ID: {producto.Key}"))
+                        .ToHttpResult();
+                }
+
+                if (inventario.CantidadDisponible < incremento)
+                {
+                    return Result.Failure<VentaResponse>(Error.Validation(
+                        "Venta.StockInsuficiente",
+                        $"No hay stock suficiente para el producto ID {producto.Key}. Disponible: {inventario.CantidadDisponible}, solicitado: {incremento}."))
+                        .ToHttpResult();
+                }
+            }
+
+            var detallesResult = venta.ActualizarDetalles(detalles);
+            if (detallesResult.IsFailure)
+            {
+                return Result.Failure<VentaResponse>(detallesResult.Error).ToHttpResult();
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Estado))
         {
@@ -37,36 +128,42 @@ public class ActualizarVentaEndpoint : IEndpoint
             }
         }
 
-        if (request.Detalles is not null)
+        await ventaRepository.ActualizarAsync(venta, cancellationToken);
+
+        if (cantidadesNuevas is not null)
         {
-            var detallesResult = request.Detalles
-                .Select(d => DetalleVenta.Create(d.ProductoId, d.Cantidad, d.PrecioUnitario))
-                .ToList();
+            var productos = cantidadesAnteriores.Keys.Union(cantidadesNuevas.Keys);
 
-            var detalleInvalido = detallesResult.FirstOrDefault(r => r.IsFailure);
-            if (detalleInvalido is not null)
+            foreach (var productoId in productos)
             {
-                return Result.Failure<VentaResponse>(detalleInvalido.Error).ToHttpResult();
-            }
+                var anterior = cantidadesAnteriores.GetValueOrDefault(productoId, 0);
+                var nuevo = cantidadesNuevas.GetValueOrDefault(productoId, 0);
+                var diferencia = nuevo - anterior;
 
-            var detalles = detallesResult.Select(r => r.Value).ToList();
+                if (diferencia == 0) continue;
 
-            var detallesResultado = venta.ActualizarDetalles(detalles);
-            if (detallesResultado.IsFailure)
-            {
-                return Result.Failure<VentaResponse>(detallesResultado.Error).ToHttpResult();
+                var inventario = await inventarioRepository.ObtenerPorProductoIdAsync(productoId, cancellationToken);
+                if (inventario is null) continue;
+
+                var movimiento = diferencia > 0
+                    ? inventario.Disminuir(diferencia)
+                    : inventario.Aumentar(-diferencia);
+
+                if (movimiento.IsFailure)
+                {
+                    return Result.Failure<VentaResponse>(movimiento.Error).ToHttpResult();
+                }
+
+                await inventarioRepository.ActualizarAsync(inventario, cancellationToken);
             }
         }
-
-        venta.AsignarCliente(request.ClienteId ?? venta.ClienteId);
 
         var response = new VentaResponse(
             venta.Id,
             venta.FechaVenta,
             venta.Total,
-            venta.Estado,
-            venta.ClienteId
-        );
+            venta.Estado.Value,
+            venta.ClienteId == 0 ? null : venta.ClienteId);
 
         return Result.Success(response).ToHttpResult();
     }

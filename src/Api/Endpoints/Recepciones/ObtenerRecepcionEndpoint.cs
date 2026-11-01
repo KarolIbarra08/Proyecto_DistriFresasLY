@@ -1,7 +1,7 @@
 using DistriFresasLY.Api.Contracts.Recepciones;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
-using DistriFresasLY.Domain.Entities.Recepciones;
 
 namespace DistriFresasLY.Api.Endpoints.Recepciones;
 
@@ -12,19 +12,20 @@ public class ObtenerRecepcionEndpoint : IEndpoint
         app.MapGet("/recepciones/{id:int}", Manejador)
            .WithName("ObtenerRecepcion")
            .WithTags("Recepciones")
-           .WithSummary("Obtiene una recepción por su Id");
+           .WithSummary("Obtiene una recepción por su ID");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IRecepcionRepository recepcionRepository,
+        CancellationToken cancellationToken)
     {
-        var recepcion = RecepcionDataStore.RecepcionesDb.FirstOrDefault(r => r.Id == id);
+        var recepcion = await recepcionRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (recepcion is null)
         {
-            Result<RecepcionResponse> errorResult = Error.NotFound(
-                "Recepcion.NotFound",
-                $"No se encontró una recepción con el Id: {id}");
-
-            return errorResult.ToHttpResult();
+            return Result.Failure<RecepcionResponse>(
+                Error.NotFound("Recepcion.NotFound", $"No se encontró la recepción con ID {id}."))
+                .ToHttpResult();
         }
 
         var response = new RecepcionResponse(

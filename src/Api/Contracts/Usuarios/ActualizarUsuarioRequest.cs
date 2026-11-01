@@ -6,5 +6,5 @@ public record ActualizarUsuarioRequest(
     string? Usuario,
     string? Contrasena,
     string? Rol,
-    bool Estado 
+    bool? Estado 
 );

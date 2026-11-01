@@ -1,6 +1,7 @@
+using Microsoft.AspNetCore.Mvc;
 using DistriFresasLY.Api.Contracts.Recibos;
-using DistriFresasLY.Api.Endpoints.Ventas;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Recibos;
 
@@ -13,12 +14,16 @@ public class GenerarReciboEndpoint : IEndpoint
         app.MapPost("/recibos/generar", Manejador)
            .WithName("GenerarRecibo")
            .WithTags("Recibos")
-           .WithSummary("Genera un recibo digital tomando los datos directos de una venta");
+           .WithSummary("Genera un recibo digital tomando los datos de una venta");
     }
 
-    private static IResult Manejador(GenerarReciboRequest request)
+    private static async Task<IResult> Manejador(
+        [FromBody] GenerarReciboRequest request,
+        IReciboRepository reciboRepository,
+        IVentaRepository ventaRepository,
+        CancellationToken cancellationToken)
     {
-        var venta = VentaDataStore.VentasDb.FirstOrDefault(v => v.Id == request.VentaId);
+        var venta = await ventaRepository.ObtenerPorIdAsync(request.VentaId, cancellationToken);
         if (venta is null)
         {
             return Result.Failure<ReciboResponse>(Error.NotFound(
@@ -27,7 +32,9 @@ public class GenerarReciboEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-        var reciboExistente = ReciboDataStore.RecibosDb.FirstOrDefault(r => r.VentaId == request.VentaId);
+        var recibos = await reciboRepository.ObtenerTodosAsync(cancellationToken);
+
+        var reciboExistente = recibos.FirstOrDefault(r => r.VentaId == request.VentaId);
         if (reciboExistente is not null)
         {
             return Result.Failure<ReciboResponse>(Error.Conflict(
@@ -36,32 +43,32 @@ public class GenerarReciboEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
-        var ultimoNumero = ReciboDataStore.RecibosDb.Count != 0 
-            ? ReciboDataStore.RecibosDb.Max(r => r.NumeroRecibo) 
-            : 0;
+        var ultimoNumero = recibos.Count > 0 ? recibos.Max(r => r.NumeroRecibo) : 0;
 
-        var nuevoId = ReciboDataStore.RecibosDb.Count != 0 
-            ? ReciboDataStore.RecibosDb.Max(r => r.Id) + 1 
-            : 1;
-
-       
-        var reciboResult = Recibo.Create(venta.Id, (double)venta.Total, ultimoNumero, nuevoId);
+        var reciboResult = Recibo.Create(request.VentaId, venta.Total, ultimoNumero);
         if (reciboResult.IsFailure)
         {
             return Result.Failure<ReciboResponse>(reciboResult.Error).ToHttpResult();
         }
 
         var nuevoRecibo = reciboResult.Value;
-        ReciboDataStore.RecibosDb.Add(nuevoRecibo);
+        var nuevoId = await reciboRepository.AgregarAsync(nuevoRecibo, cancellationToken);
+
+        var creado = await reciboRepository.ObtenerPorIdAsync(nuevoId, cancellationToken);
+        if (creado is null)
+        {
+            return Result.Failure<ReciboResponse>(
+                Error.Failure("Recibo.ErrorCreacion", "No se pudo recuperar el recibo creado."))
+                .ToHttpResult();
+        }
 
         var response = new ReciboResponse(
-            nuevoRecibo.Id,
-            nuevoRecibo.FechaRecibo,
-            nuevoRecibo.NumeroRecibo,
-            nuevoRecibo.Total,
-            nuevoRecibo.VentaId
-        );
+            creado.Id,
+            creado.FechaRecibo,
+            creado.NumeroRecibo,
+            creado.Total,
+            creado.VentaId);
 
-        return Result.Success(response).ToHttpCreatedAtResult($"/api/recibos/{nuevoRecibo.Id}");
+        return Result.Success(response).ToHttpCreatedAtResult($"/api/recibos/{creado.Id}");
     }
 }

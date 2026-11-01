@@ -1,7 +1,4 @@
-using DistriFresasLY.Api.Contracts.Pagos.Proveedores;
 using DistriFresasLY.Api.Contracts.Pedidos;
-using DistriFresasLY.Api.Endpoints.Pagos.Proveedores;
-using DistriFresasLY.Api.Endpoints.Pagos;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
@@ -22,38 +19,50 @@ public class ActualizarPedidoEndpoint : IEndpoint
     private static async Task<IResult> Manejador(
         int id,
         ActualizarPedidoRequest request,
+        IPedidoRepository pedidoRepository,
         IProveedorRepository proveedorRepository,
+        IPagoProveedorRepository pagoRepository,
         CancellationToken cancellationToken)
     {
-        var index = PedidoDataStore.PedidosDb.FindIndex(p => p.Id == id);
+        var pedido = await pedidoRepository.ObtenerPorIdAsync(id, cancellationToken);
 
-        if (index == -1)
+        if (pedido is null)
         {
-            Result<PedidoResponse> notFoundResult = Error.NotFound(
+            return Result.Failure<PedidoResponse>(Error.NotFound(
                 "Pedido.NotFound",
-                $"No se encontro un pedido registrado con el ID '{id}'.");
-
-            return notFoundResult.ToHttpResult();
+                $"No se encontro un pedido registrado con el ID '{id}'."))
+                .ToHttpResult();
         }
-
-        var pedido = PedidoDataStore.PedidosDb[index];
 
         if (request.ProveedorId.HasValue)
         {
             if (request.ProveedorId.Value <= 0)
             {
-                return Result.Failure<PedidoResponse>(Error.Validation("Pedido.ProveedorInvalido", "El ID del proveedor es obligatorio.")).ToHttpResult();
+                return Result.Failure<PedidoResponse>(Error.Validation(
+                    "Pedido.ProveedorInvalido",
+                    "El ID del proveedor es obligatorio."))
+                    .ToHttpResult();
             }
 
             var proveedor = await proveedorRepository.ObtenerPorIdAsync(request.ProveedorId.Value, cancellationToken);
             if (proveedor is null)
             {
-                return Result.Failure<PedidoResponse>(Error.NotFound("Pedido.ProveedorNoEncontrado", $"No se encontró un proveedor con ID {request.ProveedorId.Value}.")).ToHttpResult();
+                return Result.Failure<PedidoResponse>(Error.NotFound(
+                    "Pedido.ProveedorNoEncontrado",
+                    $"No se encontró un proveedor con ID {request.ProveedorId.Value}."))
+                    .ToHttpResult();
             }
 
-            if (request.ProveedorId.Value != pedido.ProveedorId && PagoDataStore.PagosProveedoresDb.Any(p => p.PedidoId == id))
+            if (request.ProveedorId.Value != pedido.ProveedorId)
             {
-                return Result.Failure<PedidoResponse>(Error.Conflict("Pedido.PagosAsociados", "No se puede cambiar el proveedor de un pedido con pagos asociados.")).ToHttpResult();
+                var pagos = await pagoRepository.ObtenerTodosAsync(cancellationToken);
+                if (pagos.Any(p => p.PedidoId == id))
+                {
+                    return Result.Failure<PedidoResponse>(Error.Conflict(
+                        "Pedido.PagosAsociados",
+                        "No se puede cambiar el proveedor de un pedido con pagos asociados."))
+                        .ToHttpResult();
+                }
             }
 
             var proveedorResult = pedido.ActualizarProveedor(request.ProveedorId.Value);
@@ -65,7 +74,7 @@ public class ActualizarPedidoEndpoint : IEndpoint
 
         if (!string.IsNullOrWhiteSpace(request.Estado))
         {
-            var estadoResult = pedido.ActualizarEstado(request.Estado.Trim());
+            var estadoResult = pedido.ActualizarEstado(request.Estado);
             if (estadoResult.IsFailure)
             {
                 return Result.Failure<PedidoResponse>(estadoResult.Error).ToHttpResult();
@@ -74,54 +83,49 @@ public class ActualizarPedidoEndpoint : IEndpoint
 
         if (request.Detalles is not null)
         {
-            var maxDetalleId = PedidoDataStore.PedidosDb
-                .SelectMany(p => p.Detalles)
-                .Select(d => d.Id)
-                .DefaultIfEmpty(0)
-                .Max();
+            var detalles = new List<DetallePedido>();
 
-            var siguienteDetalleId = maxDetalleId + 1;
-
-            var detallesResult = request.Detalles
-                .Select((detalleReq, index) => DetallePedido.Create(
-                    pedidoId: id,
-                    descripcion: detalleReq.Descripcion,
-                    cantidad: detalleReq.Cantidad,
-                    valorUnitario: detalleReq.ValorUnitario,
-                    id: siguienteDetalleId + index))
-                .ToList();
-
-            var detalleInvalido = detallesResult.FirstOrDefault(r => r.IsFailure);
-            if (detalleInvalido is not null)
+            foreach (var detReq in request.Detalles)
             {
-                return Result.Failure<PedidoResponse>(detalleInvalido.Error).ToHttpResult();
+                var detalleResult = DetallePedido.Create(
+                    pedidoId: id,
+                    descripcion: detReq.Descripcion,
+                    cantidad: detReq.Cantidad,
+                    valorUnitario: detReq.ValorUnitario);
+
+                if (detalleResult.IsFailure)
+                {
+                    return Result.Failure<PedidoResponse>(detalleResult.Error).ToHttpResult();
+                }
+
+                detalles.Add(detalleResult.Value);
             }
 
-            var detalles = detallesResult.Select(r => r.Value).ToList();
-
-            var detallesResultado = pedido.ActualizarDetalles(detalles);
-            if (detallesResultado.IsFailure)
+            var detallesResult = pedido.ActualizarDetalles(detalles);
+            if (detallesResult.IsFailure)
             {
-                return Result.Failure<PedidoResponse>(detallesResultado.Error).ToHttpResult();
+                return Result.Failure<PedidoResponse>(detallesResult.Error).ToHttpResult();
             }
         }
 
+        await pedidoRepository.ActualizarAsync(pedido, cancellationToken);
+
+        var actualizado = await pedidoRepository.ObtenerPorIdAsync(id, cancellationToken);
+
         var response = new PedidoResponse(
-            pedido.Id,
-            pedido.ProveedorId,
-            pedido.FechaPedido,
-            pedido.Estado,
-            pedido.Total,
-            pedido.Detalles.Select(d => new DetallePedidoResponse(
+            actualizado!.Id,
+            actualizado.ProveedorId,
+            actualizado.FechaPedido,
+            actualizado.Estado,
+            actualizado.Total,
+            actualizado.Detalles.Select(d => new DetallePedidoResponse(
                 d.Id,
                 d.PedidoId,
                 d.Descripcion,
                 d.Cantidad,
                 d.ValorUnitario,
-                d.Subtotal)).ToList()
-        );
+                d.Subtotal)).ToList());
 
-        Result<PedidoResponse> successResult = Result.Success(response);
-        return successResult.ToHttpResult();
+        return Result.Success(response).ToHttpResult();
     }
 }

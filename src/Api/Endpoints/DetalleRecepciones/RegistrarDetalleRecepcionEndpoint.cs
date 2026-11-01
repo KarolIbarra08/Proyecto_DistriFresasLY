@@ -1,10 +1,9 @@
 using DistriFresasLY.Api.Contracts.DetalleRecepciones;
-using DistriFresasLY.Api.Endpoints.Inventario;
-using DistriFresasLY.Api.Endpoints.Productos;
-using DistriFresasLY.Api.Endpoints.Recepciones;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Domain.Entities.Recepciones;
+using InventarioEntity = DistriFresasLY.Domain.Entities.Inventario.Inventario;
 
 namespace DistriFresasLY.Api.Endpoints.DetalleRecepciones;
 
@@ -18,81 +17,82 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
            .WithSummary("Registra un detalle asociado a una recepción y actualiza el inventario");
     }
 
-    private static IResult Manejador(
-        RegistrarDetalleRecepcionRequest request)
+    private static async Task<IResult> Manejador(
+        RegistrarDetalleRecepcionRequest request,
+        IRecepcionRepository recepcionRepository,
+        IProductoRepository productoRepository,
+        IInventarioRepository inventarioRepository,
+        CancellationToken cancellationToken)
     {
-        var recepcion = RecepcionDataStore.RecepcionesDb
-            .FirstOrDefault(r => r.Id == request.IdRecepcion);
-
+        var recepcion = await recepcionRepository.ObtenerPorIdAsync(request.IdRecepcion, cancellationToken);
         if (recepcion is null)
         {
             return Result.Failure<DetalleRecepcionResponse>(
-                Error.NotFound(
-                    "Recepcion.NotFound",
+                Error.NotFound("Recepcion.NotFound",
                     $"No se encontró la recepción con ID: {request.IdRecepcion}."))
                 .ToHttpResult();
         }
 
-        var productoFresaExiste =
-            ProductoDataStore.FresasDb
-                .Any(p => p.Id == request.IdProducto);
-
-        var productoInsumoExiste =
-            ProductoDataStore.InsumosDb
-                .Any(p => p.Id == request.IdProducto);
-
-        if (!productoFresaExiste && !productoInsumoExiste)
+        var producto = await productoRepository.ObtenerPorIdAsync(request.IdProducto, cancellationToken);
+        if (producto is null)
         {
             return Result.Failure<DetalleRecepcionResponse>(
-                Error.NotFound(
-                    "Producto.NotFound",
+                Error.NotFound("Producto.NotFound",
                     $"No se encontró el producto con ID: {request.IdProducto}."))
                 .ToHttpResult();
         }
 
-        var nuevoId =
-            DetalleRecepcionDataStore.DetallesDb.Count != 0
-                ? DetalleRecepcionDataStore.DetallesDb.Max(d => d.Id) + 1
-                : 1;
+        var detalleResult = DetalleRecepcion.Create(
+            idProducto: request.IdProducto,
+            cantidad: request.Cantidad,
+            precioUnitario: request.PrecioUnitario,
+            idRecepcion: request.IdRecepcion,
+            fechaIngreso: request.FechaIngreso);
 
-        var result = DetalleRecepcion.Create(
-            request.IdProducto,
-            request.Cantidad,
-            request.PrecioUnitario,
-            request.IdRecepcion,
-            id: nuevoId,
-            fechaIngreso: request.FechaIngreso
-        );
-
-        if (result.IsFailure)
+        if (detalleResult.IsFailure)
         {
-            return Result.Failure<DetalleRecepcionResponse>(result.Error)
-                .ToHttpResult();
+            return Result.Failure<DetalleRecepcionResponse>(detalleResult.Error).ToHttpResult();
         }
 
-        var detalle = result.Value;
-
-        var agregarResult = recepcion.AgregarDetalle(detalle);
+        var agregarResult = recepcion.AgregarDetalle(detalleResult.Value);
         if (agregarResult.IsFailure)
         {
-            return Result.Failure<DetalleRecepcionResponse>(agregarResult.Error)
-                .ToHttpResult();
+            return Result.Failure<DetalleRecepcionResponse>(agregarResult.Error).ToHttpResult();
         }
 
-        DetalleRecepcionDataStore.DetallesDb.Add(detalle);
+        await recepcionRepository.ActualizarAsync(recepcion, cancellationToken);
 
-        // Se pasa directamente detalle.Cantidad como double sin convertir a int
-        var resultadoInventario = InventarioDataStore.AumentarStock(
-            detalle.IdProducto,
-            (int)detalle.Cantidad
-        );
+        var inventario = await inventarioRepository.ObtenerPorProductoIdAsync(request.IdProducto, cancellationToken);
 
-        if (resultadoInventario is null)
+        if (inventario is null)
+        {
+            var nuevoInventario = InventarioEntity.Create(request.IdProducto, request.Cantidad);
+            if (nuevoInventario.IsFailure)
+            {
+                return Result.Failure<DetalleRecepcionResponse>(nuevoInventario.Error).ToHttpResult();
+            }
+
+            await inventarioRepository.AgregarAsync(nuevoInventario.Value, cancellationToken);
+        }
+        else
+        {
+            var aumentarResult = inventario.Aumentar(request.Cantidad);
+            if (aumentarResult.IsFailure)
+            {
+                return Result.Failure<DetalleRecepcionResponse>(aumentarResult.Error).ToHttpResult();
+            }
+
+            await inventarioRepository.ActualizarAsync(inventario, cancellationToken);
+        }
+
+        var guardada = await recepcionRepository.ObtenerPorIdAsync(request.IdRecepcion, cancellationToken);
+        var detalle = guardada!.Detalles
+            .LastOrDefault(d => d.IdProducto == request.IdProducto);
+
+        if (detalle is null)
         {
             return Result.Failure<DetalleRecepcionResponse>(
-                Error.Validation(
-                    "Inventario.Error",
-                    "No fue posible encontrar el registro de inventario para el producto especificado."))
+                Error.Failure("DetalleRecepcion.ErrorCreacion", "No se pudo recuperar el detalle creado."))
                 .ToHttpResult();
         }
 
@@ -103,11 +103,8 @@ public class RegistrarDetalleRecepcionEndpoint : IEndpoint
             (int)detalle.Cantidad,
             detalle.PrecioUnitario,
             detalle.Subtotal,
-            detalle.FechaIngreso
-        );
+            detalle.FechaIngreso);
 
-        return Result.Success(response)
-            .ToHttpCreatedAtResult(
-                $"/api/detalles-recepcion/{detalle.Id}");
+        return Result.Success(response).ToHttpCreatedAtResult($"/api/detalles-recepcion/{detalle.Id}");
     }
 }

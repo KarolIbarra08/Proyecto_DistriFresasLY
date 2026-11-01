@@ -65,6 +65,23 @@ public class DetalleRecepcion : Entity
                 fechaIngreso ?? ColombiaTime.Ahora));
     }
 
+    public static DetalleRecepcion Rehidratar(
+        int id,
+        int idRecepcion,
+        int idProducto,
+        double cantidad,
+        double precioUnitario,
+        DateTime fechaIngreso)
+    {
+        return new DetalleRecepcion(
+            id,
+            idRecepcion,
+            idProducto,
+            (int)cantidad,
+            precioUnitario,
+            fechaIngreso);
+    }
+
     public Result Actualizar(double cantidad, double precioUnitario)
     {
         if (cantidad <= 0)

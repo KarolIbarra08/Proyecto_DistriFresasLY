@@ -1,4 +1,5 @@
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Recibos;
@@ -13,9 +14,12 @@ public class ImprimirReciboEndpoint : IEndpoint
            .WithSummary("Obtiene la plantilla formateada para impresion de un recibo");
     }
 
-    private static IResult Manejador(int id)
+    private static async Task<IResult> Manejador(
+        int id,
+        IReciboRepository reciboRepository,
+        CancellationToken cancellationToken)
     {
-        var recibo = ReciboDataStore.RecibosDb.FirstOrDefault(r => r.Id == id);
+        var recibo = await reciboRepository.ObtenerPorIdAsync(id, cancellationToken);
         if (recibo is null)
         {
             Result<string> errorResult = Error.NotFound(
@@ -39,7 +43,6 @@ public class ImprimirReciboEndpoint : IEndpoint
                     ¡Gracias por su compra!          
         """;
 
-        Result<string> successResult = Result.Success(reciboTexto);
-        return successResult.ToHttpResult();
+        return Result.Success(reciboTexto).ToHttpResult();
     }
 }

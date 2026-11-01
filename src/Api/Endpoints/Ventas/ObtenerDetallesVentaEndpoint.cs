@@ -1,5 +1,6 @@
 using DistriFresasLY.Api.Contracts.Ventas;
 using DistriFresasLY.Api.Extensions;
+using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Common;
 
 namespace DistriFresasLY.Api.Endpoints.Ventas;
@@ -14,9 +15,12 @@ public class ObtenerDetallesVentaEndpoint : IEndpoint
            .WithSummary("Obtiene los detalles de productos de una venta junto con el total general");
     }
 
-    private static IResult Manejador(int ventaId)
+    private static async Task<IResult> Manejador(
+        int ventaId,
+        IVentaRepository ventaRepository,
+        CancellationToken cancellationToken)
     {
-        var venta = VentaDataStore.VentasDb.FirstOrDefault(v => v.Id == ventaId);
+        var venta = await ventaRepository.ObtenerPorIdAsync(ventaId, cancellationToken);
         if (venta is null)
         {
             return Result.Failure<List<DetalleVentaResponse>>(Error.NotFound(
@@ -28,11 +32,11 @@ public class ObtenerDetallesVentaEndpoint : IEndpoint
         var detalles = venta.Detalles
             .Select(d => new DetalleVentaResponse(
                 d.ProductoId,
-                d.Cantidad,
+                d.Cantidad.Value,
                 d.PrecioUnitario,
                 d.Subtotal,
-                venta.Total
-            )).ToList();
+                venta.Total))
+            .ToList();
 
         return Result.Success(detalles).ToHttpResult();
     }
