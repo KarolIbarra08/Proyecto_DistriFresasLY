@@ -129,54 +129,65 @@ public class ProductoRepository : IProductoRepository
     }
 
     public async Task<int> AgregarInsumoAsync(ProductoInsumo insumo, CancellationToken cancellationToken = default)
-{
-    using var conexion = _connectionFactory.CrearConexion();
-    if (conexion.State != ConnectionState.Open)
     {
-        conexion.Open();
-    }
-
-    using var transaccion = conexion.BeginTransaction();
-
-    try
-    {
-        // 1. Insertar en la tabla padre y obtener el ID consecutivo que asigna SQLite
-        const string sqlProductoPadre = """
-            INSERT INTO Producto (tipo_producto)
-            VALUES ('Insumo')
-            RETURNING id_producto;
-            """;
-
-        var nuevoIdInsumo = await conexion.ExecuteScalarAsync<int>(
-            new CommandDefinition(sqlProductoPadre, transaction: transaccion, cancellationToken: cancellationToken));
-
-        // 2. Insertar en ProductoInsumo usando ese mismo ID
-        const string sqlProductoInsumo = """
-            INSERT INTO ProductoInsumo (id_producto, nombre, tipo_insumo, unidad_medida, descripcion)
-            VALUES (@IdProducto, @Nombre, @TipoInsumo, @UnidadMedida, @Descripcion);
-            """;
-
-        var parametrosInsumo = new
+        using var conexion = _connectionFactory.CrearConexion();
+        if (conexion.State != ConnectionState.Open)
         {
-            IdProducto = nuevoIdInsumo,
-            insumo.Nombre,
-            insumo.TipoInsumo,
-            insumo.UnidadMedida,
-            insumo.Descripcion
-        };
+            conexion.Open();
+        }
 
-        await conexion.ExecuteAsync(
-            new CommandDefinition(sqlProductoInsumo, parametrosInsumo, transaction: transaccion, cancellationToken: cancellationToken));
+        using var transaccion = conexion.BeginTransaction();
 
-        transaccion.Commit();
-        return nuevoIdInsumo;
+        try
+        {
+            // 1. Obtener el máximo ID registrado en ProductoInsumo
+            const string sqlUltimoId = """
+                SELECT COALESCE(MAX(id_producto), 0)
+                FROM ProductoInsumo;
+                """;
+
+            var ultimoId = await conexion.ExecuteScalarAsync<int>(
+                new CommandDefinition(sqlUltimoId, transaction: transaccion, cancellationToken: cancellationToken));
+
+            // 2. Si no hay registros previos de insumos, inicia en 101. Si existen, incrementa +1.
+            var nuevoIdInsumo = ultimoId == 0 ? 101 : ultimoId + 1;
+
+            // 3. Insertar el ID asignado en la tabla padre Producto
+            const string sqlProductoPadre = """
+                INSERT INTO Producto (id_producto, tipo_producto)
+                VALUES (@IdProducto, 'Insumo');
+                """;
+
+            await conexion.ExecuteAsync(
+                new CommandDefinition(sqlProductoPadre, new { IdProducto = nuevoIdInsumo }, transaction: transaccion, cancellationToken: cancellationToken));
+
+            // 4. Insertar en ProductoInsumo vinculando el mismo ID
+            const string sqlProductoInsumo = """
+                INSERT INTO ProductoInsumo (id_producto, nombre, tipo_insumo, unidad_medida, descripcion)
+                VALUES (@IdProducto, @Nombre, @TipoInsumo, @UnidadMedida, @Descripcion);
+                """;
+
+            var parametrosInsumo = new
+            {
+                IdProducto = nuevoIdInsumo,
+                insumo.Nombre,
+                insumo.TipoInsumo,
+                insumo.UnidadMedida,
+                insumo.Descripcion
+            };
+
+            await conexion.ExecuteAsync(
+                new CommandDefinition(sqlProductoInsumo, parametrosInsumo, transaction: transaccion, cancellationToken: cancellationToken));
+
+            transaccion.Commit();
+            return nuevoIdInsumo;
+        }
+        catch
+        {
+            transaccion.Rollback();
+            throw;
+        }
     }
-    catch
-    {
-        transaccion.Rollback();
-        throw;
-    }
-}
 
     public async Task ActualizarInsumoAsync(ProductoInsumo insumo, CancellationToken cancellationToken = default)
     {
@@ -246,55 +257,53 @@ public class ProductoRepository : IProductoRepository
         return cantidad > 0;
     }
 
-   public async Task<int> AgregarFresaAsync(ProductoFresa fresa, CancellationToken cancellationToken = default)
-{
-    using var conexion = _connectionFactory.CrearConexion();
-    if (conexion.State != ConnectionState.Open)
+    public async Task<int> AgregarFresaAsync(ProductoFresa fresa, CancellationToken cancellationToken = default)
     {
-        conexion.Open();
-    }
-
-    using var transaccion = conexion.BeginTransaction();
-
-    try
-    {
-        // 1. Insertar en la tabla padre y obtener el ID consecutivo que asigna SQLite
-        const string sqlProductoPadre = """
-            INSERT INTO Producto (tipo_producto)
-            VALUES ('Fresa')
-            RETURNING id_producto;
-            """;
-
-        var nuevoIdFresa = await conexion.ExecuteScalarAsync<int>(
-            new CommandDefinition(sqlProductoPadre, transaction: transaccion, cancellationToken: cancellationToken));
-
-        // 2. Insertar los datos correspondientes en ProductoFresa
-        const string sqlProductoFresa = """
-            INSERT INTO ProductoFresa (id_producto, calibre, calidad, peso, descripcion)
-            VALUES (@IdProducto, @Calibre, @Calidad, @Peso, @Descripcion);
-            """;
-
-        var parametros = new
+        using var conexion = _connectionFactory.CrearConexion();
+        if (conexion.State != ConnectionState.Open)
         {
-            IdProducto = nuevoIdFresa,
-            Calibre = fresa.Calibre.Value,
-            fresa.Calidad,
-            Peso = fresa.Peso.Value,
-            fresa.Descripcion
-        };
+            conexion.Open();
+        }
 
-        await conexion.ExecuteAsync(
-            new CommandDefinition(sqlProductoFresa, parametros, transaction: transaccion, cancellationToken: cancellationToken));
+        using var transaccion = conexion.BeginTransaction();
 
-        transaccion.Commit();
-        return nuevoIdFresa;
+        try
+        {
+            const string sqlProductoPadre = """
+                INSERT INTO Producto (tipo_producto)
+                VALUES ('Fresa')
+                RETURNING id_producto;
+                """;
+
+            var nuevoIdFresa = await conexion.ExecuteScalarAsync<int>(
+                new CommandDefinition(sqlProductoPadre, transaction: transaccion, cancellationToken: cancellationToken));
+
+            const string sqlProductoFresa = """
+                INSERT INTO ProductoFresa (id_producto, calibre, calidad, peso, descripcion)
+                VALUES (@IdProducto, @Calibre, @Calidad, @Peso, @Descripcion);
+                """;
+
+            var parametros = new
+            {
+                IdProducto = nuevoIdFresa,
+                Calibre = fresa.Calibre.Value,
+                fresa.Calidad,
+                Peso = fresa.Peso.Value,
+                fresa.Descripcion
+            };
+
+            await conexion.ExecuteAsync(
+                new CommandDefinition(sqlProductoFresa, parametros, transaction: transaccion, cancellationToken: cancellationToken));
+
+            transaccion.Commit();
+            return nuevoIdFresa;
+        }
+        catch
+        {
+            transaccion.Rollback();
+            throw;
+        }
     }
-    catch
-    {
-        transaccion.Rollback();
-        throw;
-    }
-}
 
     public async Task ActualizarFresaAsync(ProductoFresa fresa, CancellationToken cancellationToken = default)
     {

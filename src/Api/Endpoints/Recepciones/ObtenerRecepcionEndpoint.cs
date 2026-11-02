@@ -12,12 +12,13 @@ public class ObtenerRecepcionEndpoint : IEndpoint
         app.MapGet("/recepciones/{id:int}", Manejador)
            .WithName("ObtenerRecepcion")
            .WithTags("Recepciones")
-           .WithSummary("Obtiene una recepción por su ID");
+           .WithSummary("Obtiene una recepción por su ID aplicando deducciones por productos dañados");
     }
 
     private static async Task<IResult> Manejador(
         int id,
         IRecepcionRepository recepcionRepository,
+        IProductoDanadoRepository productoDanadoRepository, 
         CancellationToken cancellationToken)
     {
         var recepcion = await recepcionRepository.ObtenerPorIdAsync(id, cancellationToken);
@@ -28,13 +29,27 @@ public class ObtenerRecepcionEndpoint : IEndpoint
                 .ToHttpResult();
         }
 
+
+        var productosDanados = await productoDanadoRepository.ObtenerTodosAsync(cancellationToken);
+
+
+        double totalDescuentos = (double)productosDanados
+            .Where(pd => pd.Descuento is not null && 
+                         recepcion.Detalles.Any(d => d.IdProducto == pd.ProductoId))
+            .Sum(pd => pd.Descuento!.Valor);
+
+
+        double totalCalculadoOriginal = recepcion.CalcularTotal();
+        double valorPagoFinal = Math.Max(0, totalCalculadoOriginal - totalDescuentos);
+
         var response = new RecepcionResponse(
             recepcion.Id,
             recepcion.PedidoId,
             recepcion.FechaRecepcion,
-            recepcion.ValorPago,
+            valorPagoFinal,                   
             recepcion.ProcesadaEnInventario,
-            recepcion.CalcularTotal());
+            totalCalculadoOriginal            
+        );
 
         return Result.Success(response).ToHttpResult();
     }

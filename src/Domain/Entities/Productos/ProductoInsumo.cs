@@ -15,7 +15,7 @@ public sealed class ProductoInsumo : Producto
         string tipoInsumo,
         string unidadMedida,
         string descripcion)
-        : base(id, "Insumo") // Asigna "Insumo" a TipoProducto en la clase base Producto
+        : base(id, "Insumo")
     {
         Nombre = nombre;
         TipoInsumo = tipoInsumo;
@@ -67,7 +67,6 @@ public sealed class ProductoInsumo : Producto
 
     public Result ActualizarDatos(string? nombre, string? tipoInsumo, string? unidadMedida, string? descripcion)
     {
-        // Los valores nulos significan "no modificar"; los vacíos no son válidos.
         var nombreFinal = nombre ?? Nombre;
         var tipoInsumoFinal = tipoInsumo ?? TipoInsumo;
         var unidadMedidaFinal = unidadMedida ?? UnidadMedida;

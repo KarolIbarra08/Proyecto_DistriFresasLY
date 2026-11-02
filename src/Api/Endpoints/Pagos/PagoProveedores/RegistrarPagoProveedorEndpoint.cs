@@ -1,3 +1,4 @@
+
 using DistriFresasLY.Api.Contracts.Pagos.Proveedores;
 using DistriFresasLY.Api.Extensions;
 using DistriFresasLY.Application.Abstractions.Persistence;
@@ -8,7 +9,12 @@ namespace DistriFresasLY.Api.Endpoints.Pagos.Proveedores;
 
 public class RegistrarPagoProveedorEndpoint : IEndpoint
 {
-    private static readonly string[] EstadosProhibidosPedido = { "Recibido", "Completado", "Cancelado", "Anulado" };
+
+    private static readonly string[] EstadosProhibidosPedido =
+    {
+        "Cancelado",
+        "Anulado"
+    };
 
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
@@ -24,45 +30,55 @@ public class RegistrarPagoProveedorEndpoint : IEndpoint
         IPagoProveedorRepository pagoRepository,
         CancellationToken cancellationToken)
     {
-   
+
         if (request.Valor <= 0)
         {
             return Result.Failure<PagoProveedorResponse>(
-                Error.Validation("PagoProveedor.ValorInvalido", "El valor del pago debe ser mayor a 0."))
+                Error.Validation(
+                    "PagoProveedor.ValorInvalido",
+                    "El valor del pago debe ser mayor a 0."))
                 .ToHttpResult();
         }
 
-       
-        var pedido = await pedidoRepository.ObtenerPorIdAsync(request.PedidoId, cancellationToken);
+
+        var pedido = await pedidoRepository.ObtenerPorIdAsync(
+            request.PedidoId,
+            cancellationToken);
+
         if (pedido is null)
         {
             return Result.Failure<PagoProveedorResponse>(
-                Error.NotFound("Pedido.NotFound", $"No existe el pedido con ID {request.PedidoId}."))
+                Error.NotFound(
+                    "Pedido.NotFound",
+                    $"No existe el pedido con ID {request.PedidoId}."))
                 .ToHttpResult();
         }
 
-    
         if (pedido.ProveedorId != request.ProveedorId)
         {
             return Result.Failure<PagoProveedorResponse>(
-                Error.Validation("PagoProveedor.ProveedorNoCoincide", "El proveedor del pago no coincide con el proveedor del pedido."))
+                Error.Validation(
+                    "PagoProveedor.ProveedorNoCoincide",
+                    "El proveedor del pago no coincide con el proveedor del pedido."))
                 .ToHttpResult();
         }
-
 
         if (EstadosProhibidosPedido.Contains(pedido.Estado))
         {
             return Result.Failure<PagoProveedorResponse>(
-                Error.Validation("PagoProveedor.PedidoCerrado", 
+                Error.Validation(
+                    "PagoProveedor.PedidoCerrado",
                     $"No se pueden registrar pagos porque el pedido #{request.PedidoId} se encuentra en estado '{pedido.Estado}'."))
                 .ToHttpResult();
         }
 
-
-        var pagos = await pagoRepository.ObtenerTodosAsync(cancellationToken);
+        var pagos = await pagoRepository.ObtenerTodosAsync(
+            cancellationToken);
 
         var pagadoAnteriormente = pagos
-            .Where(p => p.PedidoId == request.PedidoId && p.Estado != "Anulado")
+            .Where(p =>
+                p.PedidoId == request.PedidoId &&
+                p.Estado != "Anulado")
             .Sum(p => p.Valor);
 
         var saldoPendiente = pedido.Total - pagadoAnteriormente;
@@ -70,23 +86,27 @@ public class RegistrarPagoProveedorEndpoint : IEndpoint
         if (saldoPendiente <= 0)
         {
             return Result.Failure<PagoProveedorResponse>(
-                Error.Validation("PagoProveedor.PedidoSaldado", "Este pedido ya se encuentra totalmente pagado."))
+                Error.Validation(
+                    "PagoProveedor.PedidoSaldado",
+                    "Este pedido ya se encuentra totalmente pagado."))
                 .ToHttpResult();
         }
 
         if (request.Valor > saldoPendiente)
         {
             return Result.Failure<PagoProveedorResponse>(
-                Error.Validation("PagoProveedor.MontoExcedido",
+                Error.Validation(
+                    "PagoProveedor.MontoExcedido",
                     $"El pago (${request.Valor}) supera el saldo pendiente del pedido (${saldoPendiente})."))
                 .ToHttpResult();
         }
 
-        
         var nuevoTotalPagado = pagadoAnteriormente + request.Valor;
-        var estadoFinal = nuevoTotalPagado >= pedido.Total ? "Completado" : "Abono Parcial";
 
-     
+        var estadoFinal = nuevoTotalPagado >= pedido.Total
+            ? "Completado"
+            : "Abono Parcial";
+
         var pagoResult = PagoProveedor.Create(
             proveedorId: request.ProveedorId,
             pedidoId: request.PedidoId,
@@ -97,17 +117,24 @@ public class RegistrarPagoProveedorEndpoint : IEndpoint
 
         if (pagoResult.IsFailure)
         {
-            return Result.Failure<PagoProveedorResponse>(pagoResult.Error).ToHttpResult();
+            return Result.Failure<PagoProveedorResponse>(
+                pagoResult.Error).ToHttpResult();
         }
 
-        // 8. Persistencia y respuesta
-        var nuevoId = await pagoRepository.AgregarAsync(pagoResult.Value, cancellationToken);
-        var pago = await pagoRepository.ObtenerPorIdAsync(nuevoId, cancellationToken);
+        var nuevoId = await pagoRepository.AgregarAsync(
+            pagoResult.Value,
+            cancellationToken);
+
+        var pago = await pagoRepository.ObtenerPorIdAsync(
+            nuevoId,
+            cancellationToken);
 
         if (pago is null)
         {
             return Result.Failure<PagoProveedorResponse>(
-                Error.Failure("PagoProveedor.ErrorCreacion", "No se pudo recuperar el pago creado."))
+                Error.Failure(
+                    "PagoProveedor.ErrorCreacion",
+                    "No se pudo recuperar el pago creado."))
                 .ToHttpResult();
         }
 
@@ -120,6 +147,7 @@ public class RegistrarPagoProveedorEndpoint : IEndpoint
             pago.FechaPago,
             pago.Estado);
 
-        return Result.Success(response).ToHttpCreatedAtResult($"/api/pagos/proveedores/{pago.Id}");
+        return Result.Success(response)
+            .ToHttpCreatedAtResult($"/api/pagos/proveedores/{pago.Id}");
     }
 }
