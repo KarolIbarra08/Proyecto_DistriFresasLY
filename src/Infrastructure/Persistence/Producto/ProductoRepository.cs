@@ -1,3 +1,4 @@
+
 using System.Data;
 using Dapper;
 using DistriFresasLY.Application.Abstractions.Persistence;
@@ -22,7 +23,7 @@ public class ProductoRepository : IProductoRepository
         using var conexion = _connectionFactory.CrearConexion();
 
         const string sqlInsumo = """
-            SELECT 
+            SELECT
                 p.id_producto AS Id_Producto,
                 'insumo' AS Tipo_Producto,
                 pi.nombre AS Nombre,
@@ -38,12 +39,10 @@ public class ProductoRepository : IProductoRepository
             new CommandDefinition(sqlInsumo, new { Id = id }, cancellationToken: cancellationToken));
 
         if (registroInsumo is not null)
-        {
             return registroInsumo.ToEntidad();
-        }
 
         const string sqlFresa = """
-            SELECT 
+            SELECT
                 p.id_producto AS Id_Producto,
                 'fresa' AS Tipo_Producto,
                 pf.calibre AS Calibre,
@@ -66,7 +65,7 @@ public class ProductoRepository : IProductoRepository
         using var conexion = _connectionFactory.CrearConexion();
 
         const string sqlInsumos = """
-            SELECT 
+            SELECT
                 p.id_producto AS Id_Producto,
                 'insumo' AS Tipo_Producto,
                 pi.nombre AS Nombre,
@@ -78,7 +77,7 @@ public class ProductoRepository : IProductoRepository
             """;
 
         const string sqlFresas = """
-            SELECT 
+            SELECT
                 p.id_producto AS Id_Producto,
                 'fresa' AS Tipo_Producto,
                 pf.calibre AS Calibre,
@@ -101,14 +100,55 @@ public class ProductoRepository : IProductoRepository
     }
 
     // ==========================================
+    // GENERACIÓN COMPARTIDA DE IDs
+    // ==========================================
+    private static async Task<int> ObtenerSiguienteIdAsync(
+        IDbConnection conexion,
+        IDbTransaction transaccion,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+        WITH RECURSIVE candidatos(id) AS (
+            SELECT 1
+
+            UNION ALL
+
+            SELECT id + 1
+            FROM candidatos
+            WHERE EXISTS (
+                SELECT 1
+                FROM Producto
+                WHERE id_producto = candidatos.id
+            )
+        )
+        SELECT id
+        FROM candidatos
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM Producto
+            WHERE id_producto = candidatos.id
+        )
+        LIMIT 1;
+        """;
+
+        return await conexion.ExecuteScalarAsync<int>(
+            new CommandDefinition(
+                sql,
+                transaction: transaccion,
+                cancellationToken: cancellationToken));
+    }
+
+    // ==========================================
     // SECCIÓN INSUMOS
     // ==========================================
 
-    public async Task<IReadOnlyList<ProductoInsumo>> ObtenerTodosInsumosAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ProductoInsumo>> ObtenerTodosInsumosAsync(
+        CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();
+
         const string sql = """
-            SELECT 
+            SELECT
                 p.id_producto AS Id_Producto,
                 'insumo' AS Tipo_Producto,
                 pi.nombre AS Nombre,
@@ -128,48 +168,47 @@ public class ProductoRepository : IProductoRepository
                         .ToList();
     }
 
-    public async Task<int> AgregarInsumoAsync(ProductoInsumo insumo, CancellationToken cancellationToken = default)
+    public async Task<int> AgregarInsumoAsync(
+        ProductoInsumo insumo,
+        CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();
+
         if (conexion.State != ConnectionState.Open)
-        {
             conexion.Open();
-        }
 
         using var transaccion = conexion.BeginTransaction();
 
         try
         {
-            // 1. Obtener el máximo ID registrado en ProductoInsumo
-            const string sqlUltimoId = """
-                SELECT COALESCE(MAX(id_producto), 0)
-                FROM ProductoInsumo;
-                """;
+            // 1. Obtener el siguiente ID compartido.
+            var nuevoId = await ObtenerSiguienteIdAsync(
+                conexion, transaccion, cancellationToken);
 
-            var ultimoId = await conexion.ExecuteScalarAsync<int>(
-                new CommandDefinition(sqlUltimoId, transaction: transaccion, cancellationToken: cancellationToken));
-
-            // 2. Si no hay registros previos de insumos, inicia en 101. Si existen, incrementa +1.
-            var nuevoIdInsumo = ultimoId == 0 ? 101 : ultimoId + 1;
-
-            // 3. Insertar el ID asignado en la tabla padre Producto
+            // 2. Registrar el producto padre.
             const string sqlProductoPadre = """
                 INSERT INTO Producto (id_producto, tipo_producto)
                 VALUES (@IdProducto, 'Insumo');
                 """;
 
             await conexion.ExecuteAsync(
-                new CommandDefinition(sqlProductoPadre, new { IdProducto = nuevoIdInsumo }, transaction: transaccion, cancellationToken: cancellationToken));
+                new CommandDefinition(
+                    sqlProductoPadre,
+                    new { IdProducto = nuevoId },
+                    transaction: transaccion,
+                    cancellationToken: cancellationToken));
 
-            // 4. Insertar en ProductoInsumo vinculando el mismo ID
+            // 3. Registrar los datos del insumo.
             const string sqlProductoInsumo = """
-                INSERT INTO ProductoInsumo (id_producto, nombre, tipo_insumo, unidad_medida, descripcion)
-                VALUES (@IdProducto, @Nombre, @TipoInsumo, @UnidadMedida, @Descripcion);
+                INSERT INTO ProductoInsumo
+                    (id_producto, nombre, tipo_insumo, unidad_medida, descripcion)
+                VALUES
+                    (@IdProducto, @Nombre, @TipoInsumo, @UnidadMedida, @Descripcion);
                 """;
 
-            var parametrosInsumo = new
+            var parametros = new
             {
-                IdProducto = nuevoIdInsumo,
+                IdProducto = nuevoId,
                 insumo.Nombre,
                 insumo.TipoInsumo,
                 insumo.UnidadMedida,
@@ -177,10 +216,15 @@ public class ProductoRepository : IProductoRepository
             };
 
             await conexion.ExecuteAsync(
-                new CommandDefinition(sqlProductoInsumo, parametrosInsumo, transaction: transaccion, cancellationToken: cancellationToken));
+                new CommandDefinition(
+                    sqlProductoInsumo,
+                    parametros,
+                    transaction: transaccion,
+                    cancellationToken: cancellationToken));
 
             transaccion.Commit();
-            return nuevoIdInsumo;
+
+            return nuevoId;
         }
         catch
         {
@@ -189,15 +233,18 @@ public class ProductoRepository : IProductoRepository
         }
     }
 
-    public async Task ActualizarInsumoAsync(ProductoInsumo insumo, CancellationToken cancellationToken = default)
+    public async Task ActualizarInsumoAsync(
+        ProductoInsumo insumo,
+        CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();
+
         const string sql = """
-            UPDATE ProductoInsumo 
-            SET nombre = @Nombre, 
-                tipo_insumo = @TipoInsumo, 
-                unidad_medida = @UnidadMedida, 
-                descripcion = @Descripcion 
+            UPDATE ProductoInsumo
+            SET nombre = @Nombre,
+                tipo_insumo = @TipoInsumo,
+                unidad_medida = @UnidadMedida,
+                descripcion = @Descripcion
             WHERE id_producto = @Id;
             """;
 
@@ -218,11 +265,13 @@ public class ProductoRepository : IProductoRepository
     // SECCIÓN FRESAS
     // ==========================================
 
-    public async Task<IReadOnlyList<ProductoFresa>> ObtenerTodasFresasAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ProductoFresa>> ObtenerTodasFresasAsync(
+        CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();
+
         const string sql = """
-            SELECT 
+            SELECT
                 p.id_producto AS Id_Producto,
                 'fresa' AS Tipo_Producto,
                 pf.calibre AS Calibre,
@@ -242,50 +291,70 @@ public class ProductoRepository : IProductoRepository
                         .ToList();
     }
 
-    public async Task<bool> ExisteCalibreAsync(int calibre, int? idExcluir = null, CancellationToken cancellationToken = default)
+    public async Task<bool> ExisteCalibreAsync(
+        int calibre,
+        int? idExcluir = null,
+        CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();
+
         const string sql = """
-            SELECT COUNT(1) 
-            FROM ProductoFresa 
-            WHERE calibre = @Calibre AND (@IdExcluir IS NULL OR id_producto != @IdExcluir);
+            SELECT COUNT(1)
+            FROM ProductoFresa
+            WHERE calibre = @Calibre
+              AND (@IdExcluir IS NULL OR id_producto != @IdExcluir);
             """;
 
         var cantidad = await conexion.ExecuteScalarAsync<int>(
-            new CommandDefinition(sql, new { Calibre = calibre, IdExcluir = idExcluir }, cancellationToken: cancellationToken));
+            new CommandDefinition(
+                sql,
+                new { Calibre = calibre, IdExcluir = idExcluir },
+                cancellationToken: cancellationToken));
 
         return cantidad > 0;
     }
 
-    public async Task<int> AgregarFresaAsync(ProductoFresa fresa, CancellationToken cancellationToken = default)
+    public async Task<int> AgregarFresaAsync(
+        ProductoFresa fresa,
+        CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();
+
         if (conexion.State != ConnectionState.Open)
-        {
             conexion.Open();
-        }
 
         using var transaccion = conexion.BeginTransaction();
 
         try
         {
+
+            var nuevoId = await ObtenerSiguienteIdAsync(
+                conexion, transaccion, cancellationToken);
+
+
             const string sqlProductoPadre = """
-                INSERT INTO Producto (tipo_producto)
-                VALUES ('Fresa')
-                RETURNING id_producto;
+                INSERT INTO Producto (id_producto, tipo_producto)
+                VALUES (@IdProducto, 'Fresa');
                 """;
 
-            var nuevoIdFresa = await conexion.ExecuteScalarAsync<int>(
-                new CommandDefinition(sqlProductoPadre, transaction: transaccion, cancellationToken: cancellationToken));
+            await conexion.ExecuteAsync(
+                new CommandDefinition(
+                    sqlProductoPadre,
+                    new { IdProducto = nuevoId },
+                    transaction: transaccion,
+                    cancellationToken: cancellationToken));
+
 
             const string sqlProductoFresa = """
-                INSERT INTO ProductoFresa (id_producto, calibre, calidad, peso, descripcion)
-                VALUES (@IdProducto, @Calibre, @Calidad, @Peso, @Descripcion);
+                INSERT INTO ProductoFresa
+                    (id_producto, calibre, calidad, peso, descripcion)
+                VALUES
+                    (@IdProducto, @Calibre, @Calidad, @Peso, @Descripcion);
                 """;
 
             var parametros = new
             {
-                IdProducto = nuevoIdFresa,
+                IdProducto = nuevoId,
                 Calibre = fresa.Calibre.Value,
                 fresa.Calidad,
                 Peso = fresa.Peso.Value,
@@ -293,10 +362,15 @@ public class ProductoRepository : IProductoRepository
             };
 
             await conexion.ExecuteAsync(
-                new CommandDefinition(sqlProductoFresa, parametros, transaction: transaccion, cancellationToken: cancellationToken));
+                new CommandDefinition(
+                    sqlProductoFresa,
+                    parametros,
+                    transaction: transaccion,
+                    cancellationToken: cancellationToken));
 
             transaccion.Commit();
-            return nuevoIdFresa;
+
+            return nuevoId;
         }
         catch
         {
@@ -305,15 +379,18 @@ public class ProductoRepository : IProductoRepository
         }
     }
 
-    public async Task ActualizarFresaAsync(ProductoFresa fresa, CancellationToken cancellationToken = default)
+    public async Task ActualizarFresaAsync(
+        ProductoFresa fresa,
+        CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();
+
         const string sql = """
-            UPDATE ProductoFresa 
-            SET calibre = @Calibre, 
-                calidad = @Calidad, 
-                peso = @Peso, 
-                descripcion = @Descripcion 
+            UPDATE ProductoFresa
+            SET calibre = @Calibre,
+                calidad = @Calidad,
+                peso = @Peso,
+                descripcion = @Descripcion
             WHERE id_producto = @Id;
             """;
 
@@ -334,37 +411,59 @@ public class ProductoRepository : IProductoRepository
     // ELIMINACIÓN GENERAL
     // ==========================================
 
-    public async Task EliminarAsync(int id, CancellationToken cancellationToken = default)
+    public async Task EliminarAsync(
+        int id,
+        CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();
+
         if (conexion.State != ConnectionState.Open)
-        {
             conexion.Open();
-        }
 
         using var transaccion = conexion.BeginTransaction();
 
         try
         {
-            const string sqlEliminarInsumo = "DELETE FROM ProductoInsumo WHERE id_producto = @Id;";
-            await conexion.ExecuteAsync(
-                new CommandDefinition(sqlEliminarInsumo, new { Id = id }, transaction: transaccion, cancellationToken: cancellationToken));
+            const string sqlEliminarInsumo =
+                "DELETE FROM ProductoInsumo WHERE id_producto = @Id;";
 
-            const string sqlEliminarFresa = "DELETE FROM ProductoFresa WHERE id_producto = @Id;";
             await conexion.ExecuteAsync(
-                new CommandDefinition(sqlEliminarFresa, new { Id = id }, transaction: transaccion, cancellationToken: cancellationToken));
+                new CommandDefinition(
+                    sqlEliminarInsumo,
+                    new { Id = id },
+                    transaction: transaccion,
+                    cancellationToken: cancellationToken));
 
-            const string sqlEliminarPadre = "DELETE FROM Producto WHERE id_producto = @Id;";
+            const string sqlEliminarFresa =
+                "DELETE FROM ProductoFresa WHERE id_producto = @Id;";
+
             await conexion.ExecuteAsync(
-                new CommandDefinition(sqlEliminarPadre, new { Id = id }, transaction: transaccion, cancellationToken: cancellationToken));
+                new CommandDefinition(
+                    sqlEliminarFresa,
+                    new { Id = id },
+                    transaction: transaccion,
+                    cancellationToken: cancellationToken));
+
+            const string sqlEliminarPadre =
+                "DELETE FROM Producto WHERE id_producto = @Id;";
+
+            await conexion.ExecuteAsync(
+                new CommandDefinition(
+                    sqlEliminarPadre,
+                    new { Id = id },
+                    transaction: transaccion,
+                    cancellationToken: cancellationToken));
 
             transaccion.Commit();
         }
-        catch (SqliteException ex) when (ex.SqliteErrorCode == 19 && ex.Message.Contains("FOREIGN KEY", StringComparison.OrdinalIgnoreCase))
+        catch (SqliteException ex)
+            when (ex.SqliteErrorCode == 19 &&
+                  ex.Message.Contains("FOREIGN KEY", StringComparison.OrdinalIgnoreCase))
         {
             transaccion.Rollback();
 
             var referencias = await ObtenerReferenciasAsync(conexion, id, cancellationToken);
+
             var detalle = referencias.TieneReferencias
                 ? referencias.Descripcion()
                 : "registros relacionados en el sistema";
@@ -402,7 +501,10 @@ public class ProductoRepository : IProductoRepository
             """;
 
         return await conexion.QuerySingleAsync<ReferenciasProducto>(
-            new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
+            new CommandDefinition(
+                sql,
+                new { Id = id },
+                cancellationToken: cancellationToken));
     }
 }
 
@@ -415,7 +517,10 @@ internal sealed class ReferenciasProducto
     public int DetallesRecepcion { get; set; }
 
     public bool TieneReferencias =>
-        ProductosDanados > 0 || DetallesVenta > 0 || DetallesPedido > 0 || DetallesRecepcion > 0;
+        ProductosDanados > 0 ||
+        DetallesVenta > 0 ||
+        DetallesPedido > 0 ||
+        DetallesRecepcion > 0;
 
     public string Descripcion()
     {
