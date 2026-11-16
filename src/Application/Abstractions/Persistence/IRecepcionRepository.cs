@@ -2,11 +2,10 @@ using DistriFresasLY.Domain.Entities.Recepciones;
 
 namespace DistriFresasLY.Application.Abstractions.Persistence;
 
-public interface IRecepcionRepository
+/// <summary>
+/// Contrato del repositorio de recepciones.
+/// Su CRUD completo lo aporta <see cref="IRepositorioGenerica{T}"/>.
+/// </summary>
+public interface IRecepcionRepository : IRepositorioGenerica<Recepcion>
 {
-    Task<Recepcion?> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Recepcion>> ObtenerTodosAsync(CancellationToken cancellationToken = default);
-    Task<int> AgregarAsync(Recepcion recepcion, CancellationToken cancellationToken = default);
-    Task ActualizarAsync(Recepcion recepcion, CancellationToken cancellationToken = default);
-    Task EliminarAsync(int id, CancellationToken cancellationToken = default);
 }

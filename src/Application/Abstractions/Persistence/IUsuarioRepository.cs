@@ -2,12 +2,17 @@ using DistriFresasLY.Domain.Entities.Usuarios;
 
 namespace DistriFresasLY.Application.Abstractions.Persistence;
 
-public interface IUsuarioRepository
+/// <summary>
+/// Contrato del repositorio de usuarios.
+/// Hereda el CRUD genérico de <see cref="IRepositorioGenerica{T}"/> y define
+/// la búsqueda por nombre de usuario, utilizada al iniciar sesión.
+/// </summary>
+public interface IUsuarioRepository : IRepositorioGenerica<Usuario>
 {
-    Task<Usuario?> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default);
-    Task<Usuario?> ObtenerPorNombreUsuarioAsync(string nombreUsuario, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Usuario>> ObtenerTodosAsync(CancellationToken cancellationToken = default);
-    Task<int> AgregarAsync(Usuario usuario, CancellationToken cancellationToken = default);
-    Task ActualizarAsync(Usuario usuario, CancellationToken cancellationToken = default);
-    Task EliminarAsync(int id, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Obtiene un usuario mediante su nombre de usuario.
+    /// </summary>
+    Task<Usuario?> ObtenerPorNombreUsuarioAsync(
+        string nombreUsuario,
+        CancellationToken cancellationToken = default);
 }

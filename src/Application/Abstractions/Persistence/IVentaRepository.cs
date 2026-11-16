@@ -2,19 +2,24 @@ using DistriFresasLY.Domain.Entities.Ventas;
 
 namespace DistriFresasLY.Application.Abstractions.Persistence;
 
-public interface IVentaRepository
+/// <summary>
+/// Contrato del repositorio de ventas.
+/// Hereda el CRUD genérico de <see cref="IRepositorioGenerica{T}"/> y define
+/// las verificaciones de integridad previas a eliminar una venta.
+/// </summary>
+public interface IVentaRepository : IRepositorioGenerica<Venta>
 {
-    Task<Venta?> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Verifica si la venta tiene pagos de cliente asociados.
+    /// </summary>
+    Task<bool> TienePagosAsociadosAsync(
+        int idVenta,
+        CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<Venta>> ObtenerTodosAsync(CancellationToken cancellationToken = default);
-
-    Task<int> AgregarAsync(Venta venta, CancellationToken cancellationToken = default);
-
-    Task ActualizarAsync(Venta venta, CancellationToken cancellationToken = default);
-
-    Task EliminarAsync(int id, CancellationToken cancellationToken = default);
-
-    Task<bool> TienePagosAsociadosAsync(int idVenta, CancellationToken cancellationToken = default);
-
-    Task<bool> TieneReciboAsociadoAsync(int idVenta, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Verifica si la venta ya tiene un recibo generado.
+    /// </summary>
+    Task<bool> TieneReciboAsociadoAsync(
+        int idVenta,
+        CancellationToken cancellationToken = default);
 }

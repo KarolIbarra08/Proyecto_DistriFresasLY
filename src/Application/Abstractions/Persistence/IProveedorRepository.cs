@@ -2,12 +2,17 @@ using DistriFresasLY.Domain.Entities.Proveedores;
 
 namespace DistriFresasLY.Application.Abstractions.Persistence;
 
-public interface IProveedorRepository
+/// <summary>
+/// Contrato del repositorio de proveedores.
+/// Hereda el CRUD genérico de <see cref="IRepositorioGenerica{T}"/> y define
+/// la búsqueda por cédula o NIT.
+/// </summary>
+public interface IProveedorRepository : IRepositorioGenerica<Proveedor>
 {
-    Task<Proveedor?> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default);
-    Task<Proveedor?> ObtenerPorCedulaNitAsync(string cedulaNit, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Proveedor>> ObtenerTodosAsync(CancellationToken cancellationToken = default);
-    Task<int> AgregarAsync(Proveedor proveedor, CancellationToken cancellationToken = default);
-    Task ActualizarAsync(Proveedor proveedor, CancellationToken cancellationToken = default);
-    Task EliminarAsync(int id, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Obtiene un proveedor mediante su cédula o NIT.
+    /// </summary>
+    Task<Proveedor?> ObtenerPorCedulaNitAsync(
+        string cedulaNit,
+        CancellationToken cancellationToken = default);
 }
