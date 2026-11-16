@@ -1,5 +1,4 @@
 using DistriFresasLY.Domain.Entities.Productos;
-
 namespace DistriFresasLY.Application.Abstractions.Persistence;
 
 public interface IProductoRepository
