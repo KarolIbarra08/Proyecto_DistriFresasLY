@@ -86,6 +86,23 @@ public class ProveedorRepository : IProveedorRepository
         return registros.Select(r => r.ToEntidad()).ToList();
     }
 
+    public async Task<bool> TienePedidosAsociadosAsync(int idProveedor, CancellationToken cancellationToken = default)
+    {
+        using var conexion = _connectionFactory.CrearConexion();
+        if (conexion.State != ConnectionState.Open) conexion.Open();
+
+        const string sql = """
+            SELECT EXISTS (
+                SELECT 1 FROM Pedidos WHERE id_proveedor = @IdProveedor
+                UNION ALL
+                SELECT 1 FROM PagoProveedor WHERE id_proveedor = @IdProveedor
+            );
+            """;
+
+        return await conexion.ExecuteScalarAsync<bool>(
+            new CommandDefinition(sql, new { IdProveedor = idProveedor }, cancellationToken: cancellationToken));
+    }
+
     public async Task<int> AgregarAsync(Proveedor proveedor, CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();

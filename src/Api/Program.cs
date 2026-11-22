@@ -3,26 +3,87 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DistriFresasLY.Api.Endpoints;
 using DistriFresasLY.Api.Middleware;
+using DistriFresasLY.Application.Clientes;
+using DistriFresasLY.Application.Pedidos;
+using DistriFresasLY.Application.Productos;
+using DistriFresasLY.Application.ProductosDanados;
+using DistriFresasLY.Application.Proveedores;
+using DistriFresasLY.Application.Roles;
+using DistriFresasLY.Application.Usuarios;
 using DistriFresasLY.Domain.Common;
-using DistriFresasLY.Infrastructure; // 1. Namespace de Infraestructura
+using DistriFresasLY.Infrastructure;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuración para permitir parseo ultra flexible de fechas
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new CustomDateTimeConverter());
 });
 
-// 2. Registramos la capa de Infraestructura (Base de datos, repositorios, etc.)
 builder.Services.AddInfrastructure(builder.Configuration);
 
-builder.Services.AddOpenApi();
+// Módulo Clientes
+builder.Services.AddScoped<ObtenerClientesUseCase>();
+builder.Services.AddScoped<ObtenerClientePorIdUseCase>();
+builder.Services.AddScoped<CrearClienteUseCase>();
+builder.Services.AddScoped<ActualizarClienteUseCase>();
+builder.Services.AddScoped<EliminarClienteUseCase>();
 
+// Módulo Roles
+builder.Services.AddScoped<ObtenerRolesUseCase>();
+builder.Services.AddScoped<CrearRolUseCase>();
+builder.Services.AddScoped<ActualizarRolUseCase>();
+builder.Services.AddScoped<EliminarRolUseCase>();
+builder.Services.AddScoped<AsignarPermisoUseCase>();
+builder.Services.AddScoped<VerificarAccesoUseCase>();
+
+// Módulo Usuarios
+builder.Services.AddScoped<ObtenerUsuariosUseCase>();
+builder.Services.AddScoped<ObtenerUsuarioPorIdUseCase>();
+builder.Services.AddScoped<CrearUsuarioUseCase>();
+builder.Services.AddScoped<ActualizarUsuarioUseCase>();
+builder.Services.AddScoped<EliminarUsuarioUseCase>();
+builder.Services.AddScoped<IniciarSesionUseCase>();
+
+// Módulo Pedidos
+builder.Services.AddScoped<ObtenerPedidosUseCase>();
+builder.Services.AddScoped<ObtenerPedidoPorIdUseCase>();
+builder.Services.AddScoped<RegistrarPedidoUseCase>();
+builder.Services.AddScoped<ActualizarPedidoUseCase>();
+builder.Services.AddScoped<EliminarPedidoUseCase>();
+
+// Módulo Proveedores
+builder.Services.AddScoped<ObtenerProveedoresUseCase>();
+builder.Services.AddScoped<ObtenerProveedorPorIdUseCase>();
+builder.Services.AddScoped<CrearProveedorUseCase>();
+builder.Services.AddScoped<ActualizarProveedorUseCase>();
+builder.Services.AddScoped<EliminarProveedorUseCase>();
+
+// Módulo Productos (Fresa e Insumo)
+builder.Services.AddScoped<ObtenerProductosFresaUseCase>();
+builder.Services.AddScoped<ObtenerProductoFresaPorIdUseCase>();
+builder.Services.AddScoped<RegistrarProductoFresaUseCase>();
+builder.Services.AddScoped<ActualizarProductoFresaUseCase>();
+builder.Services.AddScoped<EliminarProductoFresaUseCase>();
+
+builder.Services.AddScoped<ObtenerProductosInsumoUseCase>();
+builder.Services.AddScoped<ObtenerProductoInsumoPorIdUseCase>();
+builder.Services.AddScoped<RegistrarProductoInsumoUseCase>();
+builder.Services.AddScoped<ActualizarProductoInsumoUseCase>();
+builder.Services.AddScoped<EliminarProductoInsumoUseCase>();
+
+// Módulo Productos Dañados
+builder.Services.AddScoped<ObtenerProductosDanadosUseCase>();
+builder.Services.AddScoped<ObtenerProductoDanadoPorIdUseCase>();
+builder.Services.AddScoped<RegistrarProductoDanadoUseCase>();
+builder.Services.AddScoped<ActualizarProductoDanadoUseCase>();
+builder.Services.AddScoped<EliminarProductoDanadoUseCase>();
+builder.Services.AddScoped<CalcularDescuentoProductoDanadoUseCase>();
+
+builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-
 builder.Services.AddEndpoints(typeof(Program).Assembly);
 
 var app = builder.Build();
@@ -41,11 +102,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.MapEndpoints();
-
 app.Run();
-
 
 public class CustomDateTimeConverter : JsonConverter<DateTime>
 {
@@ -60,17 +118,25 @@ public class CustomDateTimeConverter : JsonConverter<DateTime>
 
             if (DateTime.TryParse(dateString, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateInvariant))
             {
-                return ColombiaTime.AColombia(dateInvariant);
+                return dateInvariant.Kind == DateTimeKind.Utc
+                    ? ColombiaTime.AColombia(dateInvariant)
+                    : DateTime.SpecifyKind(dateInvariant, DateTimeKind.Unspecified);
             }
 
             if (DateTime.TryParse(dateString, CultureInfo.CurrentCulture, DateTimeStyles.RoundtripKind, out var dateLocal))
             {
-                return ColombiaTime.AColombia(dateLocal);
+                return dateLocal.Kind == DateTimeKind.Utc
+                    ? ColombiaTime.AColombia(dateLocal)
+                    : DateTime.SpecifyKind(dateLocal, DateTimeKind.Unspecified);
             }
         }
         else if (reader.TokenType == JsonTokenType.Number)
         {
-            return ColombiaTime.AColombia(DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64()).UtcDateTime);
+            var ms = reader.GetInt64();
+            if (ms <= 0)
+                return default;
+
+            return ColombiaTime.AColombia(DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime);
         }
 
         throw new JsonException("El valor de fecha ingresado no tiene un formato válido.");
@@ -78,8 +144,11 @@ public class CustomDateTimeConverter : JsonConverter<DateTime>
 
     public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
     {
-        var enColombia = ColombiaTime.AColombia(value);
-        var conOffset = new DateTimeOffset(DateTime.SpecifyKind(enColombia, DateTimeKind.Unspecified), ColombiaTime.Offset);
+        var enColombia = value.Kind == DateTimeKind.Utc
+            ? ColombiaTime.AColombia(value)
+            : DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
+
+        var conOffset = new DateTimeOffset(enColombia, ColombiaTime.Offset);
 
         writer.WriteStringValue(conOffset.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture));
     }

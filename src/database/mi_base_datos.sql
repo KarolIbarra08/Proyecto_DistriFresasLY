@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS Proveedores (
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS Producto (
-    id_producto INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_producto INTEGER PRIMARY KEY,
     tipo_producto TEXT NOT NULL CHECK (tipo_producto IN ('Fresa', 'Insumo'))
 );
 

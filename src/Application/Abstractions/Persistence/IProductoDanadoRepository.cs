@@ -1,4 +1,5 @@
 using DistriFresasLY.Domain.Entities.ProductosDanados;
+
 namespace DistriFresasLY.Application.Abstractions.Persistence;
 
 public interface IProductoDanadoRepository
@@ -7,4 +8,5 @@ public interface IProductoDanadoRepository
     Task<IReadOnlyList<ProductoDanado>> ObtenerTodosAsync(CancellationToken cancellationToken = default);
     Task<int> AgregarAsync(ProductoDanado productoDanado, CancellationToken cancellationToken = default);
     Task ActualizarAsync(ProductoDanado productoDanado, CancellationToken cancellationToken = default);
+    Task EliminarAsync(int id, CancellationToken cancellationToken = default);
 }

@@ -130,6 +130,20 @@ public class RolRepository : IRolRepository
             .ToList();
     }
 
+    public async Task<bool> TieneUsuariosAsociadosAsync(int idRol, CancellationToken cancellationToken = default)
+    {
+        using var conexion = _connectionFactory.CrearConexion();
+        const string sql = """
+            SELECT EXISTS (
+                SELECT 1 FROM Usuarios
+                WHERE id_rol = @IdRol
+            );
+            """;
+
+        return await conexion.ExecuteScalarAsync<bool>(
+            new CommandDefinition(sql, new { IdRol = idRol }, cancellationToken: cancellationToken));
+    }
+
     public async Task<int> AgregarAsync(Rol rol, CancellationToken cancellationToken = default)
     {
         using var conexion = _connectionFactory.CrearConexion();
@@ -208,12 +222,10 @@ public class RolRepository : IRolRepository
             await conexion.ExecuteAsync(
                 new CommandDefinition(sqlRol, parametrosRol, transaction: transaccion, cancellationToken: cancellationToken));
 
-
             const string sqlDeletePermisos = "DELETE FROM RolPermisos WHERE id_rol = @IdRol;";
             await conexion.ExecuteAsync(
                 new CommandDefinition(sqlDeletePermisos, new { IdRol = rol.Id }, transaction: transaccion, cancellationToken: cancellationToken));
 
-    
             if (rol.Permisos.Count > 0)
             {
                 const string sqlInsertPermisos = """

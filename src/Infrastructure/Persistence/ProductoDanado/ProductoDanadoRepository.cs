@@ -1,4 +1,3 @@
-using System.Data;
 using Dapper;
 using DistriFresasLY.Application.Abstractions.Persistence;
 using DistriFresasLY.Domain.Entities.ProductosDanados;
@@ -74,10 +73,10 @@ public class ProductoDanadoRepository : IProductoDanadoRepository
         {
             IdProducto = productoDanado.ProductoId,
             TipoProducto = productoDanado.TipoProducto,
-            Cantidad = productoDanado.Cantidad.Value, 
+            Cantidad = productoDanado.Cantidad.Value,
             Identificacion = productoDanado.Identificacion,
             Valor = (double)productoDanado.Valor,
-           FechaProductoDanado = productoDanado.FechaProductoDanado,
+            FechaProductoDanado = productoDanado.FechaProductoDanado.ToString("yyyy-MM-dd HH:mm:ss"),
             Motivo = productoDanado.Motivo
         };
 
@@ -105,14 +104,23 @@ public class ProductoDanadoRepository : IProductoDanadoRepository
             Id = productoDanado.Id,
             IdProducto = productoDanado.ProductoId,
             TipoProducto = productoDanado.TipoProducto,
-            Cantidad = productoDanado.Cantidad.Value, 
+            Cantidad = productoDanado.Cantidad.Value,
             Identificacion = productoDanado.Identificacion,
             Valor = (double)productoDanado.Valor,
-            FechaProductoDanado = productoDanado.FechaProductoDanado,
+            FechaProductoDanado = productoDanado.FechaProductoDanado.ToString("yyyy-MM-dd HH:mm:ss"),
             Motivo = productoDanado.Motivo
         };
 
         await conexion.ExecuteAsync(
             new CommandDefinition(sql, parametros, cancellationToken: cancellationToken));
+    }
+
+    public async Task EliminarAsync(int id, CancellationToken cancellationToken = default)
+    {
+        using var conexion = _connectionFactory.CrearConexion();
+        const string sql = "DELETE FROM ProductoDanado WHERE id_producto_danado = @Id;";
+
+        await conexion.ExecuteAsync(
+            new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
     }
 }
