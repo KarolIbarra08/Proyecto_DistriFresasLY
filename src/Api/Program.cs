@@ -4,10 +4,13 @@ using System.Text.Json.Serialization;
 using DistriFresasLY.Api.Endpoints;
 using DistriFresasLY.Api.Middleware;
 using DistriFresasLY.Application.Clientes;
+using DistriFresasLY.Application.DetalleRecepciones;
+using DistriFresasLY.Application.Inventarios;
 using DistriFresasLY.Application.Pedidos;
 using DistriFresasLY.Application.Productos;
 using DistriFresasLY.Application.ProductosDanados;
 using DistriFresasLY.Application.Proveedores;
+using DistriFresasLY.Application.Recepciones;
 using DistriFresasLY.Application.Roles;
 using DistriFresasLY.Application.Usuarios;
 using DistriFresasLY.Domain.Common;
@@ -80,6 +83,29 @@ builder.Services.AddScoped<RegistrarProductoDanadoUseCase>();
 builder.Services.AddScoped<ActualizarProductoDanadoUseCase>();
 builder.Services.AddScoped<EliminarProductoDanadoUseCase>();
 builder.Services.AddScoped<CalcularDescuentoProductoDanadoUseCase>();
+
+// Módulo Recepciones y DetalleRecepciones
+builder.Services.AddScoped<ListarRecepcionesUseCase>();
+builder.Services.AddScoped<ObtenerRecepcionUseCase>();
+builder.Services.AddScoped<RegistrarRecepcionUseCase>();
+builder.Services.AddScoped<ActualizarRecepcionUseCase>();
+builder.Services.AddScoped<EliminarRecepcionUseCase>();
+builder.Services.AddScoped<ProcesarRecepcionUseCase>();
+builder.Services.AddScoped<CalcularTotalRecepcionUseCase>();
+builder.Services.AddScoped<ObtenerDetallesRecepcionUseCase>();
+
+builder.Services.AddScoped<ListarDetallesRecepcionUseCase>();
+builder.Services.AddScoped<ObtenerDetalleRecepcionUseCase>();
+builder.Services.AddScoped<RegistrarDetalleRecepcionUseCase>();
+builder.Services.AddScoped<ActualizarDetalleRecepcionUseCase>();
+builder.Services.AddScoped<EliminarDetalleRecepcionUseCase>();
+
+// Módulo Inventario
+builder.Services.AddScoped<ConsultarTodoInventarioUseCase>();
+builder.Services.AddScoped<ConsultarStockUseCase>();
+builder.Services.AddScoped<AjustarStockUseCase>();
+builder.Services.AddScoped<AumentarStockUseCase>();
+builder.Services.AddScoped<DisminuirStockUseCase>();
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
