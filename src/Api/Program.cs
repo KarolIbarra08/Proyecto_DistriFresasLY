@@ -6,13 +6,16 @@ using DistriFresasLY.Api.Middleware;
 using DistriFresasLY.Application.Clientes;
 using DistriFresasLY.Application.DetalleRecepciones;
 using DistriFresasLY.Application.Inventarios;
+using DistriFresasLY.Application.Pagos;
 using DistriFresasLY.Application.Pedidos;
 using DistriFresasLY.Application.Productos;
 using DistriFresasLY.Application.ProductosDanados;
 using DistriFresasLY.Application.Proveedores;
+using DistriFresasLY.Application.Recibos;
 using DistriFresasLY.Application.Recepciones;
 using DistriFresasLY.Application.Roles;
 using DistriFresasLY.Application.Usuarios;
+using DistriFresasLY.Application.Ventas;
 using DistriFresasLY.Domain.Common;
 using DistriFresasLY.Infrastructure;
 using Scalar.AspNetCore;
@@ -55,6 +58,32 @@ builder.Services.AddScoped<ObtenerPedidoPorIdUseCase>();
 builder.Services.AddScoped<RegistrarPedidoUseCase>();
 builder.Services.AddScoped<ActualizarPedidoUseCase>();
 builder.Services.AddScoped<EliminarPedidoUseCase>();
+
+// Módulo Ventas
+builder.Services.AddScoped<ListarVentasUseCase>();
+builder.Services.AddScoped<ObtenerVentaUseCase>();
+builder.Services.AddScoped<ObtenerDetallesVentaUseCase>();
+builder.Services.AddScoped<RegistrarVentaUseCase>();
+builder.Services.AddScoped<ActualizarVentaUseCase>();
+builder.Services.AddScoped<EliminarVentaUseCase>();
+
+// Módulo Pagos (Clientes y Proveedores)
+builder.Services.AddScoped<ListarPagosClientesUseCase>();
+builder.Services.AddScoped<ObtenerPagoClienteUseCase>();
+builder.Services.AddScoped<RegistrarPagoClienteUseCase>();
+builder.Services.AddScoped<ActualizarPagoClienteUseCase>();
+builder.Services.AddScoped<EliminarPagoClienteUseCase>();
+
+builder.Services.AddScoped<ListarPagosProveedoresUseCase>();
+builder.Services.AddScoped<ObtenerPagoProveedorUseCase>();
+builder.Services.AddScoped<RegistrarPagoProveedorUseCase>();
+builder.Services.AddScoped<ActualizarPagoProveedorUseCase>();
+builder.Services.AddScoped<EliminarPagoProveedorUseCase>();
+
+// Módulo Recibos
+builder.Services.AddScoped<ListarRecibosUseCase>();
+builder.Services.AddScoped<GenerarReciboUseCase>();
+builder.Services.AddScoped<ImprimirReciboUseCase>();
 
 // Módulo Proveedores
 builder.Services.AddScoped<ObtenerProveedoresUseCase>();
